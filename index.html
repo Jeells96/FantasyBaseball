@@ -10,7 +10,7 @@
 :root{--bg:#0a0c10;--sur:#111318;--sur2:#181c24;--bdr:#252a35;--acc:#e8c84b;--acc2:#4b8fe8;--red:#e84b4b;--grn:#4be87a;--txt:#d4d8e0;--dim:#6b7280;--brt:#f0f2f6}
 *{-webkit-box-sizing:border-box;box-sizing:border-box;margin:0;padding:0}
 html,body{height:-webkit-fill-available}
-body{background:var(--bg);color:var(--txt);font-family:"DM Mono",monospace;min-height:100vh}
+body{background:var(--bg);color:var(--txt);font-family:"DM Mono",monospace;min-height:100vh;overflow-x:hidden}
 
 nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10,12,16,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(–bdr);padding:0 1.25rem;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;height:52px;gap:.5rem}
 .brand{font-family:“Bebas Neue”,sans-serif;font-size:1.3rem;color:var(–acc);letter-spacing:2px;white-space:nowrap;cursor:pointer;-webkit-flex-shrink:0;flex-shrink:0}
@@ -26,7 +26,7 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin-icon{display:inline-block}
 
-.page{display:none}.page.active{display:block}
+.page{display:none;overflow-x:hidden}.page.active{display:block;overflow-x:hidden}
 
 /* TOAST */
 .toast{position:fixed;bottom:1.25rem;right:1.25rem;background:var(–sur);border:1px solid var(–bdr);border-radius:6px;padding:.5rem 1rem;font-size:.72rem;font-family:“Barlow Condensed”,sans-serif;letter-spacing:1px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300;max-width:260px}
@@ -72,7 +72,7 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 .cap-bar-fill{height:100%;border-radius:4px;transition:width .3s,background .3s}
 .cap-bar-lbls{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;margin-top:.3rem;font-size:.6rem;color:var(–dim)}
 
-.roster-outer{padding:.6rem 0 3rem;overflow:hidden;max-width:100vw}
+.roster-outer{padding:.6rem 0 3rem}
 .roster-hint{font-size:.62rem;color:var(–dim);margin-bottom:.4rem;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem;padding:0 1rem}
 .hint-box{width:10px;height:10px;border:1px dashed var(–dim);border-radius:1px;display:inline-block;-webkit-flex-shrink:0;flex-shrink:0}
 .rt-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0;width:100%;-webkit-overflow-scrolling:touch}
