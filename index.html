@@ -783,7 +783,7 @@ function buildTeamTable(tn){
     var cval=getC(tn,i);var carried=isCarried(tn,i);var cNum=parseInt(cval)||0;
     var _entry=getEntry(tn,i);var _cleared=_entry&&_entry.cleared;
     var needsDrop=_entry&&!_cleared&&(cNum===0);
-    var injTag=p.injured?'<span class="inj-tag">'+p.injured.replace(/_/g,' ')+'</span>':'';
+    var injTag=p.injured?'<span class="inj-tag">IL</span>':'';
     var nameStyle=needsDrop?'color:var(--red);text-decoration:line-through':'';
     var dropBadge=needsDrop?'<span class="drop-tag">DROP \u2715</span>':'';
     var lockIcon=carried&&cNum>0?'<span class="lock-icon">\ud83d\udd12</span>':'';
