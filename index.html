@@ -93,7 +93,7 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 .pname{font-weight:400;color:var(–brt)}
 .arb-tag{display:inline-block;font-size:.30rem;font-family:“Barlow Condensed”,sans-serif;font-weight:400;letter-spacing:1px;color:var(–acc);background:rgba(232,200,75,.1);border:1px solid rgba(232,200,75,.35);border-radius:2px;padding:.06rem .26rem;margin-left:.3rem;vertical-align:middle}
 .inj-tag{display:inline-block;font-size:.30rem;font-family:“Barlow Condensed”,sans-serif;font-weight:700;letter-spacing:1px;color:var(–red);background:rgba(232,75,75,.1);border:1px solid rgba(232,75,75,.35);border-radius:2px;padding:.06rem .26rem;margin-left:.3rem;vertical-align:middle}
-.ci{background:rgba(232,200,75,.08);border:none;border-bottom:1px solid var(–acc);color:var(–acc);-webkit-text-fill-color:var(–acc);font-family:“DM Mono”,monospace;font-size:.30rem;width:50px;text-align:center;padding:.06rem .1rem;outline:none;-webkit-appearance:none;appearance:none;display:block;margin:0 auto;border-radius:2px}
+.ci{background:rgba(232,200,75,.08);border:none;border-bottom:1px solid var(–acc);color:var(–brt);-webkit-text-fill-color:var(–brt);font-family:“DM Mono”,monospace;font-size:.30rem;width:50px;text-align:center;padding:.06rem .1rem;outline:none;-webkit-appearance:none;appearance:none;display:block;margin:0 auto;border-radius:2px}
 .ci:focus{border-bottom-color:var(–acc);background:rgba(232,200,75,.15)}
 .ci::placeholder{color:var(–bdr)}
 .yval{color:var(–dim);font-size:.30rem}
@@ -788,7 +788,7 @@ function buildTeamTable(tn){
     var dropBadge=needsDrop?'<span class="drop-tag">DROP \u2715</span>':'';
     var lockIcon=carried&&cNum>0?'<span class="lock-icon">\ud83d\udd12</span>':'';
     var yearCells=YRS.map(function(_,yi){return '<td class="yval muted" id="y-'+tn+'-'+i+'-'+yi+'">&mdash;</td>';}).join('');
-    var inputEl=carried?'<div class="ci-carried" id="ci-'+tn+'-'+i+'">'+(cNum>0?cNum:'&mdash;')+'</div>':'<input type="number" min="0" max="20" step="1" class="ci" id="ci-'+tn+'-'+i+'" value="'+cval+'" placeholder="&mdash;" oninput="onC(\''+tn+'\','+i+')" onchange="onC(\''+tn+'\','+i+')">';
+    var inputEl=carried?'<div class="ci-carried" id="ci-'+tn+'-'+i+'">'+(cNum>0?cNum:'&mdash;')+'</div>':'<input type="number" min="0" max="20" step="1" class="ci" id="ci-'+tn+'-'+i+'" value="'+cval+'" placeholder="&mdash;" onkeydown="ciKeyDown(event,this)" oninput="onC(\''+tn+'\','+i+')" onchange="onC(\''+tn+'\','+i+')">';
     return '<tr class="'+(needsDrop?'row-drop':'')+'">'+'<td><span class="slot '+sk+'">'+p.slot+'</span></td>'+'<td>'+(p.age||'?')+'</td>'+'<td class="pname"><span style="'+nameStyle+';cursor:pointer" onclick="openPlayerCard(\''+tn+'\','+i+')">'+p.name+'</span>'+(arb?'<span class="arb-tag">ARB</span>':'')+dropBadge+lockIcon+injTag+'</td>'+'<td>'+aavDisp+'</td>'+'<td>'+inputEl+'</td>'+yearCells+'</tr>';
   }).join('');
   var totCells=YRS.map(function(_,yi){return '<td class="'+(yi===0?'y26':'')+'" id="tt-'+tn+'-'+yi+'"></td>';}).join('');
@@ -1374,6 +1374,34 @@ function openESPNQueriesModal(){
     if(fp&&q.fa)fp.textContent=q.fa.value.substring(0,55)+'...';
   }
   openModal('espnQueriesModal');
+}
+
+function ciKeyDown(e,tn,i){
+  if(e.key!=='Enter'&&e.keyCode!==13)return;
+  e.preventDefault();
+  var players=ROSTER[tn]||[];
+  for(var j=i+1;j<players.length;j++){
+    if(!isCarried(tn,j)){
+      var next=document.getElementById('ci-'+tn+'-'+j);
+      if(next&&next.tagName==='INPUT'){next.focus();next.select();return;}
+    }
+  }
+}
+
+function ciKeyDown(e,inp){
+  if(e.key!=='Enter'&&e.keyCode!==13)return;
+  e.preventDefault();
+  var id=inp.id;// ci-TeamName-index
+  var parts=id.split('-');
+  var i=parseInt(parts[parts.length-1]);
+  var tn=parts.slice(1,parts.length-1).join('-');
+  var players=ROSTER[tn]||[];
+  for(var j=i+1;j<players.length;j++){
+    if(!isCarried(tn,j)){
+      var next=document.getElementById('ci-'+tn+'-'+j);
+      if(next&&next.tagName==='INPUT'){next.focus();next.select();return;}
+    }
+  }
 }
 loadContracts();
 try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){JSON.parse(cs).forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});}}catch(e){}
