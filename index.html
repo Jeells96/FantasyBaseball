@@ -783,35 +783,46 @@ function loadContracts(){
   // Load from localStorage first (instant)
   try{CONTRACTS=JSON.parse(localStorage.getItem(LS_C)||'{}');}catch(e){CONTRACTS={};}
   // Then load from Firestore and override (async)
+  var _cloudLoadAttempts=0;
   function tryCloudLoad(){
-    if(!window.loadContractsCloud){setTimeout(tryCloudLoad,200);return;}
+    _cloudLoadAttempts++;
+    if(!window.loadContractsCloud){
+      if(_cloudLoadAttempts<30){setTimeout(tryCloudLoad,300);}
+      else{console.warn('Firebase never loaded');}
+      return;
+    }
     window.loadContractsCloud().then(function(cloudContracts){
-      if(cloudContracts && Object.keys(cloudContracts).length > 0){
+      if(cloudContracts && Object.keys(cloudContracts).length>0){
         CONTRACTS=cloudContracts;
         try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
         if(currentTeam){teamBuilt[currentTeam]=false;buildTeamTable(currentTeam);updateTeamCells(currentTeam);}
         renderLeague();
-        showToast('\u2713 Synced from cloud','green',1500);
+        showToast('\u2713 Synced','green',1500);
       }
-      // Start real-time listener after initial load
-      window.startContractsListener(function(cloudContracts){
-        if(JSON.stringify(cloudContracts)===JSON.stringify(CONTRACTS))return;
-        CONTRACTS=cloudContracts;
-        try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
-        if(currentTeam){teamBuilt[currentTeam]=false;buildTeamTable(currentTeam);updateTeamCells(currentTeam);}
-        renderLeague();
-        showToast('\u21bb Contracts updated','green',1500);
-      });
-    });
+      // Start real-time listener
+      if(window.startContractsListener){
+        window.startContractsListener(function(incoming){
+          if(JSON.stringify(incoming)===JSON.stringify(CONTRACTS))return;
+          CONTRACTS=incoming;
+          try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
+          if(currentTeam){teamBuilt[currentTeam]=false;buildTeamTable(currentTeam);updateTeamCells(currentTeam);}
+          renderLeague();
+          showToast('\u21bb Live update','green',1500);
+        });
+      }
+    }).catch(function(err){console.warn('Cloud load error:',err);});
   }
-  tryCloudLoad();
+  setTimeout(tryCloudLoad,500);
 }
 function saveContracts(){
   try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
   // Save to Firestore
-  if(window.saveContractsCloud){
-    window.saveContractsCloud(CONTRACTS);
+  var _saveAttempts=0;
+  function trySave(){
+    if(window.saveContractsCloud){window.saveContractsCloud(CONTRACTS);}
+    else if(_saveAttempts++<10){setTimeout(trySave,300);}
   }
+  trySave();
   showToast('\u2713 Saved','green',1400);
 }
 function ckey(tn,i){var p=(ROSTER[tn]||[])[i];return p?'player|'+p.name:'player|unk_'+tn+'_'+i;}
