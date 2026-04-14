@@ -906,6 +906,14 @@ function buildTeamTable(tn){
   var pctCells=YRS.map(function(_,yi){return '<td id="tp-'+tn+'-'+yi+'"></td>';}).join('');
   tbody.innerHTML=rows+'<tr class="tr-tot"><td colspan="3" style="text-align:left;font-size:.30rem">Total Salary</td><td></td><td></td>'+totCells+'</tr>'+'<tr class="tr-cap"><td colspan="3" style="text-align:left;font-size:.30rem;color:#6b7280">Salary Cap</td><td></td><td></td>'+capCells+'</tr>'+'<tr class="tr-pct"><td colspan="3" style="text-align:left;font-size:.30rem;color:#6b7280">Cap Used</td><td></td><td></td>'+pctCells+'</tr>';
   setTimeout(applyTableFont,50);
+  // Force input text color (Safari fix for synced values)
+  setTimeout(function(){
+    var inputs=document.querySelectorAll('.ci');
+    inputs.forEach(function(inp){
+      inp.style.color='#f0f2f6';
+      inp.style.webkitTextFillColor='#f0f2f6';
+    });
+  },60);
   
 }
 function onC(tn,i){if(isCarried(tn,i))return;var inp=document.getElementById('ci-'+tn+'-'+i);if(!inp||inp.tagName!=='INPUT')return;setC(tn,i,inp.value);updateTeamCells(tn);renderLeague();}
