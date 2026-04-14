@@ -385,6 +385,72 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 .rt th:nth-child(4),.rt td:nth-child(4){text-align:right}
 </style>
 
+<!-- Firebase SDK -->
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCU7ZOT2idI2hv1yQE5TpOYk8Bt4GQ5KhM",
+  authDomain: "fantasy-baseball-428e9.firebaseapp.com",
+  projectId: "fantasy-baseball-428e9",
+  storageBucket: "fantasy-baseball-428e9.firebasestorage.app",
+  messagingSenderId: "895356000680",
+  appId: "1:895356000680:web:c4d18f4099e83927a9659d"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+
+// ── Expose to global scope for use in main script ─────────────
+window._db = db;
+window._fsDoc = doc;
+window._fsSetDoc = setDoc;
+window._fsGetDoc = getDoc;
+window._fsOnSnapshot = onSnapshot;
+window._fsCollection = collection;
+window._fbReady = true;
+
+// ── Save contracts to Firestore ───────────────────────────────
+window.saveContractsCloud = async function(contracts) {
+  if(!window._db) return;
+  try {
+    await setDoc(doc(db, 'league', 'contracts'), {
+      data: JSON.stringify(contracts),
+      updated: new Date().toISOString()
+    });
+  } catch(e) {
+    console.warn('Firestore save failed:', e);
+  }
+};
+
+// ── Load contracts from Firestore once ───────────────────────
+window.loadContractsCloud = async function() {
+  if(!window._db) return null;
+  try {
+    const snap = await getDoc(doc(db, 'league', 'contracts'));
+    if(snap.exists()) return JSON.parse(snap.data().data);
+  } catch(e) {
+    console.warn('Firestore load failed:', e);
+  }
+  return null;
+};
+
+// ── Real-time listener ────────────────────────────────────────
+window.startContractsListener = function(callback) {
+  if(!window._db) return;
+  return onSnapshot(doc(db, 'league', 'contracts'), (snap) => {
+    if(snap.exists()) {
+      try {
+        const contracts = JSON.parse(snap.data().data);
+        callback(contracts);
+      } catch(e) {}
+    }
+  });
+};
+</script>
+
 </head>
 <body>
 
@@ -713,8 +779,41 @@ function loadCachedRoster(){try{var r=JSON.parse(localStorage.getItem('dyn26_v3_
 function saveCachedRoster(){try{localStorage.setItem('dyn26_v3_roster',JSON.stringify(ROSTER));var now=new Date();rosterLoadTime=now;localStorage.setItem('dyn26_v3_updated',now.toISOString());}catch(e){}}
 var CONTRACTS={};
 var LS_C='dyn26_v3_contracts';
-function loadContracts(){try{CONTRACTS=JSON.parse(localStorage.getItem(LS_C)||'{}');}catch(e){CONTRACTS={};}}
-function saveContracts(){try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}showToast('\u2713 Saved','green',1400);}
+function loadContracts(){
+  // Load from localStorage first (instant)
+  try{CONTRACTS=JSON.parse(localStorage.getItem(LS_C)||'{}');}catch(e){CONTRACTS={};}
+  // Then load from Firestore and override (async)
+  function tryCloudLoad(){
+    if(!window.loadContractsCloud){setTimeout(tryCloudLoad,200);return;}
+    window.loadContractsCloud().then(function(cloudContracts){
+      if(cloudContracts && Object.keys(cloudContracts).length > 0){
+        CONTRACTS=cloudContracts;
+        try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
+        if(currentTeam){teamBuilt[currentTeam]=false;buildTeamTable(currentTeam);updateTeamCells(currentTeam);}
+        renderLeague();
+        showToast('\u2713 Synced from cloud','green',1500);
+      }
+      // Start real-time listener after initial load
+      window.startContractsListener(function(cloudContracts){
+        if(JSON.stringify(cloudContracts)===JSON.stringify(CONTRACTS))return;
+        CONTRACTS=cloudContracts;
+        try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
+        if(currentTeam){teamBuilt[currentTeam]=false;buildTeamTable(currentTeam);updateTeamCells(currentTeam);}
+        renderLeague();
+        showToast('\u21bb Contracts updated','green',1500);
+      });
+    });
+  }
+  tryCloudLoad();
+}
+function saveContracts(){
+  try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
+  // Save to Firestore
+  if(window.saveContractsCloud){
+    window.saveContractsCloud(CONTRACTS);
+  }
+  showToast('\u2713 Saved','green',1400);
+}
 function ckey(tn,i){var p=(ROSTER[tn]||[])[i];return p?'player|'+p.name:'player|unk_'+tn+'_'+i;}
 function getC(tn,i){var k=ckey(tn,i);var e=CONTRACTS[k];if(!e)return '';if(e.cleared)return '';return e.years===0?'0':String(e.years||'');}
 function getEntry(tn,i){return CONTRACTS[ckey(tn,i)]||null;}
