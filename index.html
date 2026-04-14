@@ -75,21 +75,14 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 .roster-outer{padding:.6rem 0 3rem}
 .roster-hint{font-size:.62rem;color:var(–dim);margin-bottom:.4rem;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem;padding:0 1rem}
 .hint-box{width:10px;height:10px;border:1px dashed var(–dim);border-radius:1px;display:inline-block;-webkit-flex-shrink:0;flex-shrink:0}
-.rt-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0;width:100%;-webkit-overflow-scrolling:touch}
-.rt{width:100%;border-collapse:separate;border-spacing:0;font-size:.72rem}
-.rt thead th{font-family:“Barlow Condensed”,sans-serif;font-size:.62rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);padding:.4rem .4rem;text-align:right;border-bottom:2px solid var(–bdr);white-space:nowrap;background:var(–bg)}
-.rt thead th:nth-child(1){position:-webkit-sticky;position:sticky;left:0;z-index:3;background:var(–bg)}
-.rt thead th:nth-child(2){position:-webkit-sticky;position:sticky;left:42px;z-index:3;background:var(–bg)}
-.rt thead th:nth-child(3){position:-webkit-sticky;position:sticky;left:82px;z-index:3;background:var(–bg);border-right:1px solid var(–bdr)}
+.rt-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rt{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:.30rem}
+.rt thead th{font-family:“Barlow Condensed”,sans-serif;font-size:.30rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(–dim);padding:.22rem .08rem;text-align:right;border-bottom:2px solid var(–bdr);white-space:nowrap;background:var(–bg)}
 .rt thead th:nth-child(-n+4){text-align:left}
 .rt tbody tr:hover td{background:rgba(255,255,255,.02)}
-.rt tbody tr:hover td:nth-child(1),.rt tbody tr:hover td:nth-child(2),.rt tbody tr:hover td:nth-child(3){background:var(–sur)}
-.rt td{padding:.45rem .4rem;border-bottom:1px solid rgba(37,42,53,.4);text-align:right;vertical-align:middle;white-space:nowrap}
-.rt td:nth-child(1){position:-webkit-sticky;position:sticky;left:0;z-index:2;background:var(–bg)}
-.rt td:nth-child(2){position:-webkit-sticky;position:sticky;left:42px;z-index:2;background:var(–bg)}
-.rt td:nth-child(3){position:-webkit-sticky;position:sticky;left:82px;z-index:2;background:var(–bg);border-right:1px solid var(–bdr)}
+.rt td{padding:.22rem .08rem;border-bottom:1px solid rgba(37,42,53,.4);text-align:right;vertical-align:middle;white-space:nowrap;font-size:.30rem}
 .rt td:nth-child(-n+4){text-align:left}
-.slot{display:inline-block;font-family:“Barlow Condensed”,sans-serif;font-size:.67rem;font-weight:700;letter-spacing:.5px;padding:.1rem .35rem;border-radius:3px;background:var(–sur2);border:1px solid var(–bdr);color:var(–dim)}
+.slot{display:inline-block;font-family:“Barlow Condensed”,sans-serif;font-size:.30rem;font-weight:400;letter-spacing:.5px;padding:.1rem .35rem;border-radius:3px;background:var(–sur2);border:1px solid var(–bdr);color:var(–dim)}
 .slot.C{color:#a78bfa;border-color:#a78bfa55}
 .slot.s1B,.slot.s2B,.slot.s3B,.slot.SS{color:var(–acc2);border-color:#4b8fe855}
 .slot.OF{color:#34d399;border-color:#34d39955}
@@ -97,17 +90,17 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 .slot.UTIL{color:#e879f9;border-color:#e879f955}
 .slot.Bench{color:var(–dim);border-color:var(–bdr)}
 .slot.IL{color:var(–red);border-color:#e84b4b55}
-.pname{font-weight:500;color:var(–brt)}
-.arb-tag{display:inline-block;font-size:.56rem;font-family:“Barlow Condensed”,sans-serif;font-weight:700;letter-spacing:1px;color:var(–acc);background:rgba(232,200,75,.1);border:1px solid rgba(232,200,75,.35);border-radius:2px;padding:.06rem .26rem;margin-left:.3rem;vertical-align:middle}
-.inj-tag{display:inline-block;font-size:.56rem;font-family:“Barlow Condensed”,sans-serif;font-weight:700;letter-spacing:1px;color:var(–red);background:rgba(232,75,75,.1);border:1px solid rgba(232,75,75,.35);border-radius:2px;padding:.06rem .26rem;margin-left:.3rem;vertical-align:middle}
-.ci{background:rgba(232,200,75,.08);border:none;border-bottom:1px solid var(–acc);color:var(–acc);-webkit-text-fill-color:var(–acc);font-family:“DM Mono”,monospace;font-size:.77rem;width:50px;text-align:center;padding:.06rem .1rem;outline:none;-webkit-appearance:none;appearance:none;display:block;margin:0 auto;border-radius:2px}
+.pname{font-weight:400;color:var(–brt)}
+.arb-tag{display:inline-block;font-size:.30rem;font-family:“Barlow Condensed”,sans-serif;font-weight:400;letter-spacing:1px;color:var(–acc);background:rgba(232,200,75,.1);border:1px solid rgba(232,200,75,.35);border-radius:2px;padding:.06rem .26rem;margin-left:.3rem;vertical-align:middle}
+.inj-tag{display:inline-block;font-size:.30rem;font-family:“Barlow Condensed”,sans-serif;font-weight:700;letter-spacing:1px;color:var(–red);background:rgba(232,75,75,.1);border:1px solid rgba(232,75,75,.35);border-radius:2px;padding:.06rem .26rem;margin-left:.3rem;vertical-align:middle}
+.ci{background:rgba(232,200,75,.08);border:none;border-bottom:1px solid var(–acc);color:var(–acc);-webkit-text-fill-color:var(–acc);font-family:“DM Mono”,monospace;font-size:.30rem;width:50px;text-align:center;padding:.06rem .1rem;outline:none;-webkit-appearance:none;appearance:none;display:block;margin:0 auto;border-radius:2px}
 .ci:focus{border-bottom-color:var(–acc);background:rgba(232,200,75,.15)}
 .ci::placeholder{color:var(–bdr)}
-.yval{color:var(–dim);font-size:.74rem}
-.yval.cur{color:var(–brt);font-weight:600}
+.yval{color:var(–dim);font-size:.30rem}
+.yval.cur{color:var(–brt)}
 .yval.muted{color:var(–bdr)}
-.tr-tot td,.tr-cap td,.tr-pct td{border-bottom:none!important;font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;color:var(–dim)}
-.tr-tot td{border-top:2px solid var(–bdr)!important;padding-top:.85rem;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.tr-tot td,.tr-cap td,.tr-pct td{border-bottom:none!important;font-family:“Barlow Condensed”,sans-serif;font-size:.30rem;color:var(–dim)}
+.tr-tot td{border-top:2px solid var(–bdr)!important;padding-top:.5rem;font-weight:400;letter-spacing:1px;text-transform:uppercase}
 .y26{color:var(–acc)!important}
 
 /* SALARIES DB */
@@ -238,9 +231,9 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 .import-pill:hover{color:var(–txt);border-color:var(–txt)}
 
 /* SEASON ADVANCE */
-.drop-tag{display:inline-block;font-size:.56rem;font-family:“Barlow Condensed”,sans-serif;font-weight:700;letter-spacing:1px;color:#fff;background:var(–red);border-radius:2px;padding:.06rem .28rem;margin-left:.35rem;vertical-align:middle}
+.drop-tag{display:inline-block;font-size:.30rem;font-family:“Barlow Condensed”,sans-serif;font-weight:700;letter-spacing:1px;color:#fff;background:var(–red);border-radius:2px;padding:.06rem .28rem;margin-left:.35rem;vertical-align:middle}
 .lock-icon{font-size:.7rem;margin-left:.3rem;vertical-align:middle;opacity:.6;cursor:help}
-.ci-carried{background:rgba(75,143,232,.12);border:none;border-bottom:1px solid var(–acc2);color:var(–acc2);-webkit-text-fill-color:var(–acc2);font-family:“DM Mono”,monospace;font-size:.77rem;width:50px;text-align:center;padding:.06rem .1rem;display:block;margin:0 auto;border-radius:2px;font-weight:600}
+.ci-carried{background:rgba(75,143,232,.12);border:none;border-bottom:1px solid var(–acc2);color:var(–acc2);-webkit-text-fill-color:var(–acc2);font-family:“DM Mono”,monospace;font-size:.30rem;width:50px;text-align:center;padding:.06rem .1rem;display:block;margin:0 auto;border-radius:2px;font-weight:600}
 .row-drop td{background:rgba(232,75,75,.04)!important}
 .advance-btn{font-family:“Barlow Condensed”,sans-serif;font-size:.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(–acc);padding:.5rem 1.25rem;border:2px solid var(–acc);background:rgba(232,200,75,.08);cursor:pointer;border-radius:6px;-webkit-appearance:none;transition:all .2s;width:100%;margin-top:.5rem}
 .advance-btn:hover{background:rgba(232,200,75,.2)}
@@ -377,6 +370,20 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 .rt th:nth-child(3){min-width:80px}
 .rt th:nth-child(4){width:52px;min-width:48px}
 .rt th:nth-child(5){width:52px;min-width:48px}
+
+/* Fixed column widths — fills full screen, scrolls for all 10 years */
+.rt col:nth-child(1){width:5%}
+.rt col:nth-child(2){width:4%}
+.rt col:nth-child(3){width:28%}
+.rt col:nth-child(4){width:9%}
+.rt col:nth-child(5){width:7%}
+.rt col:nth-child(n+6){width:4.7%}
+.rt td,.rt th{overflow:hidden}
+.team-name-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.75rem;padding:.45rem 0;border-bottom:1px solid rgba(37,42,53,.4)}
+.team-name-row:last-child{border-bottom:none}
+.team-name-label{font-family:“Barlow Condensed”,sans-serif;font-size:.72rem;font-weight:600;letter-spacing:1px;color:var(–dim);width:60px;flex-shrink:0}
+.team-name-input{-webkit-flex:1;flex:1;background:var(–bg);border:1px solid var(–bdr);border-radius:4px;color:var(–brt);-webkit-text-fill-color:var(–brt);font-family:“DM Mono”,monospace;font-size:.8rem;padding:.35rem .55rem;outline:none;-webkit-appearance:none}
+.team-name-input:focus{border-color:var(–acc)}
 </style>
 
 </head>
@@ -440,10 +447,11 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
     <div class="roster-hint" style="-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center"><span><span class="hint-box"></span> Type contract years &mdash; saves automatically</span><span style="display:-webkit-flex;display:flex;gap:.3rem;-webkit-align-items:center;align-items:center"><button onclick="tableZoom(-1)" style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:600;color:var(--dim);background:none;border:1px solid var(--bdr);border-radius:3px;width:24px;height:24px;cursor:pointer;-webkit-appearance:none;line-height:1;padding:0">&#8722;</button><button onclick="tableZoom(1)" style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:600;color:var(--dim);background:none;border:1px solid var(--bdr);border-radius:3px;width:24px;height:24px;cursor:pointer;-webkit-appearance:none;line-height:1;padding:0">+</button></span></div>
     <div class="rt-scroll">
       <table class="rt">
+        <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
         <thead><tr>
-          <th>Slot</th><th>Age</th><th>Player</th><th>AAV</th><th>Contract</th>
-          <th class="y26">2026</th><th>2027</th><th>2028</th><th>2029</th><th>2030</th>
-          <th>2031</th><th>2032</th><th>2033</th><th>2034</th><th>2035</th>
+          <th>Slot</th><th>Age</th><th>Player</th><th>AAV</th><th>Yrs</th>
+          <th class="y26" id="yr0hdr">2026</th><th id="yr1hdr">2027</th><th id="yr2hdr">2028</th><th id="yr3hdr">2029</th><th id="yr4hdr">2030</th>
+          <th id="yr5hdr">2031</th><th id="yr6hdr">2032</th><th id="yr7hdr">2033</th><th id="yr8hdr">2034</th><th id="yr9hdr">2035</th>
         </tr></thead>
         <tbody id="rosterBody"></tbody>
       </table>
@@ -545,6 +553,11 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 </div>
 
 <div class="set-section">
+  <div class="set-section-title">Team Names</div>
+  <button class="set-btn accent" onclick="buildTeamNamesFields();openModal('teamNamesModal')">&#9998; Edit Team Names</button>
+</div>
+
+<div class="set-section">
   <div class="set-section-title">Salary Database</div>
   <div class="set-actions">
     <button class="set-btn accent" onclick="document.getElementById('salImport').click()">&#8679; Import Salary Excel</button>
@@ -566,19 +579,7 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 
 <div class="set-section">
   <div class="set-section-title">ESPN API Queries</div>
-  <p style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem">Tap a query to edit. Paste updated Power Query or URL parameters for the new season.</p>
-  <div class="set-card" onclick="openQueryEditor('team_Jaren','Jaren Roster','ESPN API URL for Jaren. Edit forTeamId or season year.')"><div class="set-card-title">Jaren</div><div class="set-card-sub" id="q-team_Jaren-preview">Loading&hellip;</div></div>
-  <div class="set-card" onclick="openQueryEditor('team_Biscuit','Biscuit Roster','ESPN API URL for Biscuit. Edit forTeamId or season year.')"><div class="set-card-title">Biscuit</div><div class="set-card-sub" id="q-team_Biscuit-preview">Loading&hellip;</div></div>
-  <div class="set-card" onclick="openQueryEditor('team_Morgan','Morgan Roster','ESPN API URL for Morgan. Edit forTeamId or season year.')"><div class="set-card-title">Morgan</div><div class="set-card-sub" id="q-team_Morgan-preview">Loading&hellip;</div></div>
-  <div class="set-card" onclick="openQueryEditor('team_John_M','John M Roster','ESPN API URL for John M. Edit forTeamId or season year.')"><div class="set-card-title">John M</div><div class="set-card-sub" id="q-team_John_M-preview">Loading&hellip;</div></div>
-  <div class="set-card" onclick="openQueryEditor('team_Linn','Linn Roster','ESPN API URL for Linn. Edit forTeamId or season year.')"><div class="set-card-title">Linn</div><div class="set-card-sub" id="q-team_Linn-preview">Loading&hellip;</div></div>
-  <div class="set-card" onclick="openQueryEditor('team_John_H','John H Roster','ESPN API URL for John H. Edit forTeamId or season year.')"><div class="set-card-title">John H</div><div class="set-card-sub" id="q-team_John_H-preview">Loading&hellip;</div></div>
-  <div class="set-card" onclick="openQueryEditor('team_Davis','Davis Roster','ESPN API URL for Davis. Edit forTeamId or season year.')"><div class="set-card-title">Davis</div><div class="set-card-sub" id="q-team_Davis-preview">Loading&hellip;</div></div>
-  <div class="set-card" onclick="openQueryEditor('team_Dawson','Dawson Roster','ESPN API URL for Dawson. Edit forTeamId or season year.')"><div class="set-card-title">Dawson</div><div class="set-card-sub" id="q-team_Dawson-preview">Loading&hellip;</div></div>
-  <div class="set-card" onclick="openQueryEditor('fa','Free Agent Query','The ESPN API URL and X-Fantasy-Filter header used to fetch free agents.')">
-    <div class="set-card-title">Free Agent Fetch</div>
-    <div class="set-card-sub" id="q-fa-preview">Loading&hellip;</div>
-  </div>
+  <button class="set-btn accent" onclick="openESPNQueriesModal()">&#9998; Edit API Queries</button>
 </div>
 
 <div class="set-section">
@@ -597,19 +598,12 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 
 <div class="set-section">
   <div class="set-section-title">ARB Players</div>
-  <p style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem;line-height:1.5">Rostered players using the flat ARB rate. Tap any to set a custom AAV.</p>
-  <div id="arbPlayerList"></div>
+  <button class="set-btn accent" onclick="buildArbList();openModal('arbPlayersModal')">&#9998; Edit ARB Players</button>
 </div>
 
 <div class="set-section">
   <div class="set-section-title">League Rules</div>
-  <p style="font-size:.72rem;color:var(--dim);margin-bottom:1rem;line-height:1.5">These values drive all salary calculations. Changes apply immediately.</p>
-  <div id="rulesFields"></div>
-  <div style="display:-webkit-flex;display:flex;gap:.6rem;margin-top:.9rem">
-    <button class="set-btn accent" onclick="saveLeagueRules()">Save Rules</button>
-    <button class="set-btn" onclick="resetLeagueRules()">Reset to Defaults</button>
-  </div>
-  <div style="font-size:.7rem;color:var(--dim);margin-top:.5rem" id="rulesSaveStatus"></div>
+  <button class="set-btn accent" onclick="buildRulesFields();openModal('leagueRulesModal')">&#9998; Edit League Rules</button>
 </div>
 
 <div class="set-section">
@@ -700,12 +694,15 @@ function loadRules(){try{var s=JSON.parse(localStorage.getItem('dyn26_rules')||'
 function saveRules(){try{localStorage.setItem('dyn26_rules',JSON.stringify(RULES));}catch(e){}}
 function ARB(){return RULES.arb;}
 var CURRENT_SEASON=parseInt(localStorage.getItem('dyn26_season')||'2026');
-function buildYRS(){var y=[];for(var i=0;i<RULES.projYears;i++)y.push(CURRENT_SEASON+i);return y;}
+function buildYRS(){var y=[];for(var i=0;i<10;i++)y.push(CURRENT_SEASON+i);return y;}
 var YRS=buildYRS();
 function getBaseCap(){return RULES.baseCap*Math.pow(1+RULES.capGrowth,CURRENT_SEASON-2026);}
 var LEAGUE_ID=69029411;
 var SLOT_MAP={"0":"C","1":"1B","2":"2B","3":"3B","4":"SS","5":"OF","6":"OF","7":"OF","8":"OF","9":"OF","10":"UTIL","11":"UTIL","12":"UTIL","13":"SP","14":"RP","15":"P","16":"Bench","17":"IL","18":"IL","19":"NA"};
-var TEAMS_CONFIG={"Jaren":1,"Biscuit":2,"Morgan":3,"John M":4,"Linn":5,"John H":6,"Davis":7,"Dawson":8};
+var DEFAULT_TEAMS_CONFIG={"Jaren":1,"Biscuit":2,"Morgan":3,"John M":4,"Linn":5,"John H":6,"Davis":7,"Dawson":8};
+var TEAMS_CONFIG=loadTeamsConfig();
+function loadTeamsConfig(){try{var s=JSON.parse(localStorage.getItem("dyn26_teams_config")||"null");if(s&&Object.keys(s).length)return s;}catch(e){}return Object.assign({},DEFAULT_TEAMS_CONFIG);}
+function saveTeamsConfig(){try{localStorage.setItem("dyn26_teams_config",JSON.stringify(TEAMS_CONFIG));}catch(e){}}
 var SKIP_SHEETS=new Set(['app','salaries','all teams','auto team','query1','sheet1']);
 var AAV_DB={};
 var SAL_MAP={};
@@ -753,7 +750,7 @@ function showPage(pid){document.querySelectorAll('.page').forEach(function(p){p.
 function showLeague(){showPage('league');setNav('nav-league');renderLeague();}
 function showDB(){showPage('salaries-db');setNav('nav-db');renderDB();}
 function showFA(){showPage('fa');setNav('nav-fa');var cached=localStorage.getItem('dyn26_v3_fa');if(cached){try{FA_DATA=JSON.parse(cached);}catch(e){}}if(FA_DATA.length){renderFA();}else{document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">Tap Refresh or import Excel to load free agents</td></tr>';}}
-function showSettings(){showPage('settings');setNav('nav-settings');buildRulesFields();buildTeamQueryCards();updateQueryPreviews();updateSalDbStatus();updateSeasonUI();buildArbList();}
+function showSettings(){showPage('settings');setNav('nav-settings');buildTeamQueryCards();updateQueryPreviews();updateSalDbStatus();updateSeasonUI();}
 function showTeam(tn){currentTeam=tn;showPage('team');setNav(null);buildTeamTable(tn);updateTeamCells(tn);setTimeout(applyTableFont,0);}
 function updateSeasonUI(){
   var ny=document.getElementById('navYear');if(ny)ny.textContent=String(CURRENT_SEASON);
@@ -804,7 +801,7 @@ function buildTeamTable(tn){
 function onC(tn,i){if(isCarried(tn,i))return;var inp=document.getElementById('ci-'+tn+'-'+i);if(!inp||inp.tagName!=='INPUT')return;setC(tn,i,inp.value);updateTeamCells(tn);renderLeague();}
 function updateTeamCells(tn){
   var players=ROSTER[tn]||[];var totals=teamTotals(tn);var caps=YRS.map(function(_,yi){return capY(yi);});
-  players.forEach(function(p,i){playerSals(tn,p,i).forEach(function(s,yi){var cell=document.getElementById('y-'+tn+'-'+i+'-'+yi);if(!cell)return;if(s===null){cell.className='yval muted';cell.innerHTML='&mdash;';}else{cell.className='yval'+(yi===0?' cur':'');cell.innerHTML=(yi===0?'<b>':'')+fs(s)+(yi===0?'</b>':'');}});});
+  players.forEach(function(p,i){playerSals(tn,p,i).forEach(function(s,yi){var cell=document.getElementById('y-'+tn+'-'+i+'-'+yi);if(!cell)return;if(s===null){cell.className='yval muted';cell.innerHTML='&mdash;';}else{cell.className='yval'+(yi===0?' cur':'');cell.innerHTML=fs(s);}});});
   totals.forEach(function(t,yi){var over=t>caps[yi];var tt=document.getElementById('tt-'+tn+'-'+yi);if(tt){tt.style.color=t>0?(over?'var(--red)':'var(--brt)'):'var(--bdr)';tt.style.fontWeight='600';tt.innerHTML=t>0?fs(t):'&mdash;';}var tp=document.getElementById('tp-'+tn+'-'+yi);if(tp){var pct=caps[yi]>0?(t/caps[yi]*100):0;tp.style.color=over?'var(--red)':'var(--dim)';tp.textContent=t>0?pct.toFixed(1)+'%':'&mdash;';}});
   var sal=totals[0],cap=getBaseCap(),over=sal>cap,space=cap-sal,pct=(sal/cap)*100;var bc=over?'var(--red)':pct>90?'#f97316':'var(--grn)';
   var ts=document.getElementById('teamStats');if(ts)ts.innerHTML='<div class="stat-blk"><div class="stat-lbl">'+CURRENT_SEASON+' Salary</div><div class="stat-val" style="color:'+(over?'var(--red)':'var(--brt)')+'">'+fs(sal)+'</div></div><div class="stat-blk"><div class="stat-lbl">Cap Space</div><div class="stat-val" style="color:'+(over?'var(--red)':'var(--grn)')+'">'+(over?'-':'+')+''+fs(Math.abs(space))+'</div></div><div class="stat-blk"><div class="stat-lbl">Cap %</div><div class="stat-val" style="color:'+(over?'var(--red)':'var(--brt)')+'">'+pct.toFixed(1)+'%</div></div>';
@@ -855,7 +852,7 @@ function openQueryEditor(key,title,desc){_currentQueryKey=key;var q=loadQueries(
 function saveQuery(){if(!_currentQueryKey)return;var q=loadQueries();if(!q[_currentQueryKey])q[_currentQueryKey]={};q[_currentQueryKey].value=document.getElementById('queryModalText').value.trim();saveQueriesStore(q);closeModal('queryModal');updateQueryPreviews();showToast('\u2713 Query saved','green',1800);}
 function clearRosterCache(){try{localStorage.removeItem('dyn26_v3_roster');localStorage.removeItem('dyn26_v3_updated');}catch(e){}ROSTER=flattenRoster(DEFAULT_ROSTER);teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();showToast('Roster cache cleared','yellow',2500);document.getElementById('rosterImportStatus').textContent='Cache cleared.';}
 function clearAllData(){openModal('clearModal');}
-function doClearAllData(){closeModal('clearModal');try{['dyn26_v3_roster','dyn26_v3_updated','dyn26_v3_contracts','dyn26_v3_fa','dyn26_v4_queries','dyn26_v4_sal','dyn26_aav_overrides','dyn26_season','dyn26_rules','dyn26_arb_info','dyn26_teams_config'].forEach(function(k){localStorage.removeItem(k);});}catch(e){}CONTRACTS={};RULES=Object.assign({},DEFAULT_RULES);TEAMS_CONFIG=Object.assign({},DEFAULT_TEAMS_CONFIG);CURRENT_SEASON=2026;YRS=buildYRS();ROSTER=flattenRoster(DEFAULT_ROSTER);Object.keys(SAL_MAP).forEach(function(k){delete SAL_MAP[k];});Object.keys(AAV_DB).forEach(function(k){delete AAV_DB[k];});SAL.forEach(function(p){SAL_MAP[p.name]=p;AAV_DB[p.name]=p.aav;});FA_DATA=[];teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateSeasonUI();showToast('All data cleared','red',2500);}
+function doClearAllData(){closeModal('clearModal');try{['dyn26_v3_roster','dyn26_v3_updated','dyn26_v3_contracts','dyn26_v3_fa','dyn26_v4_queries','dyn26_v4_sal','dyn26_aav_overrides','dyn26_season','dyn26_rules','dyn26_arb_info','dyn26_teams_config'].forEach(function(k){localStorage.removeItem(k);});}catch(e){}CONTRACTS={};RULES=Object.assign({},DEFAULT_RULES);TEAMS_CONFIG=Object.assign({},DEFAULT_TEAMS_CONFIG);TEAMS_CONFIG=Object.assign({},DEFAULT_TEAMS_CONFIG);CURRENT_SEASON=2026;YRS=buildYRS();ROSTER=flattenRoster(DEFAULT_ROSTER);Object.keys(SAL_MAP).forEach(function(k){delete SAL_MAP[k];});Object.keys(AAV_DB).forEach(function(k){delete AAV_DB[k];});SAL.forEach(function(p){SAL_MAP[p.name]=p;AAV_DB[p.name]=p.aav;});FA_DATA=[];teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateSeasonUI();showToast('All data cleared','red',2500);}
 function resetSalaries(){try{localStorage.removeItem('dyn26_v4_sal');}catch(e){}updateSalDbStatus();showToast('Reverted to default salary DB','yellow',2000);}
 function importSalaryDB(input){var file=input.files[0];if(!file)return;input.value='';var el=document.getElementById('salDbStatus');if(el)el.textContent='Reading\u2026';var reader=new FileReader();reader.onload=function(e){try{var wb=XLSX.read(e.target.result,{type:'array'});var salSheet=null;wb.SheetNames.forEach(function(n){if(n.toLowerCase()==='salaries')salSheet=n;});if(!salSheet)salSheet=wb.SheetNames[0];var rows=XLSX.utils.sheet_to_json(wb.Sheets[salSheet],{header:1,defval:''});var newSal=[];for(var r=1;r<rows.length;r++){var row=rows[r];var name=String(row[0]||'').trim();if(!name||name==='Name')continue;var pos=String(row[1]||'').trim();var teamRaw=String(row[2]||'').trim();var team=teamRaw.split(/\s+/)[0]||'';var signed=String(row[4]||'').trim();var expires=String(row[5]||'').trim();var years=String(row[6]||'').trim();var aavR=String(row[9]||'').trim();var aavRaw=String(row[8]||'').trim();var age=String(row[10]||'').trim();var fa=aavR||aavRaw;try{fa=String(Math.round(parseFloat(fa)*1000)/1000);}catch(ex){}newSal.push({name:name,pos:pos,team:team,signed:signed,expires:expires,years:years,aav:fa,age:age});}if(newSal.length<10){if(el)el.textContent='Could not parse salary data';return;}try{localStorage.setItem('dyn26_v4_sal',JSON.stringify(newSal));}catch(ex){}newSal.forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});if(el)el.textContent='\u2713 Imported '+newSal.length+' contracts';showToast('\u2713 Salary DB updated','green',2500);}catch(err){if(el)el.textContent='Error: '+err.message;showToast('Import failed','red',3000);}};reader.readAsArrayBuffer(file);}
 function importRosterExcel(input){
@@ -1313,6 +1310,71 @@ function applyTableFont(){
     cells.forEach(function(c){c.style.padding=pad+' '+padH;});
   }
 }
+
+function buildTeamNamesFields(){
+  var el=document.getElementById('teamNamesFields');if(!el)return;
+  el.innerHTML=Object.keys(TEAMS_CONFIG).map(function(name){
+    var id=TEAMS_CONFIG[name];
+    return '<div class="team-name-row">'
+      +'<span class="team-name-label">Team '+id+'</span>'
+      +'<input type="text" class="team-name-input" id="tname-'+id+'" value="'+name+'" autocorrect="off" autocapitalize="words">'
+      +'</div>';
+  }).join('');
+}
+
+function saveTeamNames(){
+  var newConfig={};var changed=[];
+  Object.keys(TEAMS_CONFIG).forEach(function(oldName){
+    var id=TEAMS_CONFIG[oldName];
+    var inp=document.getElementById('tname-'+id);
+    var newName=inp?inp.value.trim():oldName;
+    if(!newName)newName=oldName;
+    newConfig[newName]=id;
+    if(newName!==oldName)changed.push({oldName:oldName,newName:newName});
+  });
+  if(!changed.length){document.getElementById('teamNamesSaveStatus').textContent='No changes.';return;}
+  changed.forEach(function(c){
+    if(ROSTER[c.oldName]!==undefined){ROSTER[c.newName]=ROSTER[c.oldName];delete ROSTER[c.oldName];}
+    if(teamBuilt[c.oldName]!==undefined){teamBuilt[c.newName]=teamBuilt[c.oldName];delete teamBuilt[c.oldName];}
+    var oldKey='team_'+c.oldName.replace(/ /g,'_');var newKey='team_'+c.newName.replace(/ /g,'_');
+    var queries=loadQueries();if(queries[oldKey]){queries[newKey]=queries[oldKey];delete queries[oldKey];saveQueriesStore(queries);}
+  });
+  TEAMS_CONFIG=newConfig;saveTeamsConfig();
+  try{localStorage.setItem('dyn26_v3_roster',JSON.stringify(ROSTER));}catch(e){}
+  if(currentTeam){changed.forEach(function(c){if(c.oldName===currentTeam)currentTeam=c.newName;});}
+  document.getElementById('rosterBody').innerHTML='';
+  renderLeague();updateSeasonUI();buildTeamQueryCards();updateQueryPreviews();buildTeamNamesFields();
+  var msg=changed.map(function(c){return c.oldName+' \u2192 '+c.newName;}).join(', ');
+  document.getElementById('teamNamesSaveStatus').textContent='\u2713 Renamed: '+msg;
+  showToast('\u2713 Team names updated','green',2500);
+  closeModal('teamNamesModal');
+}
+
+function resetTeamNames(){
+  TEAMS_CONFIG=Object.assign({},DEFAULT_TEAMS_CONFIG);saveTeamsConfig();buildTeamNamesFields();renderLeague();
+  document.getElementById('teamNamesSaveStatus').textContent='\u2713 Reset to defaults';
+  showToast('Team names reset','yellow',2000);
+}
+
+function openESPNQueriesModal(){
+  // Build query cards dynamically from current TEAMS_CONFIG
+  var el=document.getElementById('espnQueryCards');
+  if(el){
+    var q=loadQueries();
+    el.innerHTML=Object.keys(TEAMS_CONFIG).map(function(name){
+      var k='team_'+name.replace(/ /g,'_');
+      var preview=q[k]&&q[k].value?q[k].value.substring(0,55)+'...':'Not set';
+      return '<div class="set-card" onclick="openQueryEditor(\''+k+'\',\''+name+' Roster\',\'ESPN API URL for '+name+'.\');closeModal(\'espnQueriesModal\')">'
+        +'<div class="set-card-title">'+name+'</div>'
+        +'<div class="set-card-sub">'+preview+'</div>'
+        +'</div>';
+    }).join('');
+    // FA preview
+    var fp=document.getElementById('q-fa-preview2');
+    if(fp&&q.fa)fp.textContent=q.fa.value.substring(0,55)+'...';
+  }
+  openModal('espnQueriesModal');
+}
 loadContracts();
 try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){JSON.parse(cs).forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});}}catch(e){}
 try{var ao=JSON.parse(localStorage.getItem('dyn26_aav_overrides')||'{}');Object.keys(ao).forEach(function(n){AAV_DB[n]=ao[n];if(SAL_MAP[n])SAL_MAP[n].aav=ao[n];SAL.forEach(function(p){if(p.name===n)p.aav=ao[n];});Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n)p.aav=ao[n];});});});}catch(e){}
@@ -1502,6 +1564,70 @@ if(hadCache){setTimeout(function(){refreshRosters(true);},1000);}else{refreshRos
       <button class="btn-primary" onclick="saveArbInfo()">Save</button>
       <button class="btn-secondary" onclick="closeModal('arbInfoModal')">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- TEAM NAMES MODAL -->
+
+<div class="modal-overlay" id="teamNamesModal" onclick="closeModalOutside(event,'teamNamesModal')">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Edit Team Names</h2><p>Rename teams if ownership changes</p></div>
+    <div class="modal-body" id="teamNamesFields"></div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:.5rem">
+      <button class="btn-primary" onclick="saveTeamNames()">Save</button>
+      <button class="btn-secondary" onclick="resetTeamNames()">Reset Defaults</button>
+      <button class="btn-secondary" style="flex-basis:100%;text-align:center" onclick="closeModal('teamNamesModal')">Cancel</button>
+    </div>
+    <div style="font-size:.7rem;color:var(--dim);padding:.5rem 1.5rem 1rem" id="teamNamesSaveStatus"></div>
+  </div>
+</div>
+
+<!-- ESPN QUERIES MODAL -->
+
+<div class="modal-overlay" id="espnQueriesModal" onclick="closeModalOutside(event,'espnQueriesModal')">
+  <div class="modal-box">
+    <div class="modal-header"><h2>ESPN API Queries</h2><p>Tap a team to edit its URL</p></div>
+    <div class="modal-body" style="padding:.75rem 1.25rem">
+      <div id="espnQueryCards"></div>
+      <div class="set-card" style="margin-top:.5rem" onclick="openQueryEditor('fa','Free Agent Query','ESPN API URL + X-Fantasy-Filter for free agents.');closeModal('espnQueriesModal')">
+        <div class="set-card-title">Free Agent Fetch</div>
+        <div class="set-card-sub" id="q-fa-preview2">Loading&hellip;</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('espnQueriesModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ARB PLAYERS MODAL -->
+
+<div class="modal-overlay" id="arbPlayersModal" onclick="closeModalOutside(event,'arbPlayersModal')">
+  <div class="modal-box">
+    <div class="modal-header"><h2>ARB Players</h2><p>Tap any player to set a custom AAV</p></div>
+    <div class="modal-body" style="max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch">
+      <div id="arbPlayerList"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('arbPlayersModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEAGUE RULES MODAL -->
+
+<div class="modal-overlay" id="leagueRulesModal" onclick="closeModalOutside(event,'leagueRulesModal')">
+  <div class="modal-box">
+    <div class="modal-header"><h2>League Rules</h2><p>Changes apply immediately to all calculations</p></div>
+    <div class="modal-body">
+      <div id="rulesFields"></div>
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:.5rem">
+      <button class="btn-primary" onclick="saveLeagueRules();closeModal('leagueRulesModal')">Save</button>
+      <button class="btn-secondary" onclick="resetLeagueRules()">Reset Defaults</button>
+      <button class="btn-secondary" style="flex-basis:100%;text-align:center" onclick="closeModal('leagueRulesModal')">Cancel</button>
+    </div>
+    <div style="font-size:.7rem;color:var(--dim);padding:.5rem 1.5rem 1rem" id="rulesSaveStatus"></div>
   </div>
 </div>
 
