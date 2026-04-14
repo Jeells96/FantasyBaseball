@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>2026 Dynasty League</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -94,7 +94,7 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 .ci{background:transparent;border:none;border-bottom:1px solid var(–dim);color:var(–brt);-webkit-text-fill-color:var(–brt);font-family:“DM Mono”,monospace;font-size:.30rem;width:50px;text-align:center;padding:.06rem .1rem;outline:none;-webkit-appearance:none;appearance:none;display:block;margin:0 auto;border-radius:2px}
 .ci:focus{border-bottom-color:var(–acc);background:transparent}
 .ci::placeholder{color:var(–bdr)}
-.yval{color:var(–dim);font-size:.30rem;text-align:center!important}
+.yval{color:#8b95a3;font-size:.30rem;text-align:center!important}
 .yval.cur{color:var(–brt)}
 .yval.muted{color:var(–bdr)}
 .tr-tot td,.tr-cap td,.tr-pct td{border-bottom:none!important;font-family:“Barlow Condensed”,sans-serif;font-size:.30rem;color:var(–dim)}
@@ -801,7 +801,7 @@ function buildTeamTable(tn){
 function onC(tn,i){if(isCarried(tn,i))return;var inp=document.getElementById('ci-'+tn+'-'+i);if(!inp||inp.tagName!=='INPUT')return;setC(tn,i,inp.value);updateTeamCells(tn);renderLeague();}
 function updateTeamCells(tn){
   var players=ROSTER[tn]||[];var totals=teamTotals(tn);var caps=YRS.map(function(_,yi){return capY(yi);});
-  players.forEach(function(p,i){playerSals(tn,p,i).forEach(function(s,yi){var cell=document.getElementById('y-'+tn+'-'+i+'-'+yi);if(!cell)return;if(s===null){cell.className='yval muted';cell.style.textAlign='center';cell.innerHTML='&mdash;';}else{cell.className='yval'+(yi===0?' cur':'');cell.style.textAlign='center';cell.innerHTML=fs(s);}});});
+  players.forEach(function(p,i){playerSals(tn,p,i).forEach(function(s,yi){var cell=document.getElementById('y-'+tn+'-'+i+'-'+yi);if(!cell)return;if(s===null){cell.className='yval muted';cell.style.textAlign='center';cell.style.color='#252a35';cell.innerHTML='&mdash;';}else{cell.className='yval'+(yi===0?' cur':'');cell.style.textAlign='center';cell.style.color=yi===0?'#f0f2f6':'#8b95a3';cell.innerHTML=fs(s);}});});
   totals.forEach(function(t,yi){var over=t>caps[yi];var tt=document.getElementById('tt-'+tn+'-'+yi);if(tt){tt.style.color=t>0?(over?'var(--red)':'var(--brt)'):'var(--bdr)';tt.style.fontWeight='400';tt.style.textAlign='center';tt.innerHTML=t>0?fsN(t):'&mdash;';}var tp=document.getElementById('tp-'+tn+'-'+yi);if(tp){var pct=caps[yi]>0?(t/caps[yi]*100):0;tp.style.color=over?'var(--red)':'var(--dim)';tp.textContent=t>0?pct.toFixed(1)+'%':'&mdash;';}});
   var sal=totals[0],cap=getBaseCap(),over=sal>cap,space=cap-sal,pct=(sal/cap)*100;var bc=over?'var(--red)':pct>90?'#f97316':'var(--grn)';
   var ts=document.getElementById('teamStats');if(ts)ts.innerHTML='<div class="stat-blk"><div class="stat-lbl">'+CURRENT_SEASON+' Salary</div><div class="stat-val" style="color:'+(over?'var(--red)':'var(--brt)')+'">'+fs(sal)+'</div></div><div class="stat-blk"><div class="stat-lbl">Cap Space</div><div class="stat-val" style="color:'+(over?'var(--red)':'var(--grn)')+'">'+(over?'-':'+')+''+fs(Math.abs(space))+'</div></div><div class="stat-blk"><div class="stat-lbl">Cap %</div><div class="stat-val" style="color:'+(over?'var(--red)':'var(--brt)')+'">'+pct.toFixed(1)+'%</div></div>';
