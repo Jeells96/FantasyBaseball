@@ -4,421 +4,317 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>2026 Dynasty League</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
+<title>Dynasty League — Front Office</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0a0c10;--sur:#111318;--sur2:#181c24;--bdr:#252a35;--acc:#e8c84b;--acc2:#4b8fe8;--red:#e84b4b;--grn:#4be87a;--txt:#d4d8e0;--dim:#6b7280;--brt:#f0f2f6}
-*{-webkit-box-sizing:border-box;box-sizing:border-box;margin:0;padding:0}
-html,body{height:-webkit-fill-available}
-body{background:var(--bg);color:var(--txt);font-family:"DM Mono",monospace;min-height:100vh;overflow-x:hidden}
+/* ═══════════════════════════════════════════════════════
+   DYNASTY LEAGUE v26 — THE FRONT OFFICE
+   Premium dark theme, mobile-first
+═══════════════════════════════════════════════════════ */
 
-.top-bar{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10,12,16,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid #252a35;padding:.65rem 1rem;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between}
-.brand{font-family:“Bebas Neue”,sans-serif;font-size:1.3rem;color:var(–acc);letter-spacing:2px;white-space:nowrap;cursor:pointer;-webkit-flex-shrink:0;flex-shrink:0}
-.brand:hover{opacity:.8}
-.nav-sep{width:1px;height:20px;background:var(–bdr);-webkit-flex-shrink:0;flex-shrink:0;margin:0 .25rem}
-.nav-btn{font-family:“Barlow Condensed”,sans-serif;font-size:.8rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);padding:.3rem .75rem;border:none;background:none;cursor:pointer;border-radius:4px;white-space:nowrap;-webkit-flex-shrink:0;flex-shrink:0;transition:color .15s,background .15s;-webkit-appearance:none}
-.nav-btn:hover{color:var(–brt);background:var(–sur)}
-.nav-btn.active{color:var(–acc)}
-.nav-spacer{-webkit-flex:1;flex:1}
-.refresh-btn{font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);padding:.3rem .6rem;border:1px solid var(–bdr);background:none;cursor:pointer;border-radius:4px;white-space:nowrap;-webkit-flex-shrink:0;flex-shrink:0;transition:all .15s;-webkit-appearance:none;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.35rem}
-.refresh-btn:hover{color:var(–acc);border-color:var(–acc)}
-.refresh-btn.spinning .spin-icon{display:inline-block;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.spin-icon{display:inline-block}
-
-.page{display:none;overflow-x:hidden}.page.active{display:block;overflow-x:hidden;padding-bottom:5rem}
-
-/* TOAST */
-.toast{position:fixed;bottom:1.25rem;right:1.25rem;background:var(–sur);border:1px solid var(–bdr);border-radius:6px;padding:.5rem 1rem;font-size:.72rem;font-family:“Barlow Condensed”,sans-serif;letter-spacing:1px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300;max-width:260px}
-.toast.show{opacity:1}
-.toast.green{border-color:var(–grn);color:var(–grn)}
-.toast.red{border-color:var(–red);color:var(–red)}
-.toast.yellow{border-color:var(–acc);color:var(–acc)}
-
-/* LEAGUE */
-.pg-wrap{padding:1rem 1rem 3rem;max-width:1080px;margin:0 auto}
-.pg-title{font-family:“Bebas Neue”,sans-serif;font-size:2.2rem;color:var(–brt);letter-spacing:3px}
-.pg-sub{font-size:.7rem;color:var(–dim);letter-spacing:1px;margin-top:.2rem;margin-bottom:.75rem}
-.last-updated{font-size:.65rem;color:var(–dim);margin-top:.3rem;letter-spacing:.5px}
-.std-tbl{width:100%;border-collapse:collapse;font-size:.8rem}
-.std-tbl th{font-family:“Barlow Condensed”,sans-serif;font-weight:600;font-size:.65rem;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);padding:.45rem .6rem;text-align:right;border-bottom:1px solid var(–bdr);white-space:nowrap}
-.std-tbl th:first-child{text-align:left}
-.std-tbl td{padding:.55rem .6rem;border-bottom:1px solid rgba(37,42,53,.5);text-align:right;vertical-align:middle}
-.std-tbl td:first-child{text-align:left}
-.std-tbl tbody tr{cursor:pointer;transition:background .12s}
-.std-tbl tbody tr:hover td{background:var(–sur)}
-.team-link{font-family:“Barlow Condensed”,sans-serif;font-size:1rem;font-weight:600;letter-spacing:1px;color:var(–brt)}
-.std-tbl tbody tr:hover .team-link{color:var(–acc)}
-.cbw{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.6rem;-webkit-justify-content:flex-end;justify-content:flex-end}
-.cbar{width:100px;height:6px;background:var(–bdr);border-radius:3px;overflow:hidden;-webkit-flex-shrink:0;flex-shrink:0}
-.cbar-f{height:100%;border-radius:3px}
-.ov{color:var(–red)}.ok{color:var(–grn)}
-.loading-row td{text-align:center!important;color:var(–dim);font-size:.75rem;padding:2rem!important;letter-spacing:1px}
-
-/* TEAM PAGE */
-.team-hdr{background:var(–sur);border-bottom:1px solid var(–bdr);padding:.75rem 1rem .6rem}
-.back-btn{font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);border:1px solid var(–bdr);background:none;cursor:pointer;padding:.3rem .7rem;border-radius:4px;transition:all .15s;margin-bottom:.4rem;display:inline-block;-webkit-appearance:none}
-.back-btn:hover{color:var(–brt);border-color:var(–brt)}
-.export-btn{font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–acc);padding:.3rem .7rem;border:1px solid var(–acc);background:rgba(232,200,75,.08);cursor:pointer;border-radius:4px;white-space:nowrap;-webkit-appearance:none}
-.export-btn:active{background:rgba(232,200,75,.2)}
-.team-title{font-family:“Bebas Neue”,sans-serif;font-size:2.2rem;color:var(–brt);letter-spacing:3px;line-height:1}
-.team-meta{font-size:.67rem;color:var(–dim);letter-spacing:2px;text-transform:uppercase;margin-top:.25rem}
-.stat-row{display:-webkit-flex;display:flex;gap:1.25rem;-webkit-flex-wrap:wrap;flex-wrap:wrap;-webkit-align-items:flex-end;align-items:flex-end}
-.stat-blk{text-align:right}
-.stat-lbl{font-size:.6rem;color:var(–dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.12rem}
-.stat-val{font-family:“Bebas Neue”,sans-serif;font-size:1.3rem;letter-spacing:1px}
-.cap-bar-row{margin:.4rem .75rem 0;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.6rem}
-.cap-bar-track{-webkit-flex:1;flex:1;height:7px;background:var(–sur2);border-radius:4px;overflow:hidden}
-.cap-bar-fill{height:100%;border-radius:4px;transition:width .3s,background .3s}
-.cap-bar-lbls{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;margin-top:.3rem;font-size:.6rem;color:var(–dim)}
-
-.roster-outer{padding:.6rem 0 3rem}
-.roster-hint{font-size:.62rem;color:var(–dim);margin-bottom:.4rem;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem;padding:0 1rem}
-.hint-box{width:10px;height:10px;border:1px dashed var(–dim);border-radius:1px;display:inline-block;-webkit-flex-shrink:0;flex-shrink:0}
-.rt-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.rt{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:.30rem}
-.rt thead th{font-family:“Barlow Condensed”,sans-serif;font-size:.30rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(–dim);padding:.22rem .08rem;text-align:center;border-bottom:2px solid var(–bdr);white-space:nowrap;background:var(–bg)}
-.rt tbody tr:hover td{background:rgba(255,255,255,.02)}
-.rt td{padding:.22rem .08rem;border-bottom:1px solid rgba(37,42,53,.4);text-align:center;vertical-align:middle;white-space:nowrap;font-size:.30rem}
-.slot{display:inline-block;font-family:“Barlow Condensed”,sans-serif;font-size:.30rem;font-weight:400;letter-spacing:.5px;padding:.1rem .35rem;border-radius:3px;background:var(–sur2);border:1px solid var(–bdr);color:var(–dim)}
-.slot.C{color:#a78bfa;border-color:#a78bfa55}
-.slot.s1B,.slot.s2B,.slot.s3B,.slot.SS{color:var(–acc2);border-color:#4b8fe855}
-.slot.OF{color:#34d399;border-color:#34d39955}
-.slot.SP,.slot.RP,.slot.P{color:#f97316;border-color:#f9731655}
-.slot.UTIL{color:#e879f9;border-color:#e879f955}
-.slot.Bench{color:var(–dim);border-color:var(–bdr)}
-.slot.IL{color:var(–red);border-color:#e84b4b55}
-.pname{font-weight:400;color:var(–brt)}
-.arb-tag{display:inline-block;font-size:.30rem;font-family:“Barlow Condensed”,sans-serif;font-weight:400;letter-spacing:1px;color:var(–acc);background:rgba(232,200,75,.1);border:1px solid rgba(232,200,75,.35);border-radius:2px;padding:.06rem .26rem;margin-left:.3rem;vertical-align:middle}
-.inj-tag{display:inline-block;font-size:.30rem;font-family:“Barlow Condensed”,sans-serif;font-weight:700;letter-spacing:1px;color:var(–red);background:rgba(232,75,75,.1);border:1px solid rgba(232,75,75,.35);border-radius:2px;padding:.06rem .26rem;margin-left:.3rem;vertical-align:middle}
-.ci{background:transparent;border:none;border-bottom:1px solid #6b7280;color:#f0f2f6;-webkit-text-fill-color:#f0f2f6;font-family:“DM Mono”,monospace;font-size:.30rem;width:100%;text-align:center;padding:.06rem .1rem;outline:none;-webkit-appearance:none;appearance:none;display:block;margin:0 auto;border-radius:2px}
-.ci:focus{border-bottom-color:var(–acc);background:transparent}
-.ci::placeholder{color:var(–bdr)}
-.yval{color:#8b95a3;font-size:.30rem;text-align:center!important}
-.yval.cur{color:var(–brt)}
-.yval.muted{color:var(–bdr)}
-.tr-tot td,.tr-cap td,.tr-pct td{border-bottom:none!important;font-family:“Barlow Condensed”,sans-serif;font-size:.30rem;color:var(–dim)}
-.tr-tot td{border-top:2px solid var(–bdr)!important;padding-top:.5rem;font-weight:400;letter-spacing:1px;text-transform:uppercase}
-
-/* SALARIES DB */
-.db-wrap{padding:1rem 0 3rem}
-.db-ctrl{display:-webkit-flex;display:flex;gap:.5rem;margin-bottom:.75rem;padding:0 1rem;-webkit-flex-wrap:wrap;flex-wrap:wrap;-webkit-align-items:center;align-items:center}
-.db-search{background:var(–sur);border:1px solid var(–bdr);border-radius:4px;color:var(–brt);font-family:“DM Mono”,monospace;font-size:.78rem;padding:.42rem .65rem;width:220px;outline:none;-webkit-appearance:none;-webkit-text-fill-color:var(–brt)}
-.db-search:focus{border-color:var(–acc)}
-.db-search::placeholder{color:var(–dim)}
-.db-sel{background:var(–sur);border:1px solid var(–bdr);border-radius:4px;color:var(–txt);font-family:“Barlow Condensed”,sans-serif;font-size:.78rem;letter-spacing:1px;padding:.42rem .65rem;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none}
-.db-sel:focus{border-color:var(–acc)}
-.db-cnt{font-size:.7rem;color:var(–dim);margin-left:auto}
-.dbt{width:100%;border-collapse:collapse;font-size:.75rem;min-width:500px}
-.dbt th{font-family:“Barlow Condensed”,sans-serif;font-size:.62rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);padding:.4rem .5rem;text-align:right;border-bottom:1px solid var(–bdr);white-space:nowrap;cursor:pointer;-webkit-user-select:none;user-select:none;background:var(–bg)}
-.dbt th:nth-child(-n+3){text-align:left}
-.dbt th:hover,.dbt th.srt{color:var(–acc)}
-.sar{margin-left:.25rem;opacity:.4;font-size:.6rem}
-.dbt th.srt .sar{opacity:1}
-.dbt td{padding:.45rem .5rem;border-bottom:1px solid rgba(37,42,53,.35);text-align:right;white-space:nowrap}
-.dbt td:nth-child(-n+3){text-align:left}
-.dbt tbody tr:hover td{background:var(–sur)}
-.ptag{display:inline-block;font-family:“Barlow Condensed”,sans-serif;font-size:.65rem;font-weight:700;letter-spacing:1px;padding:.07rem .3rem;border-radius:2px;background:var(–sur2);border:1px solid var(–bdr);color:var(–dim)}
-.no-res{padding:3rem;text-align:center;color:var(–dim);font-size:.78rem;letter-spacing:1px}
-
-/* EXPORT MODAL */
-.exp-overlay{display:none;position:fixed;inset:0;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:500;-webkit-align-items:flex-start;align-items:flex-start;-webkit-justify-content:center;justify-content:center;padding:1rem;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.exp-overlay.open{display:-webkit-flex;display:flex}
-.exp-box{background:var(–sur);border:1px solid var(–bdr);border-radius:10px;padding:1.5rem;width:100%;max-width:500px;margin:auto}
-.exp-box h2{font-family:“Bebas Neue”,sans-serif;font-size:1.5rem;color:var(–brt);letter-spacing:3px;margin-bottom:.25rem}
-.exp-box p{font-size:.72rem;color:var(–dim);margin-bottom:1rem;line-height:1.5}
-.exp-textarea{width:100%;background:var(–bg);border:1px solid var(–bdr);border-radius:6px;color:var(–txt);-webkit-text-fill-color:var(–txt);font-family:“DM Mono”,monospace;font-size:.65rem;padding:.75rem;height:280px;resize:vertical;outline:none;-webkit-appearance:none;line-height:1.6}
-.exp-actions{display:-webkit-flex;display:flex;gap:.6rem;margin-top:.9rem}
-.exp-copy{font-family:“Barlow Condensed”,sans-serif;font-size:.8rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–bg);background:var(–acc);border:none;border-radius:4px;padding:.4rem 1rem;cursor:pointer;-webkit-appearance:none;-webkit-flex:1;flex:1}
-.exp-copy:active{opacity:.8}
-.exp-close{font-family:“Barlow Condensed”,sans-serif;font-size:.8rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);background:none;border:1px solid var(–bdr);border-radius:4px;padding:.4rem .9rem;cursor:pointer;-webkit-appearance:none}
-.exp-copied{font-size:.72rem;color:var(–grn);margin-top:.5rem;min-height:1rem;font-family:“Barlow Condensed”,sans-serif;letter-spacing:1px}
-
-@media(max-width:680px){
-.team-title{font-size:2rem}
-.team-hdr,.cap-bar-row{padding-left:1rem;padding-right:1rem;margin-left:0;margin-right:0}
-.cap-bar-row{margin:.5rem 1rem 0}
-.db-search{width:100%}
-.pg-wrap,.db-wrap{padding:1rem 1rem 3rem}
-.std-tbl th,.std-tbl td{padding:.5rem .6rem}
+/* ── TOKENS ─────────────────────────────────────────── */
+:root{
+–bg:#080a0f;
+–sur:#0e1117;
+–sur2:#141821;
+–sur3:#1a2030;
+–bdr:#1e2433;
+–bdr2:#252d3d;
+–acc:#f0b429;
+–acc2:#4b8fe8;
+–red:#ef4444;
+–grn:#22c55e;
+–org:#f97316;
+–txt:#e2e8f0;
+–dim:#64748b;
+–dim2:#94a3b8;
+–brt:#ffffff;
 }
 
-/* FREE AGENTS */
-.fa-wrap{padding:1rem 0 3rem}
-.fa-ctrl{display:-webkit-flex;display:flex;gap:.5rem;margin-bottom:.75rem;padding:0 1rem;-webkit-flex-wrap:wrap;flex-wrap:wrap;-webkit-align-items:center;align-items:center}
-.fa-search{background:var(–sur);border:1px solid var(–bdr);border-radius:4px;color:var(–brt);font-family:“DM Mono”,monospace;font-size:.78rem;padding:.42rem .65rem;width:200px;outline:none;-webkit-appearance:none;-webkit-text-fill-color:var(–brt)}
-.fa-search:focus{border-color:var(–acc)}
-.fa-search::placeholder{color:var(–dim)}
-.fa-sel{background:var(–sur);border:1px solid var(–bdr);border-radius:4px;color:var(–txt);font-family:“Barlow Condensed”,sans-serif;font-size:.78rem;letter-spacing:1px;padding:.42rem .65rem;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none}
-.fa-sel:focus{border-color:var(–acc)}
-.fa-cnt{font-size:.7rem;color:var(–dim);margin-left:auto}
-.fa-fetch-btn{font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–acc);padding:.3rem .7rem;border:1px solid var(–acc);background:rgba(232,200,75,.08);cursor:pointer;border-radius:4px;-webkit-appearance:none;transition:all .15s}
-.fa-fetch-btn:hover{background:rgba(232,200,75,.2)}
-.fa-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.fat{width:100%;border-collapse:collapse;font-size:.78rem;min-width:460px}
-.fat th{font-family:“Barlow Condensed”,sans-serif;font-size:.62rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);padding:.4rem .5rem;text-align:right;border-bottom:1px solid var(–bdr);white-space:nowrap;cursor:pointer;-webkit-user-select:none;user-select:none;background:var(–bg)}
-.fat th:first-child,.fat th:nth-child(2){text-align:left}
-.fat th:hover,.fat th.srt{color:var(–acc)}
-.fat th .sar{margin-left:.25rem;opacity:.4;font-size:.6rem}
-.fat th.srt .sar{opacity:1}
-.fat td{padding:.45rem .5rem;border-bottom:1px solid rgba(37,42,53,.35);text-align:right;white-space:nowrap}
-.fat td:first-child,.fat td:nth-child(2){text-align:left}
-.fat tbody tr:hover td{background:var(–sur)}
-.fa-status{display:inline-block;font-family:“Barlow Condensed”,sans-serif;font-size:.65rem;font-weight:700;letter-spacing:1px;padding:.07rem .3rem;border-radius:2px;border:1px solid var(–bdr);background:var(–sur2);color:var(–dim)}
-.fa-status.FREEAGENT{color:var(–grn);border-color:#4be87a55}
-.fa-status.WAIVERS{color:var(–acc);border-color:#e8c84b55}
-.fa-pts{font-weight:600;color:var(–brt)}
-.fa-loading{padding:3rem;text-align:center;color:var(–dim);font-size:.78rem;letter-spacing:1px}
-.pos-badge{display:inline-block;font-family:“Barlow Condensed”,sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;padding:.1rem .35rem;border-radius:3px;background:var(–sur2);border:1px solid var(–bdr);color:var(–dim);min-width:28px;text-align:center}
-.pos-badge.C{color:#a78bfa;border-color:#a78bfa55}
-.pos-badge.SP{color:#f97316;border-color:#f9731655}
-.pos-badge.RP{color:#fb923c;border-color:#fb923c55}
-.pos-badge.OF,.pos-badge.LF,.pos-badge.CF,.pos-badge.RF{color:#34d399;border-color:#34d39955}
-.pos-badge.ss{color:var(–acc2);border-color:#4b8fe855}
+/* ── RESET ───────────────────────────────────────────── */
+*{-webkit-box-sizing:border-box;box-sizing:border-box;margin:0;padding:0}
+html,body{height:-webkit-fill-available;background:var(–bg);color:var(–txt);font-family:“Inter”,system-ui,sans-serif;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 
-/* SETTINGS PAGE */
-.set-wrap{padding:1rem 1rem 3rem;max-width:680px}
-.set-section{margin-bottom:2rem}
-.set-section-title{font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(–dim);border-bottom:1px solid var(–bdr);padding-bottom:.4rem;margin-bottom:1rem}
-.set-card{background:var(–sur);border:1px solid var(–bdr);border-radius:8px;padding:1rem 1.25rem;margin-bottom:.6rem;cursor:pointer;transition:border-color .15s}
-.set-card:hover{border-color:var(–acc)}
-.set-card-title{font-family:“Barlow Condensed”,sans-serif;font-size:.9rem;font-weight:600;letter-spacing:1px;color:var(–brt);margin-bottom:.2rem}
-.set-card-sub{font-size:.68rem;color:var(–dim)}
-.set-actions{display:-webkit-flex;display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem}
-.set-btn{font-family:“Barlow Condensed”,sans-serif;font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:.35rem .7rem;border-radius:4px;cursor:pointer;-webkit-appearance:none;transition:all .15s;border:1px solid var(–bdr);background:none;color:var(–dim)}
-.set-btn:hover{color:var(–brt);border-color:var(–brt)}
-.set-btn.accent{color:var(–acc);border-color:var(–acc);background:rgba(232,200,75,.08)}
-.set-btn.accent:hover{background:rgba(232,200,75,.18)}
-.set-btn.danger{color:var(–red);border-color:var(–red);background:rgba(232,75,75,.06)}
-.set-btn.danger:hover{background:rgba(232,75,75,.14)}
+/* ── TOP BAR ─────────────────────────────────────────── */
+.top-bar{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(8,10,15,.92);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-bottom:1px solid var(–bdr);padding:0 1rem;height:52px;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between;gap:1rem}
+.brand{font-family:“Bebas Neue”,sans-serif;font-size:1.25rem;letter-spacing:3px;color:var(–acc);display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.5rem;white-space:nowrap}
+.brand-badge{font-family:“Inter”,sans-serif;font-size:.52rem;font-weight:600;letter-spacing:.5px;color:var(–dim);background:var(–sur2);border:1px solid var(–bdr);border-radius:4px;padding:.1rem .3rem;text-transform:uppercase;vertical-align:middle}
+.top-bar-actions{display:-webkit-flex;display:flex;gap:.5rem;-webkit-align-items:center;align-items:center}
+.icon-btn{background:none;border:1px solid var(–bdr);border-radius:8px;color:var(–dim2);cursor:pointer;-webkit-appearance:none;padding:.35rem .6rem;font-size:.72rem;font-family:“Barlow Condensed”,sans-serif;font-weight:600;letter-spacing:1px;text-transform:uppercase;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.3rem;white-space:nowrap;transition:color .15s,border-color .15s}
+.icon-btn:active{opacity:.7}
+.icon-btn.spinning .spin-icon{display:inline-block;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* QUERY EDIT MODAL */
-.qe-overlay{display:none;position:fixed;inset:0;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.9);z-index:600;-webkit-align-items:flex-start;align-items:flex-start;-webkit-justify-content:center;justify-content:center;padding:1rem;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.qe-overlay.open{display:-webkit-flex;display:flex}
-.qe-box{background:var(–sur);border:1px solid var(–bdr);border-radius:10px;padding:1.5rem;width:100%;max-width:580px;margin:auto}
-.qe-box h2{font-family:“Bebas Neue”,sans-serif;font-size:1.5rem;color:var(–brt);letter-spacing:3px;margin-bottom:.25rem}
-.qe-box p{font-size:.72rem;color:var(–dim);margin-bottom:1rem;line-height:1.5}
-.qe-textarea{width:100%;background:var(–bg);border:1px solid var(–bdr);border-radius:6px;color:var(–txt);-webkit-text-fill-color:var(–txt);font-family:“DM Mono”,monospace;font-size:.62rem;padding:.75rem;height:220px;resize:vertical;outline:none;-webkit-appearance:none;line-height:1.5}
-.qe-textarea:focus{border-color:var(–acc)}
-.qe-actions{display:-webkit-flex;display:flex;gap:.6rem;margin-top:.9rem}
-.qe-save{font-family:“Barlow Condensed”,sans-serif;font-size:.8rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–bg);background:var(–acc);border:none;border-radius:4px;padding:.4rem 1rem;cursor:pointer;-webkit-appearance:none;-webkit-flex:1;flex:1}
-.qe-save:active{opacity:.8}
-.qe-cancel{font-family:“Barlow Condensed”,sans-serif;font-size:.8rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);background:none;border:1px solid var(–bdr);border-radius:4px;padding:.4rem .9rem;cursor:pointer;-webkit-appearance:none}
+/* ── BOTTOM TAB BAR ──────────────────────────────────── */
+.tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(8,10,15,.95);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-top:1px solid var(–bdr);display:-webkit-flex;display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+.tab-btn{-webkit-flex:1;flex:1;background:none;border:none;padding:.55rem .1rem .45rem;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:center;align-items:center;gap:.12rem;cursor:pointer;-webkit-appearance:none;color:var(–dim);-webkit-tap-highlight-color:transparent;transition:color .2s}
+.tab-btn.active{color:var(–acc)}
+.tab-icon{font-size:1.15rem;line-height:1}
+.tab-label{font-family:“Barlow Condensed”,sans-serif;font-size:.58rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
 
-/* ADD PLAYER MODAL */
-.ap-overlay{display:none;position:fixed;inset:0;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.9);z-index:600;-webkit-align-items:flex-start;align-items:flex-start;-webkit-justify-content:center;justify-content:center;padding:1rem;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.ap-overlay.open{display:-webkit-flex;display:flex}
-.ap-box{background:var(–sur);border:1px solid var(–bdr);border-radius:10px;padding:1.5rem;width:100%;max-width:460px;margin:auto}
-.ap-box h2{font-family:“Bebas Neue”,sans-serif;font-size:1.4rem;color:var(–brt);letter-spacing:3px;margin-bottom:.25rem}
-.ap-box p{font-size:.72rem;color:var(–dim);margin-bottom:1.1rem;line-height:1.5}
-.ap-field{margin-bottom:.85rem}
-.ap-label{font-family:“Barlow Condensed”,sans-serif;font-size:.68rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(–dim);display:block;margin-bottom:.3rem}
-.ap-input{width:100%;background:var(–bg);border:1px solid var(–bdr);border-radius:4px;color:var(–brt);-webkit-text-fill-color:var(–brt);font-family:“DM Mono”,monospace;font-size:.8rem;padding:.42rem .65rem;outline:none;-webkit-appearance:none}
-.ap-input:focus{border-color:var(–acc)}
-.ap-select{width:100%;background:var(–sur);border:1px solid var(–bdr);border-radius:4px;color:var(–txt);font-family:“Barlow Condensed”,sans-serif;font-size:.82rem;letter-spacing:1px;padding:.42rem .65rem;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none}
-.ap-select:focus{border-color:var(–acc)}
-.ap-actions{display:-webkit-flex;display:flex;gap:.6rem;margin-top:1rem}
-.ap-add{font-family:“Barlow Condensed”,sans-serif;font-size:.8rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–bg);background:var(–acc);border:none;border-radius:4px;padding:.4rem 1rem;cursor:pointer;-webkit-appearance:none;-webkit-flex:1;flex:1}
-.ap-cancel{font-family:“Barlow Condensed”,sans-serif;font-size:.8rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);background:none;border:1px solid var(–bdr);border-radius:4px;padding:.4rem .9rem;cursor:pointer;-webkit-appearance:none}
+/* ── PAGE SYSTEM ─────────────────────────────────────── */
+.page{display:none;padding-bottom:5.5rem;min-height:100vh}
+.page.active{display:block}
 
-/* IMPORT FILE INPUT (hidden) */
-.hidden-file{display:none}
-/* Tiny import button on team page */
-.import-pill{font-family:“Barlow Condensed”,sans-serif;font-size:.65rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);border:1px solid var(–bdr);background:none;cursor:pointer;border-radius:3px;padding:.18rem .45rem;-webkit-appearance:none;transition:all .15s;margin-bottom:.4rem}
-.import-pill:hover{color:var(–txt);border-color:var(–txt)}
+/* ── LEAGUE PAGE ─────────────────────────────────────── */
+.league-hero{padding:1.25rem 1rem .75rem;border-bottom:1px solid var(–bdr)}
+.league-season{font-family:“Barlow Condensed”,sans-serif;font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(–dim);margin-bottom:.3rem}
+.league-heading{font-family:“Bebas Neue”,sans-serif;font-size:2.2rem;letter-spacing:4px;color:var(–brt);line-height:1;margin-bottom:.5rem}
+.league-cap-row{display:-webkit-flex;display:flex;gap:1.5rem;-webkit-align-items:center;align-items:center}
+.league-cap-stat{text-align:center}
+.league-cap-val{font-family:“DM Mono”,monospace;font-size:.85rem;font-weight:500;color:var(–dim2)}
+.league-cap-lbl{font-family:“Barlow Condensed”,sans-serif;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;color:var(–dim);margin-top:.1rem}
+.last-updated-txt{font-family:“Barlow Condensed”,sans-serif;font-size:.62rem;color:var(–dim);letter-spacing:.5px;margin-top:.5rem}
 
-/* SEASON ADVANCE */
-.drop-tag{display:inline-block;font-size:.30rem;font-family:“Barlow Condensed”,sans-serif;font-weight:700;letter-spacing:1px;color:#fff;background:var(–red);border-radius:2px;padding:.06rem .28rem;margin-left:.35rem;vertical-align:middle}
-.lock-icon{font-size:.7rem;margin-left:.3rem;vertical-align:middle;opacity:.6;cursor:help}
-.ci-carried{background:rgba(75,143,232,.12);border:none;border-bottom:1px solid #4b8fe8;color:#4b8fe8;-webkit-text-fill-color:#4b8fe8;font-family:“DM Mono”,monospace;font-size:.30rem;width:50px;text-align:center;padding:.06rem .1rem;display:block;margin:0 auto;border-radius:2px;font-weight:600}
-.row-drop td{background:rgba(232,75,75,.04)!important}
-.advance-btn{font-family:“Barlow Condensed”,sans-serif;font-size:.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(–acc);padding:.5rem 1.25rem;border:2px solid var(–acc);background:rgba(232,200,75,.08);cursor:pointer;border-radius:6px;-webkit-appearance:none;transition:all .2s;width:100%;margin-top:.5rem}
-.advance-btn:hover{background:rgba(232,200,75,.2)}
-.season-badge{display:inline-block;font-family:“Bebas Neue”,sans-serif;font-size:1rem;color:var(–acc);letter-spacing:2px;margin-left:.75rem;vertical-align:middle}
+.team-cards{padding:.75rem;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;gap:.65rem}
+.team-card{background:var(–sur);border:1px solid var(–bdr);border-radius:16px;overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative}
+.team-card:active{opacity:.75}
+.team-card-accent{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0}
+.team-card-body{padding:1rem 1rem 1rem 1.25rem}
+.team-card-top{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:flex-start;align-items:flex-start;margin-bottom:.75rem}
+.team-card-left{}
+.team-card-name{font-family:“Bebas Neue”,sans-serif;font-size:1.7rem;letter-spacing:2px;color:var(–brt);line-height:1}
+.team-card-sub{font-family:“Barlow Condensed”,sans-serif;font-size:.68rem;letter-spacing:1px;text-transform:uppercase;color:var(–dim);margin-top:.15rem}
+.team-card-alerts{display:-webkit-flex;display:flex;gap:.3rem;margin-top:.3rem;-webkit-flex-wrap:wrap;flex-wrap:wrap}
+.alert-pill{font-family:“Barlow Condensed”,sans-serif;font-size:.58rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:.15rem .4rem;border-radius:20px}
+.alert-drop{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
+.alert-exp{background:rgba(249,115,22,.15);color:#f97316;border:1px solid rgba(249,115,22,.3)}
+.team-card-stats{display:-webkit-flex;display:flex;gap:.5rem}
+.tc-stat{-webkit-flex:1;flex:1;background:var(–sur2);border-radius:10px;padding:.55rem .3rem;text-align:center;border:1px solid var(–bdr)}
+.tc-stat-val{font-family:“DM Mono”,monospace;font-size:.88rem;font-weight:500;margin-bottom:.15rem;line-height:1}
+.tc-stat-lbl{font-family:“Barlow Condensed”,sans-serif;font-size:.56rem;letter-spacing:1px;text-transform:uppercase;color:var(–dim)}
+.team-card-bar{height:3px;background:var(–bdr2);margin:0}
+.team-card-bar-fill{height:100%;transition:width .4s ease;border-radius:0}
 
-/* ADVANCE CONFIRM MODAL */
-.adv-overlay{display:none;position:fixed;inset:0;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:700;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;padding:1.5rem}
-.adv-overlay.open{display:-webkit-flex;display:flex}
-.adv-box{background:var(–sur);border:1px solid var(–bdr);border-radius:12px;padding:1.75rem;width:100%;max-width:400px;text-align:center}
-.adv-box h2{font-family:“Bebas Neue”,sans-serif;font-size:1.8rem;color:var(–acc);letter-spacing:3px;margin-bottom:.5rem}
-.adv-box p{font-size:.78rem;color:var(–dim);line-height:1.7;margin-bottom:.5rem}
-.adv-box ul{text-align:left;font-size:.75rem;color:var(–txt);line-height:1.8;margin:0 auto .75rem;max-width:280px;list-style:none;padding:0}
-.adv-box ul li::before{content:’→  ’;color:var(–acc)}
-.adv-box .adv-warning{font-size:.72rem;color:var(–acc);margin-bottom:1.25rem;font-family:“Barlow Condensed”,sans-serif;letter-spacing:1px}
-.adv-actions{display:-webkit-flex;display:flex;gap:.75rem}
-.adv-confirm{font-family:“Barlow Condensed”,sans-serif;font-size:.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(–bg);background:var(–acc);border:none;border-radius:6px;padding:.55rem 1rem;cursor:pointer;-webkit-appearance:none;-webkit-flex:1;flex:1}
-.adv-cancel{font-family:“Barlow Condensed”,sans-serif;font-size:.85rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);background:none;border:1px solid var(–bdr);border-radius:6px;padding:.55rem 1rem;cursor:pointer;-webkit-appearance:none;-webkit-flex:1;flex:1}
+/* ── TEAM PAGE ───────────────────────────────────────── */
+.team-hdr-new{background:var(–sur);border-bottom:1px solid var(–bdr);padding:.75rem 1rem}
+.team-hdr-nav{display:-webkit-flex;display:flex;gap:.4rem;margin-bottom:.75rem;-webkit-flex-wrap:wrap;flex-wrap:wrap}
+.team-hdr-btn{font-family:“Barlow Condensed”,sans-serif;font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:.3rem .65rem;border-radius:8px;border:1px solid var(–bdr);background:none;color:var(–dim2);cursor:pointer;-webkit-appearance:none;white-space:nowrap}
+.team-hdr-btn:active{opacity:.7}
+.team-hdr-btn.gold{color:var(–acc);border-color:rgba(240,180,41,.4);background:rgba(240,180,41,.07)}
+.team-hdr-btn.danger{color:var(–red);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.07)}
+.team-name-big{font-family:“Bebas Neue”,sans-serif;font-size:2rem;letter-spacing:3px;color:var(–brt);line-height:1;margin-bottom:.2rem}
+.team-meta-row{font-family:“Barlow Condensed”,sans-serif;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;color:var(–dim);margin-bottom:.6rem}
+.team-stats-row{display:-webkit-flex;display:flex;gap:.75rem;-webkit-align-items:baseline;align-items:baseline}
+.team-stat-big{font-family:“DM Mono”,monospace;font-size:1.4rem;font-weight:500}
+.team-stat-lbl-sm{font-family:“Barlow Condensed”,sans-serif;font-size:.62rem;letter-spacing:1px;text-transform:uppercase;color:var(–dim);margin-left:.2rem}
+.cap-bar-new{height:4px;background:var(–bdr2);border-radius:2px;overflow:hidden;margin-top:.65rem}
+.cap-bar-new-fill{height:100%;border-radius:2px;transition:width .4s}
 
-/* PLAYER CARD MODAL */
-.pc-overlay{display:none;position:fixed;inset:0;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:700;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;padding:1.25rem}
-.pc-overlay.open{display:-webkit-flex;display:flex}
-.pc-box{background:var(–sur);border:1px solid var(–bdr);border-radius:12px;width:100%;max-width:380px;overflow:hidden}
-.pc-header{background:var(–sur2);padding:1.25rem 1.5rem 1rem;border-bottom:1px solid var(–bdr)}
-.pc-name{font-family:“Bebas Neue”,sans-serif;font-size:1.8rem;color:var(–brt);letter-spacing:2px;line-height:1.1;margin-bottom:.2rem}
-.pc-name.drop{color:var(–red);text-decoration:line-through}
-.pc-pos{font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(–dim)}
-.pc-body{padding:1.25rem 1.5rem}
-.pc-row{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center;padding:.55rem 0;border-bottom:1px solid rgba(37,42,53,.5)}
-.pc-row:last-child{border-bottom:none}
-.pc-lbl{font-family:“Barlow Condensed”,sans-serif;font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim)}
-.pc-val{font-family:“DM Mono”,monospace;font-size:.82rem;color:var(–brt);font-weight:500}
-.pc-val.gold{color:var(–acc)}
-.pc-val.red{color:var(–red)}
-.pc-footer{padding:.75rem 1.5rem 1.25rem;display:-webkit-flex;display:flex;gap:.6rem}
-.pc-resign{font-family:“Barlow Condensed”,sans-serif;font-size:.82rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(–bg);background:var(–acc);border:none;border-radius:5px;padding:.45rem .9rem;cursor:pointer;-webkit-appearance:none;-webkit-flex:1;flex:1}
-.pc-resign:active{opacity:.8}
-.pc-close{font-family:“Barlow Condensed”,sans-serif;font-size:.82rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);background:none;border:1px solid var(–bdr);border-radius:5px;padding:.45rem .9rem;cursor:pointer;-webkit-appearance:none;-webkit-flex:1;flex:1}
-.pc-resign-hidden{display:none}
+/* ── VIEW TOGGLE ─────────────────────────────────────── */
+.view-toggle{display:-webkit-flex;display:flex;background:var(–sur2);border-radius:10px;padding:.25rem;gap:.2rem;border:1px solid var(–bdr)}
+.vt-btn{-webkit-flex:1;flex:1;font-family:“Barlow Condensed”,sans-serif;font-size:.7rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:.35rem .5rem;border-radius:7px;border:none;background:none;color:var(–dim);cursor:pointer;-webkit-appearance:none;transition:all .2s;white-space:nowrap}
+.vt-btn.active{background:var(–sur3);color:var(–brt);box-shadow:0 1px 4px rgba(0,0,0,.4)}
 
-/* AAV EDITOR */
-.aav-overlay{display:none;position:fixed;inset:0;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:700;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;padding:1.25rem}
-.aav-overlay.open{display:-webkit-flex;display:flex}
-.aav-box{background:var(–sur);border:1px solid var(–bdr);border-radius:12px;width:100%;max-width:400px;overflow:hidden}
-.aav-header{background:var(–sur2);padding:1.25rem 1.5rem;border-bottom:1px solid var(–bdr)}
-.aav-header h2{font-family:“Bebas Neue”,sans-serif;font-size:1.5rem;color:var(–brt);letter-spacing:3px;margin-bottom:.2rem}
-.aav-header p{font-size:.7rem;color:var(–dim);letter-spacing:.5px}
-.aav-body{padding:1.25rem 1.5rem}
-.aav-search-row{display:-webkit-flex;display:flex;gap:.5rem;margin-bottom:1rem}
-.aav-search{-webkit-flex:1;flex:1;background:var(–bg);border:1px solid var(–bdr);border-radius:4px;color:var(–brt);-webkit-text-fill-color:var(–brt);font-family:“DM Mono”,monospace;font-size:.8rem;padding:.42rem .65rem;outline:none;-webkit-appearance:none}
-.aav-search:focus{border-color:var(–acc)}
-.aav-search::placeholder{color:var(–dim)}
-.aav-results{max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid var(–bdr);border-radius:4px;margin-bottom:1rem;display:none}
-.aav-result-item{padding:.6rem .75rem;border-bottom:1px solid rgba(37,42,53,.4);cursor:pointer;display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center;transition:background .1s}
-.aav-result-item:last-child{border-bottom:none}
-.aav-result-item:hover,.aav-result-item:active{background:var(–sur2)}
-.aav-result-name{font-size:.8rem;color:var(–brt);font-weight:500}
-.aav-result-meta{font-size:.7rem;color:var(–dim)}
-.aav-selected{background:var(–sur2);border:1px solid var(–bdr);border-radius:4px;padding:.65rem .75rem;margin-bottom:1rem;display:none}
-.aav-sel-name{font-family:“Barlow Condensed”,sans-serif;font-size:1rem;font-weight:600;letter-spacing:1px;color:var(–brt);margin-bottom:.3rem}
-.aav-sel-cur{font-size:.72rem;color:var(–dim);margin-bottom:.75rem}
-.aav-new-row{display:-webkit-flex;display:flex;gap:.5rem;-webkit-align-items:center;align-items:center}
-.aav-new-label{font-family:“Barlow Condensed”,sans-serif;font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);white-space:nowrap}
-.aav-new-input{-webkit-flex:1;flex:1;background:var(–bg);border:1px solid var(–acc);border-radius:4px;color:var(–acc);-webkit-text-fill-color:var(–acc);font-family:“DM Mono”,monospace;font-size:.9rem;padding:.4rem .6rem;outline:none;-webkit-appearance:none;font-weight:600}
-.aav-footer{padding:.75rem 1.5rem 1.25rem;display:-webkit-flex;display:flex;gap:.6rem}
-.aav-save{font-family:“Barlow Condensed”,sans-serif;font-size:.82rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(–bg);background:var(–acc);border:none;border-radius:5px;padding:.45rem .9rem;cursor:pointer;-webkit-appearance:none;-webkit-flex:1;flex:1}
-.aav-save:active{opacity:.8}
-.aav-close{font-family:“Barlow Condensed”,sans-serif;font-size:.82rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);background:none;border:1px solid var(–bdr);border-radius:5px;padding:.45rem .9rem;cursor:pointer;-webkit-appearance:none}
+/* ── ROSTER SIMPLE VIEW ──────────────────────────────── */
+.roster-list{padding:.5rem .75rem}
+.roster-player-card{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.75rem;padding:.85rem .9rem;background:var(–sur);border:1px solid var(–bdr);border-radius:12px;margin-bottom:.5rem;cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden}
+.roster-player-card:active{opacity:.7}
+.roster-player-card.drop-flag{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.04)}
+.roster-player-card.il-flag{border-color:rgba(240,180,41,.25)}
+.rpc-slot{font-family:“Barlow Condensed”,sans-serif;font-size:.65rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:.25rem .4rem;border-radius:6px;min-width:34px;text-align:center;flex-shrink:0}
+.rpc-info{-webkit-flex:1;flex:1;min-width:0}
+.rpc-name{font-family:“Inter”,sans-serif;font-size:.88rem;font-weight:600;color:var(–brt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rpc-meta{font-family:“Barlow Condensed”,sans-serif;font-size:.65rem;letter-spacing:.5px;text-transform:uppercase;color:var(–dim);margin-top:.1rem}
+.rpc-right{text-align:right;flex-shrink:0}
+.rpc-sal{font-family:“DM Mono”,monospace;font-size:.92rem;font-weight:500;color:var(–brt)}
+.rpc-contract{font-family:“Barlow Condensed”,sans-serif;font-size:.62rem;letter-spacing:.5px;color:var(–dim);margin-top:.1rem;text-align:right}
+.rpc-tags{display:-webkit-flex;display:flex;gap:.25rem;margin-top:.25rem;-webkit-flex-wrap:wrap;flex-wrap:wrap}
+.tag{font-family:“Barlow Condensed”,sans-serif;font-size:.55rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:.12rem .35rem;border-radius:4px}
+.tag-arb{background:rgba(240,180,41,.15);color:var(–acc);border:1px solid rgba(240,180,41,.25)}
+.tag-drop{background:rgba(239,68,68,.15);color:var(–red);border:1px solid rgba(239,68,68,.25)}
+.tag-il{background:rgba(240,180,41,.1);color:var(–acc);border:1px solid rgba(240,180,41,.2)}
+.tag-carried{background:rgba(75,143,232,.15);color:var(–acc2);border:1px solid rgba(75,143,232,.25)}
+.rpc-contract-input{background:transparent;border:none;border-bottom:1.5px solid var(–bdr2);color:#f0f2f6;-webkit-text-fill-color:#f0f2f6;font-family:“DM Mono”,monospace;font-size:.85rem;width:100%;text-align:center;padding:.1rem;outline:none;-webkit-appearance:none}
+.rpc-contract-input:focus{border-bottom-color:var(–acc)}
 
-/* CLEAR CONFIRM */
-.clear-overlay{display:none;position:fixed;inset:0;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:700;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;padding:1.5rem}
-.clear-overlay.open{display:-webkit-flex;display:flex}
-.clear-box{background:var(–sur);border:1px solid var(–red);border-radius:12px;padding:1.75rem;width:100%;max-width:360px;text-align:center}
-.clear-box h2{font-family:“Bebas Neue”,sans-serif;font-size:1.6rem;color:var(–red);letter-spacing:3px;margin-bottom:.5rem}
-.clear-box p{font-size:.78rem;color:var(–dim);line-height:1.7;margin-bottom:1.25rem}
-.clear-actions{display:-webkit-flex;display:flex;gap:.75rem}
-.clear-confirm-btn{font-family:“Barlow Condensed”,sans-serif;font-size:.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#fff;background:var(–red);border:none;border-radius:6px;padding:.55rem 1rem;cursor:pointer;-webkit-appearance:none;-webkit-flex:1;flex:1}
-.clear-cancel-btn{font-family:“Barlow Condensed”,sans-serif;font-size:.85rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);background:none;border:1px solid var(–bdr);border-radius:6px;padding:.55rem 1rem;cursor:pointer;-webkit-appearance:none;-webkit-flex:1;flex:1}
-
-/* LEAGUE RULES FIELDS */
-.rule-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid rgba(37,42,53,.4)}
-.rule-row:last-child{border-bottom:none}
-.rule-lbl{font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim)}
-.rule-sub{font-size:.62rem;color:var(–bdr);margin-top:.1rem}
-.rule-input{background:var(–bg);border:1px solid var(–bdr);border-radius:4px;color:var(–acc);-webkit-text-fill-color:var(–acc);font-family:“DM Mono”,monospace;font-size:.85rem;width:90px;text-align:right;padding:.3rem .5rem;outline:none;-webkit-appearance:none;appearance:none}
-.rule-input:focus{border-color:var(–acc)}
-
-/* MODALS */
-.modal-overlay{display:none;position:fixed;inset:0;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:500;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;padding:1.25rem;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.modal-overlay.open{display:-webkit-flex;display:flex}
-.modal-box{background:var(–sur);border:1px solid var(–bdr);border-radius:12px;width:100%;max-width:420px;overflow:hidden}
-.modal-header{background:var(–sur2);padding:1.25rem 1.5rem;border-bottom:1px solid var(–bdr)}
-.modal-header h2{font-family:“Bebas Neue”,sans-serif;font-size:1.5rem;color:var(–brt);letter-spacing:3px;margin-bottom:.2rem}
-.modal-header p{font-size:.7rem;color:var(–dim)}
-.modal-body{padding:1.25rem 1.5rem}
-.modal-footer{padding:.75rem 1.5rem 1.25rem;display:-webkit-flex;display:flex;gap:.6rem}
-.btn-primary{font-family:“Barlow Condensed”,sans-serif;font-size:.82rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(–bg);background:var(–acc);border:none;border-radius:5px;padding:.45rem .9rem;cursor:pointer;-webkit-appearance:none;-webkit-flex:1;flex:1}
-.btn-secondary{font-family:“Barlow Condensed”,sans-serif;font-size:.82rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim);background:none;border:1px solid var(–bdr);border-radius:5px;padding:.45rem .9rem;cursor:pointer;-webkit-appearance:none}
-.btn-danger{font-family:“Barlow Condensed”,sans-serif;font-size:.82rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#fff;background:var(–red);border:none;border-radius:5px;padding:.45rem .9rem;cursor:pointer;-webkit-appearance:none;-webkit-flex:1;flex:1}
-.field-label{font-family:“Barlow Condensed”,sans-serif;font-size:.68rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(–dim);display:block;margin-bottom:.3rem}
-.field-input{width:100%;background:var(–bg);border:1px solid var(–bdr);border-radius:4px;color:var(–brt);-webkit-text-fill-color:var(–brt);font-family:“DM Mono”,monospace;font-size:.8rem;padding:.42rem .65rem;outline:none;-webkit-appearance:none;margin-bottom:.85rem}
-.field-input:focus{border-color:var(–acc)}
-.field-select{width:100%;background:var(–sur);border:1px solid var(–bdr);border-radius:4px;color:var(–txt);font-family:“Barlow Condensed”,sans-serif;font-size:.82rem;letter-spacing:1px;padding:.42rem .65rem;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;margin-bottom:.85rem}
-.field-select:focus{border-color:var(–acc)}
-.field-textarea{width:100%;background:var(–bg);border:1px solid var(–bdr);border-radius:6px;color:var(–txt);-webkit-text-fill-color:var(–txt);font-family:“DM Mono”,monospace;font-size:.62rem;padding:.75rem;height:200px;resize:vertical;outline:none;-webkit-appearance:none;line-height:1.5}
-.field-textarea:focus{border-color:var(–acc)}
-.pc-row{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center;padding:.55rem 0;border-bottom:1px solid rgba(37,42,53,.5)}
-.pc-row:last-child{border-bottom:none}
-.pc-lbl{font-family:“Barlow Condensed”,sans-serif;font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–dim)}
-.pc-val{font-family:“DM Mono”,monospace;font-size:.82rem;color:var(–brt);font-weight:500}
-.pc-val.gold{color:var(–acc)}.pc-val.red{color:var(–red)}
-.aav-results{max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid var(–bdr);border-radius:4px;margin-bottom:1rem;display:none}
-.aav-result-item{padding:.6rem .75rem;border-bottom:1px solid rgba(37,42,53,.4);cursor:pointer;display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center}
-.aav-result-item:last-child{border-bottom:none}
-.aav-result-item:active{background:var(–sur2)}
-.aav-selected{background:var(–sur2);border:1px solid var(–bdr);border-radius:4px;padding:.65rem .75rem;margin-bottom:1rem;display:none}
-.clear-team-btn{font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(–red);padding:.3rem .7rem;border:1px solid var(–red);background:rgba(232,75,75,.06);cursor:pointer;border-radius:4px;white-space:nowrap;-webkit-appearance:none}
-.clear-team-btn:active{background:rgba(232,75,75,.18)}
-.arb-player-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between;padding:.55rem 0;border-bottom:1px solid rgba(37,42,53,.4);cursor:pointer}
-.arb-player-row:last-child{border-bottom:none}
-.arb-player-row:active{opacity:.7}
-.arb-player-name{font-size:.8rem;color:var(–brt);font-weight:500}
-.arb-player-meta{font-size:.68rem;color:var(–dim);margin-top:.08rem}
-.arb-player-aav{font-family:“DM Mono”,monospace;font-size:.75rem;color:var(–acc);font-weight:600;white-space:nowrap;margin-left:.5rem}
-.arb-empty{font-size:.72rem;color:var(–dim);padding:.5rem 0}
-.hdr-btn{font-family:“Barlow Condensed”,sans-serif;font-size:.72rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(–dim);padding:.28rem .55rem;border:1px solid var(–bdr);background:none;cursor:pointer;border-radius:4px;white-space:nowrap;-webkit-appearance:none;flex-shrink:0}
-.hdr-btn-gold{color:var(–acc);border-color:var(–acc);background:rgba(232,200,75,.08)}
-.hdr-btn-red{color:var(–red);border-color:var(–red);background:rgba(232,75,75,.06)}
-
-/* Keep year columns tight */
-.rt th:nth-child(n+6){max-width:52px;min-width:44px}
-.rt td:nth-child(n+6){max-width:52px}
-.rt th:nth-child(1){width:36px;min-width:36px}
-.rt th:nth-child(2){width:28px;min-width:28px}
-.rt th:nth-child(3){min-width:80px}
-.rt th:nth-child(4){width:52px;min-width:48px}
-.rt th:nth-child(5){width:52px;min-width:48px}
-
-/* Fixed column widths */
+/* ── ROSTER TABLE (PROJECTION VIEW) ─────────────────── */
+.rt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rt{width:100%;table-layout:fixed;border-collapse:collapse;font-size:.58rem}
+.rt th{font-family:“Barlow Condensed”,sans-serif;font-size:.58rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(–dim);padding:.5rem .4rem;text-align:center;border-bottom:1px solid var(–bdr);background:var(–sur);white-space:nowrap;position:-webkit-sticky;position:sticky;top:0;z-index:2}
+.rt th:nth-child(-n+3){text-align:left}
+.rt th:nth-child(4){text-align:right}
+.rt td{padding:.55rem .4rem;border-bottom:1px solid var(–bdr);text-align:center;font-size:.58rem;vertical-align:middle;white-space:nowrap;overflow:hidden}
+.rt td:nth-child(-n+3){text-align:left}
+.rt td:nth-child(4){text-align:right}
+.rt tbody tr:nth-child(even){background:rgba(14,17,23,.5)}
 .rt col:nth-child(1){width:5%}
 .rt col:nth-child(2){width:4%}
 .rt col:nth-child(3){width:28%}
 .rt col:nth-child(4){width:9%}
 .rt col:nth-child(5){width:7%}
 .rt col:nth-child(n+6){width:4.7%}
-.rt td,.rt th{overflow:hidden}.team-name-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.75rem;padding:.45rem 0;border-bottom:1px solid rgba(37,42,53,.4)}
+.rt td,.rt th{overflow:hidden}
+.rt .yval{color:var(–dim2);font-size:.56rem}
+.rt .yval.cur{color:var(–brt)}
+.rt .yval.muted{color:var(–bdr2)}
+.rt .tr-tot td,.rt .tr-cap td,.rt .tr-pct td{border-bottom:none;font-family:“Barlow Condensed”,sans-serif;font-size:.56rem;color:var(–dim);font-style:italic}
+.rt .tr-tot td{border-top:2px solid var(–bdr2);padding-top:.6rem;font-weight:600}
+.rt-hint{font-family:“Barlow Condensed”,sans-serif;font-size:.65rem;letter-spacing:.5px;color:var(–dim);padding:.5rem .75rem;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem}
+.ci{background:transparent;border:none;border-bottom:1.5px solid var(–bdr2);color:#f0f2f6;-webkit-text-fill-color:#f0f2f6;font-family:“DM Mono”,monospace;font-size:.56rem;width:100%;text-align:center;padding:.1rem;outline:none;-webkit-appearance:none;style:“color:#f0f2f6;-webkit-text-fill-color:#f0f2f6;text-align:center;width:100%”}
+.ci:focus{border-bottom-color:var(–acc);color:#f0f2f6;-webkit-text-fill-color:#f0f2f6}
+.ci-carried{background:rgba(75,143,232,.1);border:none;border-bottom:1.5px solid #4b8fe8;color:#4b8fe8;-webkit-text-fill-color:#4b8fe8;font-family:“DM Mono”,monospace;font-size:.56rem;width:100%;text-align:center;display:block}
+
+/* ── SLOT BADGES ─────────────────────────────────────── */
+.slot{display:inline-block;font-family:“Barlow Condensed”,sans-serif;font-size:.6rem;font-weight:700;letter-spacing:.5px;padding:.2rem .35rem;border-radius:5px;text-transform:uppercase}
+.slot.C{background:rgba(239,68,68,.2);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
+.slot.s1B,.slot.s2B,.slot.s3B{background:rgba(249,115,22,.2);color:#f97316;border:1px solid rgba(249,115,22,.3)}
+.slot.SS{background:rgba(234,179,8,.2);color:#eab308;border:1px solid rgba(234,179,8,.3)}
+.slot.OF{background:rgba(34,197,94,.2);color:#22c55e;border:1px solid rgba(34,197,94,.3)}
+.slot.UTIL{background:rgba(168,85,247,.2);color:#a855f7;border:1px solid rgba(168,85,247,.3)}
+.slot.SP{background:rgba(59,130,246,.2);color:#3b82f6;border:1px solid rgba(59,130,246,.3)}
+.slot.RP{background:rgba(20,184,166,.2);color:#14b8a6;border:1px solid rgba(20,184,166,.3)}
+.slot.P{background:rgba(99,102,241,.2);color:#6366f1;border:1px solid rgba(99,102,241,.3)}
+.slot.BN,.slot.Bench{background:rgba(100,116,139,.15);color:#64748b;border:1px solid rgba(100,116,139,.25)}
+.slot.IL{background:rgba(240,180,41,.15);color:var(–acc);border:1px solid rgba(240,180,41,.25)}
+.arb-tag{display:inline-block;font-family:“Barlow Condensed”,sans-serif;font-size:.55rem;font-weight:700;letter-spacing:.5px;padding:.1rem .3rem;border-radius:4px;background:rgba(240,180,41,.15);color:var(–acc);border:1px solid rgba(240,180,41,.25)}
+.drop-tag{display:inline-block;font-family:“Barlow Condensed”,sans-serif;font-size:.55rem;font-weight:700;letter-spacing:.5px;padding:.1rem .3rem;border-radius:4px;background:rgba(239,68,68,.15);color:var(–red);border:1px solid rgba(239,68,68,.25)}
+.inj-tag{display:inline-block;font-family:“Barlow Condensed”,sans-serif;font-size:.55rem;font-weight:700;letter-spacing:.5px;padding:.1rem .3rem;border-radius:4px;background:rgba(240,180,41,.1);color:var(–acc);border:1px solid rgba(240,180,41,.2)}
+.lock-icon{font-size:.65rem}
+
+/* ── SALARIES DB ─────────────────────────────────────── */
+.page-inner{padding:1rem}
+.page-title-row{display:-webkit-flex;display:flex;-webkit-align-items:baseline;align-items:baseline;gap:.75rem;margin-bottom:.25rem}
+.page-title{font-family:“Bebas Neue”,sans-serif;font-size:1.6rem;letter-spacing:3px;color:var(–brt)}
+.page-sub{font-family:“Barlow Condensed”,sans-serif;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;color:var(–dim);margin-bottom:1rem}
+.search-bar{display:-webkit-flex;display:flex;gap:.5rem;margin-bottom:.75rem;-webkit-flex-wrap:wrap;flex-wrap:wrap}
+.search-input{-webkit-flex:1;flex:1;min-width:120px;background:var(–sur);border:1px solid var(–bdr);border-radius:10px;color:var(–txt);font-family:“DM Mono”,monospace;font-size:.78rem;padding:.55rem .8rem;outline:none;-webkit-appearance:none;-webkit-text-fill-color:var(–txt)}
+.search-input:focus{border-color:var(–acc)}
+.search-input::placeholder{color:var(–dim)}
+.filter-select{background:var(–sur);border:1px solid var(–bdr);border-radius:10px;color:var(–txt);font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;letter-spacing:.5px;padding:.55rem .7rem;outline:none;-webkit-appearance:none;cursor:pointer}
+.db-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(–bdr);background:var(–sur)}
+.dbt{width:100%;border-collapse:collapse;font-size:.75rem;min-width:460px}
+.dbt th{font-family:“Barlow Condensed”,sans-serif;font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(–dim);padding:.55rem .7rem;text-align:right;border-bottom:1px solid var(–bdr);background:var(–sur2);cursor:pointer;-webkit-user-select:none;user-select:none;white-space:nowrap}
+.dbt th:first-child{text-align:left}
+.dbt th .sort-arr{margin-left:.3rem;color:var(–acc)}
+.dbt td{padding:.55rem .7rem;border-bottom:1px solid var(–bdr);text-align:right;white-space:nowrap;font-family:“DM Mono”,monospace;font-size:.72rem}
+.dbt td:first-child{text-align:left;font-family:“Inter”,sans-serif;font-weight:500;font-size:.75rem}
+.dbt tbody tr:last-child td{border-bottom:none}
+.dbt tbody tr:active{background:var(–sur2)}
+
+/* ── FREE AGENTS ─────────────────────────────────────── */
+.fa-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(–bdr);background:var(–sur)}
+.fat{width:100%;border-collapse:collapse;font-size:.75rem;min-width:380px}
+.fat th{font-family:“Barlow Condensed”,sans-serif;font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(–dim);padding:.55rem .7rem;text-align:right;border-bottom:1px solid var(–bdr);background:var(–sur2);cursor:pointer;-webkit-user-select:none;user-select:none;white-space:nowrap}
+.fat th:first-child{text-align:left}
+.fat td{padding:.55rem .7rem;border-bottom:1px solid var(–bdr);text-align:right;white-space:nowrap;font-family:“DM Mono”,monospace;font-size:.72rem}
+.fat td:first-child{text-align:left;font-family:“Inter”,sans-serif;font-weight:500;font-size:.75rem;cursor:pointer;color:var(–acc2)}
+.fat td:first-child:active{opacity:.7}
+.fat tbody tr:last-child td{border-bottom:none}
+.fa-cnt{font-family:“Barlow Condensed”,sans-serif;font-size:.7rem;letter-spacing:.5px;color:var(–dim)}
+.fa-status-badge{display:inline-block;font-family:“Barlow Condensed”,sans-serif;font-size:.6rem;font-weight:700;letter-spacing:.5px;padding:.15rem .4rem;border-radius:5px}
+.fa-status-badge.FREEAGENT{background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.25)}
+.fa-status-badge.WAIVERS{background:rgba(249,115,22,.15);color:#f97316;border:1px solid rgba(249,115,22,.25)}
+.fa-pts{font-weight:600;color:var(–brt)}
+
+/* ── CONTRACTS TAB ───────────────────────────────────── */
+.contracts-section{margin-bottom:1.5rem}
+.contracts-section-hdr{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.6rem;padding:.75rem 1rem .5rem;border-bottom:1px solid var(–bdr)}
+.contracts-section-title{font-family:“Bebas Neue”,sans-serif;font-size:1.1rem;letter-spacing:2px;color:var(–brt)}
+.contracts-section-count{font-family:“Barlow Condensed”,sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.5px;background:var(–sur2);color:var(–dim);border:1px solid var(–bdr);border-radius:20px;padding:.1rem .45rem}
+.contract-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.65rem;padding:.8rem 1rem;border-bottom:1px solid var(–bdr);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.contract-row:active{background:var(–sur2)}
+.contract-row:last-child{border-bottom:none}
+.cr-slot{flex-shrink:0}
+.cr-info{-webkit-flex:1;flex:1;min-width:0}
+.cr-name{font-family:“Inter”,sans-serif;font-size:.85rem;font-weight:600;color:var(–brt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr-team{font-family:“Barlow Condensed”,sans-serif;font-size:.65rem;letter-spacing:.5px;text-transform:uppercase;color:var(–dim);margin-top:.1rem}
+.cr-right{text-align:right;flex-shrink:0}
+.cr-aav{font-family:“DM Mono”,monospace;font-size:.85rem;font-weight:500;color:var(–brt)}
+.cr-detail{font-family:“Barlow Condensed”,sans-serif;font-size:.62rem;letter-spacing:.5px;color:var(–dim);margin-top:.1rem}
+.empty-state{padding:2.5rem 1rem;text-align:center}
+.empty-state-icon{font-size:2rem;margin-bottom:.5rem;opacity:.4}
+.empty-state-text{font-family:“Barlow Condensed”,sans-serif;font-size:.85rem;letter-spacing:1px;text-transform:uppercase;color:var(–dim)}
+
+/* ── SETTINGS ────────────────────────────────────────── */
+.settings-group{margin-bottom:1.25rem;border:1px solid var(–bdr);border-radius:14px;overflow:hidden;background:var(–sur)}
+.settings-group-title{font-family:“Barlow Condensed”,sans-serif;font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(–dim);padding:.6rem 1rem .4rem;background:var(–sur2);border-bottom:1px solid var(–bdr)}
+.settings-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between;padding:.85rem 1rem;border-bottom:1px solid var(–bdr);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.settings-row:last-child{border-bottom:none}
+.settings-row:active{background:var(–sur2)}
+.settings-row-left{}
+.settings-row-title{font-family:“Inter”,sans-serif;font-size:.85rem;font-weight:500;color:var(–brt)}
+.settings-row-sub{font-family:“Barlow Condensed”,sans-serif;font-size:.68rem;letter-spacing:.5px;color:var(–dim);margin-top:.1rem}
+.settings-row-right{font-size:.85rem;color:var(–dim);flex-shrink:0;margin-left:.5rem}
+.settings-btn{width:100%;background:none;border:none;cursor:pointer;-webkit-appearance:none;text-align:left}
+
+/* ── MODALS ──────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:-webkit-flex;display:flex;-webkit-align-items:flex-end;align-items:flex-end;-webkit-justify-content:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-box{background:var(–sur);border:1px solid var(–bdr);border-radius:20px 20px 0 0;width:100%;max-width:540px;max-height:90vh;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;transform:translateY(30px);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.modal-overlay.open .modal-box{transform:translateY(0)}
+.modal-handle{width:36px;height:4px;background:var(–bdr2);border-radius:2px;margin:.75rem auto .5rem}
+.modal-header{padding:.5rem 1.25rem 1rem;border-bottom:1px solid var(–bdr)}
+.modal-header h2{font-family:“Bebas Neue”,sans-serif;font-size:1.35rem;letter-spacing:2px;color:var(–brt)}
+.modal-header p{font-family:“Barlow Condensed”,sans-serif;font-size:.72rem;letter-spacing:.5px;color:var(–dim);margin-top:.2rem}
+.modal-body{padding:1rem 1.25rem;overflow-y:auto;-webkit-overflow-scrolling:touch;-webkit-flex:1;flex:1}
+.modal-footer{padding:.75rem 1.25rem 1rem;display:-webkit-flex;display:flex;gap:.6rem;border-top:1px solid var(–bdr);padding-bottom:max(1rem,env(safe-area-inset-bottom))}
+.btn-primary{-webkit-flex:1;flex:1;background:var(–acc);color:#000;font-family:“Barlow Condensed”,sans-serif;font-size:.85rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:.7rem;border:none;border-radius:10px;cursor:pointer;-webkit-appearance:none}
+.btn-primary:active{opacity:.8}
+.btn-secondary{-webkit-flex:1;flex:1;background:var(–sur2);color:var(–dim2);font-family:“Barlow Condensed”,sans-serif;font-size:.85rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:.7rem;border:1px solid var(–bdr);border-radius:10px;cursor:pointer;-webkit-appearance:none}
+.btn-secondary:active{opacity:.8}
+.btn-danger{-webkit-flex:1;flex:1;background:rgba(239,68,68,.15);color:var(–red);border:1px solid rgba(239,68,68,.3);font-family:“Barlow Condensed”,sans-serif;font-size:.85rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:.7rem;border-radius:10px;cursor:pointer;-webkit-appearance:none}
+
+/* ── FORM FIELDS ─────────────────────────────────────── */
+.field-label{display:block;font-family:“Barlow Condensed”,sans-serif;font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(–dim);margin-bottom:.35rem;margin-top:.75rem}
+.field-label:first-child{margin-top:0}
+.field-input{width:100%;background:var(–sur2);border:1px solid var(–bdr);border-radius:10px;color:var(–txt);-webkit-text-fill-color:var(–txt);font-family:“DM Mono”,monospace;font-size:.82rem;padding:.6rem .85rem;outline:none;-webkit-appearance:none}
+.field-input:focus{border-color:var(–acc)}
+.field-input::placeholder{color:var(–dim)}
+
+/* ── PLAYER CARD MODAL ───────────────────────────────── */
+.pc-name{font-family:“Bebas Neue”,sans-serif;font-size:1.6rem;letter-spacing:2px;color:var(–brt);line-height:1.1;margin-bottom:.15rem}
+.pc-pos{font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;letter-spacing:1px;text-transform:uppercase;color:var(–dim);margin-bottom:1rem}
+.pc-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem}
+.pc-stat-box{background:var(–sur2);border:1px solid var(–bdr);border-radius:10px;padding:.65rem .75rem}
+.pc-stat-lbl{font-family:“Barlow Condensed”,sans-serif;font-size:.6rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(–dim);margin-bottom:.2rem}
+.pc-stat-val{font-family:“DM Mono”,monospace;font-size:.9rem;font-weight:500;color:var(–brt)}
+.pc-dynasty-box{background:var(–sur2);border:1px solid var(–bdr);border-radius:10px;padding:.75rem;margin-bottom:.75rem}
+.pc-dynasty-lbl{font-family:“Barlow Condensed”,sans-serif;font-size:.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(–acc);margin-bottom:.35rem}
+.pc-dynasty-val{font-family:“DM Mono”,monospace;font-size:.85rem;color:var(–brt)}
+.pc-clear-btn{width:100%;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:10px;color:var(–red);font-family:“Barlow Condensed”,sans-serif;font-size:.8rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:.65rem;cursor:pointer;-webkit-appearance:none}
+
+/* ── TOAST ───────────────────────────────────────────── */
+.toast{position:fixed;bottom:5.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(–sur3);border:1px solid var(–bdr2);border-radius:12px;padding:.55rem 1.1rem;font-family:“Barlow Condensed”,sans-serif;font-size:.78rem;font-weight:600;letter-spacing:.5px;white-space:nowrap;z-index:999;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.green{color:var(–grn);border-color:rgba(34,197,94,.3)}
+.toast.red{color:var(–red);border-color:rgba(239,68,68,.3)}
+.toast.yellow{color:var(–acc);border-color:rgba(240,180,41,.3)}
+
+/* ── MISC ────────────────────────────────────────────── */
+.pos-badge{display:inline-block;font-family:“Barlow Condensed”,sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.5px;padding:.18rem .45rem;border-radius:5px;border:1px solid var(–bdr2);background:var(–sur2);color:var(–dim2);text-transform:uppercase}
+.hidden-file{display:none}
+.loading-row td{text-align:center;padding:2rem;color:var(–dim);font-family:“Barlow Condensed”,sans-serif;font-size:.8rem;letter-spacing:1px}
+.set-card{background:var(–sur2);border:1px solid var(–bdr);border-radius:10px;padding:.75rem .9rem;margin-bottom:.5rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.set-card:active{opacity:.7}
+.set-card-title{font-family:“Inter”,sans-serif;font-size:.82rem;font-weight:600;color:var(–brt);margin-bottom:.2rem}
+.set-card-sub{font-family:“DM Mono”,monospace;font-size:.65rem;color:var(–dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-name-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.75rem;padding:.55rem 0;border-bottom:1px solid var(–bdr)}
 .team-name-row:last-child{border-bottom:none}
-.team-name-label{font-family:“Barlow Condensed”,sans-serif;font-size:.72rem;font-weight:600;letter-spacing:1px;color:var(–dim);width:60px;flex-shrink:0}
-.team-name-input{-webkit-flex:1;flex:1;background:var(–bg);border:1px solid var(–bdr);border-radius:4px;color:var(–brt);-webkit-text-fill-color:var(–brt);font-family:“DM Mono”,monospace;font-size:.8rem;padding:.35rem .55rem;outline:none;-webkit-appearance:none}
+.team-name-label{font-family:“Barlow Condensed”,sans-serif;font-size:.72rem;font-weight:700;letter-spacing:1px;color:var(–dim);width:60px;flex-shrink:0}
+.team-name-input{-webkit-flex:1;flex:1;background:var(–sur2);border:1px solid var(–bdr);border-radius:8px;color:var(–brt);-webkit-text-fill-color:var(–brt);font-family:“DM Mono”,monospace;font-size:.8rem;padding:.35rem .55rem;outline:none;-webkit-appearance:none}
 .team-name-input:focus{border-color:var(–acc)}
+.arb-player-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(–bdr);cursor:pointer}
+.arb-player-row:last-child{border-bottom:none}
+.arb-player-row:active{opacity:.7}
+.arb-player-name{font-size:.82rem;color:var(–brt);font-weight:500}
+.arb-player-meta{font-size:.65rem;color:var(–dim);margin-top:.08rem;font-family:“Barlow Condensed”,sans-serif;letter-spacing:.5px}
+.arb-player-aav{font-family:“DM Mono”,monospace;font-size:.75rem;color:var(–acc);font-weight:500;white-space:nowrap;margin-left:.5rem}
+.arb-empty{font-size:.75rem;color:var(–dim);padding:.75rem 0;text-align:center}
 
-.rt th:nth-child(-n+3),.rt td:nth-child(-n+3){text-align:left}
-.rt th:nth-child(4),.rt td:nth-child(4){text-align:right}
-
-.tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(10,12,16,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-top:1px solid #252a35;display:-webkit-flex;display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
-.tab-btn{-webkit-flex:1;flex:1;background:none;border:none;padding:.65rem .2rem .5rem;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:center;align-items:center;gap:.18rem;cursor:pointer;-webkit-appearance:none;color:#6b7280;-webkit-tap-highlight-color:transparent}
-.tab-btn.active{color:#e8c84b}
-.tab-icon{font-size:1.2rem;line-height:1}
-.tab-label{font-family:“Barlow Condensed”,sans-serif;font-size:.6rem;font-weight:600;letter-spacing:1px;text-transform:uppercase}
-.team-cards{padding:.75rem;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;gap:.75rem;padding-bottom:5rem}
-.team-card{background:#111318;border:1px solid #252a35;border-radius:14px;padding:1.1rem 1rem;cursor:pointer;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
-.team-card:active{opacity:.7}
-.team-card-top{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:baseline;align-items:baseline;margin-bottom:.7rem}
-.team-card-name{font-family:“Bebas Neue”,sans-serif;font-size:1.6rem;letter-spacing:2px;color:#f0f2f6}
-.team-card-meta{font-family:“Barlow Condensed”,sans-serif;font-size:.72rem;color:#6b7280;letter-spacing:1px;text-transform:uppercase}
-.team-card-stats{display:-webkit-flex;display:flex;gap:.5rem;margin-bottom:.8rem}
-.team-stat{-webkit-flex:1;flex:1;background:#0a0c10;border-radius:10px;padding:.55rem .25rem;text-align:center}
-.team-stat-val{font-family:“DM Mono”,monospace;font-size:.92rem;font-weight:600;margin-bottom:.18rem}
-.team-stat-lbl{font-family:“Barlow Condensed”,sans-serif;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;color:#6b7280}
-.team-card-bar-track{height:5px;background:#252a35;border-radius:3px;overflow:hidden}
-.team-card-bar-fill{height:100%;border-radius:3px}
-.league-header{padding:1rem 1rem .6rem;border-bottom:1px solid #252a35}
-.league-title{font-family:“Bebas Neue”,sans-serif;font-size:1.7rem;letter-spacing:3px;color:#e8c84b;margin-bottom:.2rem}
-.league-sub{font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;color:#6b7280;letter-spacing:1px;text-transform:uppercase}
 </style>
-
 <!-- Firebase SDK -->
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCU7ZOT2idI2hv1yQE5TpOYk8Bt4GQ5KhM",
-  authDomain: "fantasy-baseball-428e9.firebaseapp.com",
-  projectId: "fantasy-baseball-428e9",
-  storageBucket: "fantasy-baseball-428e9.firebasestorage.app",
-  messagingSenderId: "895356000680",
-  appId: "1:895356000680:web:c4d18f4099e83927a9659d"
+apiKey: “AIzaSyCU7ZOT2idI2hv1yQE5TpOYk8Bt4GQ5KhM”,
+authDomain: “fantasy-baseball-428e9.firebaseapp.com”,
+projectId: “fantasy-baseball-428e9”,
+storageBucket: “fantasy-baseball-428e9.firebasestorage.app”,
+messagingSenderId: “895356000680”,
+appId: “1:895356000680:web:c4d18f4099e83927a9659d”
 };
 
 const fbApp = initializeApp(firebaseConfig);
@@ -435,78 +331,73 @@ window._fbReady = true;
 
 // ── Save contracts to Firestore ───────────────────────────────
 window.saveContractsCloud = async function(contracts) {
-  if(!window._db) return;
-  try {
-    await setDoc(doc(db, 'league', 'contracts'), {
-      data: JSON.stringify(contracts),
-      updated: new Date().toISOString()
-    });
-  } catch(e) {
-    console.warn('Firestore save failed:', e);
-  }
+if(!window._db) return;
+try {
+await setDoc(doc(db, ‘league’, ‘contracts’), {
+data: JSON.stringify(contracts),
+updated: new Date().toISOString()
+});
+} catch(e) {
+console.warn(‘Firestore save failed:’, e);
+}
 };
 
 // ── Load contracts from Firestore once ───────────────────────
 window.loadContractsCloud = async function() {
-  if(!window._db) return null;
-  try {
-    const snap = await getDoc(doc(db, 'league', 'contracts'));
-    if(snap.exists()) return JSON.parse(snap.data().data);
-  } catch(e) {
-    console.warn('Firestore load failed:', e);
-  }
-  return null;
+if(!window._db) return null;
+try {
+const snap = await getDoc(doc(db, ‘league’, ‘contracts’));
+if(snap.exists()) return JSON.parse(snap.data().data);
+} catch(e) {
+console.warn(‘Firestore load failed:’, e);
+}
+return null;
 };
 
 // ── Real-time listener ────────────────────────────────────────
 window.startContractsListener = function(callback) {
-  if(!window._db) return;
-  return onSnapshot(doc(db, 'league', 'contracts'), (snap) => {
-    if(snap.exists()) {
-      try {
-        const contracts = JSON.parse(snap.data().data);
-        callback(contracts);
-      } catch(e) {}
-    }
-  });
+if(!window._db) return;
+return onSnapshot(doc(db, ‘league’, ‘contracts’), (snap) => {
+if(snap.exists()) {
+try {
+const contracts = JSON.parse(snap.data().data);
+callback(contracts);
+} catch(e) {}
+}
+});
 };
 </script>
 
 </head>
 <body>
 
+<!-- TOP BAR -->
+
 <nav class="top-bar">
-  <span class="brand">⚾ DYNASTY <span id="navYear">2026</span> <span style="font-size:.6rem;color:#6b7280;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif">v25</span></span>
-  <button class="refresh-btn" id="refreshBtn" onclick="refreshRosters()"><span class="spin-icon">&#8635;</span> Refresh</button>
+  <div class="brand">
+    ⚾ DYNASTY <span id="navYear">2026</span>
+    <span class="brand-badge">v26</span>
+  </div>
+  <div class="top-bar-actions">
+    <button class="icon-btn" id="refreshBtn" onclick="refreshRosters()">
+      <span class="spin-icon">↻</span> Refresh
+    </button>
+  </div>
 </nav>
-<div class="tab-bar">
-  <button class="tab-btn active" id="nav-league" onclick="showLeague()">
-    <span class="tab-icon">⚾</span>
-    <span class="tab-label">League</span>
-  </button>
-  <button class="tab-btn" id="nav-db" onclick="showDB()">
-    <span class="tab-icon">📄</span>
-    <span class="tab-label">Salaries</span>
-  </button>
-  <button class="tab-btn" id="nav-fa" onclick="showFA()">
-    <span class="tab-icon">👥</span>
-    <span class="tab-label">Free Agents</span>
-  </button>
-  <button class="tab-btn" id="nav-settings" onclick="showSettings()">
-    <span class="tab-icon">⚙</span>
-    <span class="tab-label">Settings</span>
-  </button>
-</div>
 
-<div class="toast" id="toast"></div>
-
-<!-- LEAGUE -->
+<!-- LEAGUE PAGE -->
 
 <div id="page-league" class="page active">
-  <div class="league-header">
-    <div class="league-title">⚾ Dynasty <span id="leagueYear">2026</span></div>
-    <div class="league-sub" id="leagueSub">Cap: $321M</div>
-    <div class="last-updated" id="lastUpdated"></div>
+  <div class="league-hero">
+    <div class="league-season">2026 Season</div>
+    <div class="league-heading">Front Office</div>
+    <div class="league-cap-row">
+      <div class="league-cap-stat">
+        <div class="league-cap-val" id="leagueCapAmt">$321M</div>
+        <div class="league-cap-lbl">Salary Cap</div>
+      </div>
+    </div>
+    <div class="last-updated-txt" id="lastUpdated"></div>
   </div>
   <div id="teamCards" class="team-cards"></div>
 </div>
@@ -514,33 +405,52 @@ window.startContractsListener = function(callback) {
 <!-- TEAM PAGE -->
 
 <div id="page-team" class="page">
-  <div class="team-hdr">
-    <div>
-      <div style="display:-webkit-flex;display:flex;gap:.35rem;-webkit-align-items:center;align-items:center;-webkit-flex-wrap:nowrap;flex-wrap:nowrap;margin-bottom:.3rem;overflow-x:auto">
-        <button class="hdr-btn" onclick="showLeague()">&#8592; League</button>
-        <button class="hdr-btn hdr-btn-gold" onclick="exportTeam()">&#8659; Export</button>
-        <button class="hdr-btn" onclick="openAddPlayer()">+ Player</button>
-        <button class="hdr-btn hdr-btn-red" onclick="clearTeamContracts()">&#10005; Clear</button>
-        <input type="file" class="hidden-file" id="teamXlsxImport" accept=".xlsx,.xls" onchange="importRosterExcel(this)">
+  <div class="team-hdr-new">
+    <div class="team-hdr-nav">
+      <button class="team-hdr-btn" onclick="showLeague()">← League</button>
+      <button class="team-hdr-btn gold" onclick="exportTeam()">↓ Export</button>
+      <button class="team-hdr-btn" onclick="openAddPlayer()">+ Player</button>
+      <button class="team-hdr-btn danger" onclick="clearTeamContracts()">✕ Clear</button>
+      <input type="file" class="hidden-file" id="teamXlsxImport" accept=".xlsx,.xls" onchange="importRosterExcel(this)">
+    </div>
+    <div class="team-name-big" id="teamTitle">—</div>
+    <div class="team-meta-row" id="teamMeta">—</div>
+    <div class="team-stats-row">
+      <div>
+        <span class="team-stat-big" id="teamSal">—</span>
+        <span class="team-stat-lbl-sm">Salary</span>
       </div>
-      <div class="team-title" id="teamTitle"></div>
-      <div class="team-meta" id="teamMeta"></div>
+      <div>
+        <span class="team-stat-big" id="teamSpace">—</span>
+        <span class="team-stat-lbl-sm">Space</span>
+      </div>
+      <div>
+        <span class="team-stat-big" id="teamPct">—</span>
+        <span class="team-stat-lbl-sm">Cap %</span>
+      </div>
     </div>
-    <div class="stat-row" id="teamStats"></div>
-  </div>
-  <div class="cap-bar-row">
-    <span style="font-size:.6rem;color:var(--dim);white-space:nowrap">$0</span>
-    <div style="-webkit-flex:1;flex:1">
-      <div class="cap-bar-track"><div class="cap-bar-fill" id="capFill"></div></div>
-      <div class="cap-bar-lbls"><span>Salary</span><span id="capLblR">Cap: $321M</span></div>
+    <div class="cap-bar-new"><div class="cap-bar-new-fill" id="capFill"></div></div>
+    <div style="margin-top:.75rem;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:.65rem;letter-spacing:.5px;text-transform:uppercase;color:var(--dim)">Tap player · type contract years</div>
+      <div class="view-toggle">
+        <button class="vt-btn active" id="vt-roster" onclick="setRosterView('roster')">Roster</button>
+        <button class="vt-btn" id="vt-proj" onclick="setRosterView('proj')">Projections</button>
+      </div>
     </div>
-    <span style="font-size:.6rem;color:var(--dim);white-space:nowrap">$400M</span>
   </div>
-  <div class="roster-outer">
-    <div class="roster-hint" style="-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center"><span><span class="hint-box"></span> Type contract years &mdash; saves automatically</span><span style="display:-webkit-flex;display:flex;gap:.3rem;-webkit-align-items:center;align-items:center"><button onclick="tableZoom(-1)" style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:600;color:var(--dim);background:none;border:1px solid var(--bdr);border-radius:3px;width:24px;height:24px;cursor:pointer;-webkit-appearance:none;line-height:1;padding:0">&#8722;</button><button onclick="tableZoom(1)" style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:600;color:var(--dim);background:none;border:1px solid var(--bdr);border-radius:3px;width:24px;height:24px;cursor:pointer;-webkit-appearance:none;line-height:1;padding:0">+</button>
-<button onclick="toggleProjections()" id="projToggleBtn" style="font-family:'Barlow Condensed',sans-serif;font-size:.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--dim);background:none;border:1px solid var(--bdr);border-radius:3px;padding:.18rem .5rem;cursor:pointer;-webkit-appearance:none;margin-left:.3rem">10 YR</button></span></div>
-    <div class="rt-scroll">
-      <table class="rt">
+
+  <!-- SIMPLE ROSTER VIEW -->
+
+  <div id="rosterSimple">
+    <div class="roster-list" id="rosterListEl"></div>
+  </div>
+
+  <!-- PROJECTION TABLE VIEW -->
+
+  <div id="rosterProj" style="display:none">
+    <div class="rt-hint" id="rosterImportStatus">Type contract years — saves automatically</div>
+    <div class="rt-wrap">
+      <table class="rt" id="projTable">
         <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
         <thead><tr>
           <th>Slot</th><th>Age</th><th>Player</th><th>AAV</th><th>Yrs</th>
@@ -556,35 +466,29 @@ window.startContractsListener = function(callback) {
 <!-- SALARIES DB -->
 
 <div id="page-salaries-db" class="page">
-  <div class="db-wrap">
-    <div class="pg-title">Salaries Database</div>
-    <div class="pg-sub" style="margin-bottom:1.25rem">MLB contracts &middot; 2026 season</div>
-    <div class="db-ctrl">
-      <input type="text" class="db-search" id="dbSearch" placeholder="Search player&#8230;" oninput="renderDB()">
-      <select class="db-sel" id="dbPos" onchange="renderDB()">
-        <option value="">All Positions</option>
-        <option>SP</option><option>RP</option><option>C</option><option>1B</option>
-        <option>2B</option><option>3B</option><option>SS</option><option>OF</option><option>DH</option>
-      </select>
-      <select class="db-sel" id="dbTeam" onchange="renderDB()"><option value="">All MLB Teams</option></select>
-      <select class="db-sel" id="dbExp" onchange="renderDB()">
-        <option value="">All Expirations</option>
-        <option>2026</option><option>2027</option><option>2028</option>
-        <option>2029</option><option>2030</option><option>2031+</option>
-      </select>
-      <span class="db-cnt" id="dbCnt"></span>
+  <div class="page-inner">
+    <div class="page-title-row">
+      <div class="page-title">Salaries DB</div>
     </div>
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <div class="page-sub" id="dbSub">MLB contracts · searchable</div>
+    <div class="search-bar">
+      <input type="text" class="search-input" id="dbSearch" placeholder="Search player…" oninput="renderDB()">
+      <select class="filter-select" id="dbPos" onchange="renderDB()">
+        <option value="">All Pos</option>
+        <option>C</option><option>1B</option><option>2B</option><option>3B</option>
+        <option>SS</option><option>OF</option><option>SP</option><option>RP</option>
+      </select>
+    </div>
+    <div class="db-table-wrap">
       <table class="dbt">
         <thead><tr>
-          <th data-col="name" onclick="sortDB('name')">Player <span class="sar">&#8645;</span></th>
-          <th data-col="pos" onclick="sortDB('pos')">Pos <span class="sar">&#8645;</span></th>
-          <th data-col="team" onclick="sortDB('team')">Team <span class="sar">&#8645;</span></th>
-          <th data-col="age" onclick="sortDB('age')">Age <span class="sar">&#8645;</span></th>
-          <th data-col="signed" onclick="sortDB('signed')">Signed <span class="sar">&#8645;</span></th>
-          <th data-col="expires" onclick="sortDB('expires')">Expires <span class="sar">&#8645;</span></th>
-          <th data-col="years" onclick="sortDB('years')">Yrs <span class="sar">&#8645;</span></th>
-          <th data-col="aav" onclick="sortDB('aav')">AAV <span class="sar">&#8645;</span></th>
+          <th onclick="sortDB('name')" style="text-align:left">Player <span class="sort-arr" id="sort-name"></span></th>
+          <th onclick="sortDB('pos')">Pos <span class="sort-arr" id="sort-pos"></span></th>
+          <th onclick="sortDB('team')">Team <span class="sort-arr" id="sort-team"></span></th>
+          <th onclick="sortDB('aav')">AAV <span class="sort-arr" id="sort-aav">▼</span></th>
+          <th onclick="sortDB('years')">Yrs <span class="sort-arr" id="sort-years"></span></th>
+          <th onclick="sortDB('expires')">FA <span class="sort-arr" id="sort-expires"></span></th>
+          <th onclick="sortDB('age')">Age <span class="sort-arr" id="sort-age"></span></th>
         </tr></thead>
         <tbody id="dbBody"></tbody>
       </table>
@@ -595,198 +499,484 @@ window.startContractsListener = function(callback) {
 <!-- FREE AGENTS -->
 
 <div id="page-fa" class="page">
-  <div class="fa-wrap">
-    <div class="pg-title">Free Agents</div>
-    <div class="pg-sub" style="margin-bottom:1.25rem">Available players &middot; sorted by 2026 fantasy points</div>
-    <div class="fa-ctrl">
-      <input type="text" class="fa-search" id="faSearch" placeholder="Search player&#8230;" oninput="renderFA()">
-      <select class="fa-sel" id="faPos" onchange="renderFA()">
-        <option value="">All Positions</option>
+  <div class="page-inner">
+    <div class="page-title-row">
+      <div class="page-title">Free Agents</div>
+      <button class="icon-btn" onclick="fetchFreeAgents()">↻ Refresh</button>
+    </div>
+    <div class="page-sub">ESPN free agents &amp; waivers</div>
+    <div class="search-bar">
+      <input type="text" class="search-input" id="faSearch" placeholder="Search player…" oninput="renderFA()">
+      <select class="filter-select" id="faPos" onchange="renderFA()">
+        <option value="">All Pos</option>
         <option>C</option><option>1B</option><option>2B</option><option>3B</option>
         <option>SS</option><option>OF</option><option>SP</option><option>RP</option><option>DH</option>
       </select>
-      <select class="fa-sel" id="faStatus" onchange="renderFA()">
+    </div>
+    <div class="search-bar">
+      <select class="filter-select" id="faStatus" onchange="renderFA()">
         <option value="">FA &amp; Waivers</option>
         <option value="FREEAGENT">Free Agents</option>
         <option value="WAIVERS">Waivers</option>
       </select>
-      <input type="number" class="fa-search" id="faMaxSal" placeholder="Max AAV ($M)" oninput="renderFA()" min="0" step="0.5" style="width:130px">
-      <button class="fa-fetch-btn" onclick="fetchFreeAgents()">&#8635; Refresh</button>
+      <input type="number" class="search-input" id="faMaxSal" placeholder="Max AAV ($M)" oninput="renderFA()" min="0" step="0.5" style="max-width:130px">
       <span class="fa-cnt" id="faCnt"></span>
     </div>
     <div class="fa-tbl-wrap">
       <table class="fat">
         <thead><tr>
-          <th data-col="Player" onclick="sortFA('Player')">Player <span class="sar">&#8645;</span></th>
-          <th data-col="Position" onclick="sortFA('Position')">Pos <span class="sar">&#8645;</span></th>
-          <th data-col="Availability" onclick="sortFA('Availability')">Status <span class="sar">&#8645;</span></th>
-          <th data-col="AAV" onclick="sortFA('AAV')">AAV <span class="sar">&#8645;</span></th>
-          <th data-col="TotalPoints" onclick="sortFA('TotalPoints')">2026 Pts <span class="sar">&#8645;</span></th>
+          <th onclick="sortFA('Player')" style="text-align:left">Player</th>
+          <th onclick="sortFA('Position')">Pos</th>
+          <th onclick="sortFA('Availability')">Status</th>
+          <th onclick="sortFA('TotalPoints')">Pts ▼</th>
+          <th onclick="sortFA('AAV')">AAV</th>
         </tr></thead>
-        <tbody id="faBody"><tr><td colspan="5" class="fa-loading">Click Refresh to load free agents from ESPN</td></tr></tbody>
+        <tbody id="faBody"></tbody>
       </table>
     </div>
   </div>
 </div>
 
-<!-- SETTINGS PAGE -->
+<!-- CONTRACTS TAB -->
+
+<div id="page-contracts" class="page">
+  <div class="page-inner" style="padding-bottom:.5rem">
+    <div class="page-title-row">
+      <div class="page-title">Contracts</div>
+    </div>
+    <div class="page-sub">League-wide contract status</div>
+  </div>
+
+  <!-- Expiring This Season -->
+
+  <div class="contracts-section">
+    <div class="contracts-section-hdr">
+      <div class="contracts-section-title">Expiring This Season</div>
+      <div class="contracts-section-count" id="expiring-count">0</div>
+    </div>
+    <div id="expiring-list"></div>
+  </div>
+
+  <!-- Must Drop -->
+
+  <div class="contracts-section">
+    <div class="contracts-section-hdr" style="border-top:1px solid var(--bdr)">
+      <div class="contracts-section-title" style="color:var(--red)">Must Drop</div>
+      <div class="contracts-section-count" id="drop-count">0</div>
+    </div>
+    <div id="drop-list"></div>
+  </div>
+
+  <!-- Unsigned -->
+
+  <div class="contracts-section">
+    <div class="contracts-section-hdr" style="border-top:1px solid var(--bdr)">
+      <div class="contracts-section-title" style="color:var(--dim2)">Unsigned</div>
+      <div class="contracts-section-count" id="unsigned-count">0</div>
+    </div>
+    <div id="unsigned-list"></div>
+  </div>
+
+  <!-- ARB Players -->
+
+  <div class="contracts-section">
+    <div class="contracts-section-hdr" style="border-top:1px solid var(--bdr)">
+      <div class="contracts-section-title" style="color:var(--acc)">ARB Players</div>
+      <div class="contracts-section-count" id="arb-count">0</div>
+    </div>
+    <div id="arb-contracts-list"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
 
 <div id="page-settings" class="page">
-  <div class="set-wrap">
-    <div class="pg-title">Settings</div>
-    <div class="pg-sub" style="margin-bottom:1.5rem">Configure data sources and queries</div>
+  <div class="page-inner">
+    <div class="page-title">Settings</div>
+    <div class="page-sub" style="margin-bottom:1.25rem">League management</div>
 
 ```
-<div class="set-section">
-  <div class="set-section-title">ESPN League ID</div>
-  <p style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem;line-height:1.5">Update the ESPN league ID to refresh all 8 team API URLs at once each season.</p>
-  <div style="display:-webkit-flex;display:flex;gap:.6rem;-webkit-align-items:center;align-items:center">
-    <input type="text" class="field-input" id="leagueIdInput" placeholder="e.g. 69029411" style="font-size:.85rem;-webkit-flex:1;flex:1" autocorrect="off" inputmode="numeric">
-    <button class="set-btn accent" onclick="updateLeagueId()" style="white-space:nowrap">Update All</button>
-  </div>
-  <div style="font-size:.7rem;color:var(--dim);margin-top:.4rem" id="leagueIdStatus"></div>
+<!-- Season -->
+<div class="settings-group">
+  <div class="settings-group-title">Season</div>
+  <button class="settings-btn" onclick="openModal('advanceModal')">
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-title">Advance Season</div>
+        <div class="settings-row-sub" id="settingsSeasonLbl">Current: 2026 Season</div>
+      </div>
+      <div class="settings-row-right">›</div>
+    </div>
+  </button>
 </div>
 
-<div class="set-section">
-  <div class="set-section-title">Export All Data</div>
-  <p style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem;line-height:1.5">Export all team rosters, contracts, and salary projections to Excel.</p>
-  <div class="set-actions">
-    <button class="set-btn accent" onclick="exportAllToExcel()">&#8597; Export All Teams</button>
+<!-- ESPN -->
+<div class="settings-group">
+  <div class="settings-group-title">ESPN Integration</div>
+  <div class="settings-row" style="cursor:default;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:flex-start;align-items:flex-start;gap:.5rem">
+    <div class="settings-row-title">League ID</div>
+    <div style="display:-webkit-flex;display:flex;gap:.5rem;width:100%">
+      <input type="text" class="field-input" id="leagueIdInput" placeholder="e.g. 69029411" style="font-size:.82rem;-webkit-flex:1;flex:1" autocorrect="off" inputmode="numeric">
+      <button class="btn-primary" onclick="updateLeagueId()" style="padding:.55rem 1rem;border-radius:10px;white-space:nowrap;-webkit-flex:none;flex:none">Update All</button>
+    </div>
+    <div style="font-size:.68rem;color:var(--dim);font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px" id="leagueIdStatus"></div>
   </div>
-  <div style="font-size:.7rem;color:var(--dim);margin-top:.3rem" id="exportAllStatus"></div>
+  <button class="settings-btn" onclick="openESPNQueriesModal()">
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-title">Edit API Queries</div>
+        <div class="settings-row-sub">Individual team ESPN URLs</div>
+      </div>
+      <div class="settings-row-right">›</div>
+    </div>
+  </button>
 </div>
 
-<div class="set-section">
-  <div class="set-section-title">Team Names</div>
-  <button class="set-btn accent" onclick="buildTeamNamesFields();openModal('teamNamesModal')">&#9998; Edit Team Names</button>
+<!-- League -->
+<div class="settings-group">
+  <div class="settings-group-title">League</div>
+  <button class="settings-btn" onclick="buildTeamNamesFields();openModal('teamNamesModal')">
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-title">Team Names</div>
+        <div class="settings-row-sub">Rename teams if ownership changes</div>
+      </div>
+      <div class="settings-row-right">›</div>
+    </div>
+  </button>
+  <button class="settings-btn" onclick="buildRulesFields();openModal('leagueRulesModal')">
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-title">League Rules</div>
+        <div class="settings-row-sub">Cap, ARB rate, escalator, IL discount</div>
+      </div>
+      <div class="settings-row-right">›</div>
+    </div>
+  </button>
 </div>
 
-<div class="set-section">
-  <div class="set-section-title">Salary Database</div>
-  <div class="set-actions">
-    <button class="set-btn accent" onclick="document.getElementById('salImport').click()">&#8679; Import Salary Excel</button>
-    <button class="set-btn" onclick="resetSalaries()">Reset to Default</button>
-  </div>
-  <div style="font-size:.7rem;color:var(--dim)" id="salDbStatus"></div>
+<!-- Players -->
+<div class="settings-group">
+  <div class="settings-group-title">Players</div>
+  <button class="settings-btn" onclick="openAAVEditor()">
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-title">Edit Player AAV</div>
+        <div class="settings-row-sub">Update any player's salary value</div>
+      </div>
+      <div class="settings-row-right">›</div>
+    </div>
+  </button>
+  <button class="settings-btn" onclick="buildArbList();openModal('arbPlayersModal')">
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-title">ARB Player Info</div>
+        <div class="settings-row-sub">Add age, position, FA year for ARB players</div>
+      </div>
+      <div class="settings-row-right">›</div>
+    </div>
+  </button>
+</div>
+
+<!-- Data -->
+<div class="settings-group">
+  <div class="settings-group-title">Data</div>
+  <button class="settings-btn" onclick="exportAllToExcel()">
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-title">Export All Teams</div>
+        <div class="settings-row-sub">Copy/paste full league summary</div>
+      </div>
+      <div class="settings-row-right">↓</div>
+    </div>
+  </button>
+  <button class="settings-btn" onclick="document.getElementById('salImport').click()">
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-title">Import Salary DB</div>
+        <div class="settings-row-sub" id="salDbStatus">Upload Excel file</div>
+      </div>
+      <div class="settings-row-right">↑</div>
+    </div>
+  </button>
   <input type="file" class="hidden-file" id="salImport" accept=".xlsx,.xls" onchange="importSalaryDB(this)">
+  <button class="settings-btn" onclick="document.getElementById('rosterBackupImport').click()">
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-title">Import Roster Backup</div>
+        <div class="settings-row-sub">Restore from Excel backup</div>
+      </div>
+      <div class="settings-row-right">↑</div>
+    </div>
+  </button>
+  <input type="file" class="hidden-file" id="rosterBackupImport" accept=".xlsx,.xls" onchange="importRosterExcel(this)">
 </div>
 
-<div class="set-section">
-  <div class="set-section-title">Roster Backup</div>
-  <div class="set-actions">
-    <button class="set-btn accent" onclick="document.getElementById('rosterImport').click()">&#8679; Import Roster Excel</button>
-    <button class="set-btn danger" onclick="clearRosterCache()">Clear Cached Roster</button>
-  </div>
-  <div style="font-size:.7rem;color:var(--dim)" id="rosterImportStatus"></div>
-  <input type="file" class="hidden-file" id="rosterImport" accept=".xlsx,.xls" onchange="importRosterExcel(this)">
-</div>
-
-<div class="set-section">
-  <div class="set-section-title">ESPN API Queries</div>
-  <button class="set-btn accent" onclick="openESPNQueriesModal()">&#9998; Edit API Queries</button>
-</div>
-
-<div class="set-section">
-  <div class="set-section-title">Season</div>
-  <div style="font-size:.78rem;color:var(--txt);margin-bottom:.6rem">Current season: <span class="season-badge" id="currentSeasonBadge">2026</span></div>
-  <div style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem;line-height:1.6">Advancing the season will decrement all contract years by 1. Players at 0 years will be flagged for drop. Carried contracts cannot be edited and receive no discount. A new projection year is added to the right.</div>
-  <button class="advance-btn" onclick="advanceSeason()">&#8594; Advance to Next Season</button>
-  <button class="advance-btn" style="margin-top:.5rem;background:rgba(107,114,128,.08);color:var(--dim);border-color:var(--bdr)" onclick="undoAdvanceSeason()">&#8617; Undo Last Advance</button>
-</div>
-
-<div class="set-section">
-  <div class="set-section-title">Edit Player AAV</div>
-  <p style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem;line-height:1.5">Search any player to update their AAV in both the roster and salary database.</p>
-  <button class="set-btn accent" onclick="openAAVEditor()">&#9998; Edit Player AAV</button>
-</div>
-
-<div class="set-section">
-  <div class="set-section-title">ARB Players</div>
-  <button class="set-btn accent" onclick="buildArbList();openModal('arbPlayersModal')">&#9998; Edit ARB Players</button>
-</div>
-
-<div class="set-section">
-  <div class="set-section-title">League Rules</div>
-  <button class="set-btn accent" onclick="buildRulesFields();openModal('leagueRulesModal')">&#9998; Edit League Rules</button>
-</div>
-
-<div class="set-section">
-  <div class="set-section-title">Data</div>
-  <div class="set-actions">
-    <button class="set-btn danger" onclick="clearAllData()">Clear All Saved Data</button>
-    <button class="set-btn" id="consoleToggleBtn" onclick="toggleConsole()">Enable Console Errors</button>
-  </div>
-  <div style="font-size:.7rem;color:var(--dim)">Clears rosters, contracts, free agents, and custom queries from this device.</div>
-  <div style="font-size:.7rem;color:var(--dim);margin-top:.5rem">Console errors are hidden by default to prevent Safari's debug panel from appearing.</div>
+<!-- Danger -->
+<div class="settings-group">
+  <div class="settings-group-title">Danger Zone</div>
+  <button class="settings-btn" onclick="openModal('clearModal')">
+    <div class="settings-row">
+      <div class="settings-row-left">
+        <div class="settings-row-title" style="color:var(--red)">Clear All Data</div>
+        <div class="settings-row-sub">Remove all saved contracts and rosters</div>
+      </div>
+      <div class="settings-row-right" style="color:var(--red)">›</div>
+    </div>
+  </button>
 </div>
 ```
 
   </div>
 </div>
 
-<!-- QUERY EDITOR MODAL -->
+<!-- BOTTOM TAB BAR -->
 
-<div class="qe-overlay" id="qeOverlay">
-  <div class="qe-box">
-    <h2 id="qeTitle">Edit Query</h2>
-    <p id="qeDesc"></p>
-    <textarea class="qe-textarea" id="qeText" placeholder="Paste updated query or URL here&hellip;"></textarea>
-    <div class="qe-actions">
-      <button class="qe-save" onclick="saveQuery()">Save Query</button>
-      <button class="qe-cancel" onclick="closeQueryEditor()">Cancel</button>
+<div class="tab-bar">
+  <button class="tab-btn active" id="nav-league" onclick="showLeague()">
+    <span class="tab-icon">⚾</span>
+    <span class="tab-label">League</span>
+  </button>
+  <button class="tab-btn" id="nav-db" onclick="showDB()">
+    <span class="tab-icon">📋</span>
+    <span class="tab-label">Salaries</span>
+  </button>
+  <button class="tab-btn" id="nav-fa" onclick="showFA()">
+    <span class="tab-icon">👥</span>
+    <span class="tab-label">Free Agents</span>
+  </button>
+  <button class="tab-btn" id="nav-contracts" onclick="showContracts()">
+    <span class="tab-icon">📝</span>
+    <span class="tab-label">Contracts</span>
+  </button>
+  <button class="tab-btn" id="nav-settings" onclick="showSettings()">
+    <span class="tab-icon">⚙</span>
+    <span class="tab-label">Settings</span>
+  </button>
+</div>
+
+<!-- TOAST -->
+
+<div class="toast" id="toastEl"></div>
+
+<div class="modal-overlay" id="advanceModal" onclick="closeModalOutside(event,'advanceModal')">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Advance Season</h2><p><span id="advFrom">2026</span> &rarr; <span id="advTo">2027</span></p></div>
+    <div class="modal-body">
+      <div style="font-size:.78rem;color:var(--txt);line-height:1.8;margin-bottom:.75rem">
+        &bull; All contracts decrease by 1 year<br>
+        &bull; Carried contracts lock (shown in blue)<br>
+        &bull; 0-year players flagged for DROP<br>
+        &bull; Unsigned players also flagged for DROP<br>
+        &bull; Projection columns shift to <span id="advNewEnd">2035</span>
+      </div>
+      <div style="font-size:.72rem;color:var(--acc);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px">Make sure everyone has submitted contracts first.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('advanceModal')">Cancel</button>
+      <button class="btn-primary" onclick="doAdvanceSeason()">Advance</button>
     </div>
   </div>
 </div>
 
-<!-- ADD PLAYER MODAL -->
-
-<div class="ap-overlay" id="apOverlay">
-  <div class="ap-box">
-    <h2>Add Player</h2>
-    <p>Manually add a player to a team roster. ARB players get $8.99M flat.</p>
-    <div class="ap-field">
-      <label class="ap-label">Player Name</label>
-      <input type="text" class="ap-input" id="apName" placeholder="Full name">
-    </div>
-    <div class="ap-field">
-      <label class="ap-label">Slot</label>
-      <select class="ap-select" id="apSlot">
-        <option>C</option><option>1B</option><option>2B</option><option>3B</option>
-        <option>SS</option><option>OF</option><option>UTIL</option>
-        <option>SP</option><option>RP</option><option>Bench</option><option>IL</option>
-      </select>
-    </div>
-    <div class="ap-field">
-      <label class="ap-label">AAV ($M) — leave blank for ARB</label>
-      <input type="text" class="ap-input" id="apAav" placeholder="e.g. 12.5 or ARB">
-    </div>
-    <div class="ap-field">
-      <label class="ap-label">FA After Year</label>
-      <input type="text" class="ap-input" id="apFa" placeholder="e.g. 2029">
-    </div>
-    <div class="ap-actions">
-      <button class="ap-add" onclick="confirmAddPlayer()">Add to Roster</button>
-      <button class="ap-cancel" onclick="closeAddPlayer()">Cancel</button>
+<div class="modal-overlay" id="clearModal" onclick="closeModalOutside(event,'clearModal')">
+  <div class="modal-box" style="border-color:var(--red)">
+    <div class="modal-header"><h2 style="color:var(--red)">Clear All Data?</h2><p>This cannot be undone.</p></div>
+    <div class="modal-body"><div style="font-size:.78rem;color:var(--dim);line-height:1.7">Erases all contracts, cached rosters, free agents, AAV overrides, and custom queries. Season resets to 2026.</div></div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('clearModal')">Cancel</button>
+      <button class="btn-danger" onclick="doClearAllData()">Clear All</button>
     </div>
   </div>
 </div>
 
-<!-- EXPORT MODAL -->
-
-<div class="exp-overlay" id="expOverlay">
-  <div class="exp-box">
-    <h2 id="expTitle">Export</h2>
-    <p>Copy and paste into iMessage or email to send to your commissioner.</p>
-    <textarea class="exp-textarea" id="expText" readonly></textarea>
-    <div class="exp-actions">
-      <button class="exp-copy" onclick="copyExport()">Copy All</button>
-      <button class="exp-close" onclick="closeExport()">Close</button>
+<div class="modal-overlay" id="queryModal" onclick="closeModalOutside(event,'queryModal')">
+  <div class="modal-box">
+    <div class="modal-header"><h2 id="queryModalTitle">Edit Query</h2><p id="queryModalDesc"></p></div>
+    <div class="modal-body"><textarea class="field-textarea" id="queryModalText" placeholder="Paste updated URL here&hellip;"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="saveQuery()">Save Query</button>
+      <button class="btn-secondary" onclick="closeModal('queryModal')">Cancel</button>
     </div>
-    <div class="exp-copied" id="expCopied"></div>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
+<div class="modal-overlay" id="addPlayerModal" onclick="closeModalOutside(event,'addPlayerModal')">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Add Player</h2><p>ARB players get flat rate from League Rules</p></div>
+    <div class="modal-body">
+      <label class="field-label">Player Name</label>
+      <input type="text" class="field-input" id="apName" placeholder="Full name" autocorrect="off">
+      <label class="field-label">Slot</label>
+      <select class="field-select" id="apSlot"><option>C</option><option>1B</option><option>2B</option><option>3B</option><option>SS</option><option>OF</option><option>UTIL</option><option>SP</option><option>RP</option><option selected>Bench</option><option>IL</option></select>
+      <label class="field-label">AAV ($M) &mdash; blank for ARB</label>
+      <input type="text" class="field-input" id="apAav" placeholder="e.g. 12.5 or leave blank">
+      <label class="field-label">FA After Year</label>
+      <input type="text" class="field-input" id="apFa" placeholder="e.g. 2029">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="confirmAddPlayer()">Add to Roster</button>
+      <button class="btn-secondary" onclick="closeModal('addPlayerModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="playerCardModal" onclick="closeModalOutside(event,'playerCardModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="pcName" style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:2px"></h2>
+      <p id="pcPos" style="font-size:.75rem;color:var(--dim);margin-top:.2rem"></p>
+    </div>
+    <div class="modal-body">
+      <div class="pc-row"><span class="pc-lbl">Age</span><span class="pc-val" id="pcAge">&mdash;</span></div>
+      <div class="pc-row"><span class="pc-lbl">MLB Salary (AAV)</span><span class="pc-val gold" id="pcSalary">&mdash;</span></div>
+      <div class="pc-row"><span class="pc-lbl">MLB Contract</span><span class="pc-val" id="pcContract">&mdash;</span></div>
+      <div class="pc-row"><span class="pc-lbl">FA After</span><span class="pc-val" id="pcFa">&mdash;</span></div>
+      <div class="pc-row"><span class="pc-lbl">MLB Team</span><span class="pc-val" id="pcTeam">&mdash;</span></div>
+      <div class="pc-row"><span class="pc-lbl">Dynasty Contract</span><span class="pc-val" id="pcDynContract">&mdash;</span></div>
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:.5rem">
+      <button class="btn-primary" id="pcResignBtn" onclick="resignPlayer()" style="display:none">&#10003; Clear Drop &amp; Re-sign</button>
+      <button class="btn-primary" style="background:var(--acc2)" onclick="openAAVEditorForPlayer(document.getElementById('pcName').textContent)">&#9998; Edit AAV</button>
+      <button class="btn-secondary" style="flex-basis:100%" onclick="closeModal('playerCardModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="aavModal" onclick="closeModalOutside(event,'aavModal')">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Edit Player AAV</h2><p>Updates roster and salary database on this device</p></div>
+    <div class="modal-body">
+      <input type="text" class="field-input" id="aavSearch" placeholder="Search player name&hellip;" oninput="searchAAVPlayer()" autocomplete="off" autocorrect="off" spellcheck="false">
+      <div class="aav-results" id="aavResults"></div>
+      <div class="aav-selected" id="aavSelected">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:600;color:var(--brt);margin-bottom:.2rem" id="aavSelName"></div>
+        <div style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem" id="aavSelCur"></div>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);white-space:nowrap">New AAV ($M)</span>
+          <input type="number" style="flex:1;background:var(--bg);border:1px solid var(--acc);border-radius:4px;color:var(--acc);-webkit-text-fill-color:var(--acc);font-family:'DM Mono',monospace;font-size:.9rem;padding:.4rem .6rem;outline:none;-webkit-appearance:none;font-weight:600" id="aavNewVal" placeholder="e.g. 14.5" step="0.001" min="0">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="saveAAV()">Save AAV</button>
+      <button class="btn-secondary" onclick="closeModal('aavModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="exportModal" onclick="closeModalOutside(event,'exportModal')">
+  <div class="modal-box">
+    <div class="modal-header"><h2 id="expTitle">Export</h2><p>Copy and paste into iMessage or email</p></div>
+    <div class="modal-body">
+      <textarea style="width:100%;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);-webkit-text-fill-color:var(--txt);font-family:'DM Mono',monospace;font-size:.65rem;padding:.75rem;height:160px;resize:none;outline:none;-webkit-appearance:none;line-height:1.6" id="expText" readonly></textarea>
+      <div style="font-size:.72rem;color:var(--grn);margin-top:.5rem;min-height:1rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px" id="expCopied"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="copyExport()">Copy All</button>
+      <button class="btn-secondary" onclick="closeModal('exportModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="clearTeamModal" onclick="closeModalOutside(event,'clearTeamModal')">
+  <div class="modal-box" style="border-color:var(--red)">
+    <div class="modal-header">
+      <h2 style="color:var(--red)">Clear Team?</h2>
+      <p id="clearTeamModalSub">Remove all contracts for this team</p>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:.78rem;color:var(--dim);line-height:1.7">
+        Clears all contract years entered for <strong id="clearTeamModalName" style="color:var(--brt)"></strong>. Players with existing contracts will have their entries removed. Drop-flagged players will be marked as cleared (re-signing).
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('clearTeamModal')">Cancel</button>
+      <button class="btn-danger" onclick="doCloseTeamContracts()">Clear All</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="arbInfoModal" onclick="closeModalOutside(event,'arbInfoModal')">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Add Player Info</h2>
+      <p id="arbInfoName" style="font-size:.85rem;color:var(--brt);font-weight:600;margin-top:.2rem"></p>
+    </div>
+    <div class="modal-body">
+      <label class="field-label">Position</label>
+      <input type="text" class="field-input" id="arbInfoPos" placeholder="e.g. SP, C, OF" autocorrect="off">
+      <label class="field-label">MLB Team</label>
+      <input type="text" class="field-input" id="arbInfoTeam" placeholder="e.g. NYY" autocorrect="off" autocapitalize="characters">
+      <label class="field-label">Age</label>
+      <input type="number" class="field-input" id="arbInfoAge" placeholder="e.g. 24" min="18" max="45">
+      <label class="field-label">FA After (year)</label>
+      <input type="text" class="field-input" id="arbInfoExpires" placeholder="e.g. 2029" autocorrect="off">
+      <label class="field-label">Signed (year)</label>
+      <input type="text" class="field-input" id="arbInfoSigned" placeholder="e.g. 2026" autocorrect="off">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="saveArbInfo()">Save</button>
+      <button class="btn-secondary" onclick="closeModal('arbInfoModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="teamNamesModal" onclick="closeModalOutside(event,'teamNamesModal')">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Edit Team Names</h2><p>Rename teams if ownership changes</p></div>
+    <div class="modal-body" id="teamNamesFields"></div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:.5rem">
+      <button class="btn-primary" onclick="saveTeamNames()">Save</button>
+      <button class="btn-secondary" onclick="resetTeamNames()">Reset Defaults</button>
+      <button class="btn-secondary" style="flex-basis:100%;text-align:center" onclick="closeModal('teamNamesModal')">Cancel</button>
+    </div>
+    <div style="font-size:.7rem;color:var(--dim);padding:.5rem 1.5rem 1rem" id="teamNamesSaveStatus"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="espnQueriesModal" onclick="closeModalOutside(event,'espnQueriesModal')">
+  <div class="modal-box">
+    <div class="modal-header"><h2>ESPN API Queries</h2><p>Tap a team to edit its URL</p></div>
+    <div class="modal-body" style="padding:.75rem 1.25rem">
+      <div id="espnQueryCards"></div>
+      <div class="set-card" style="margin-top:.5rem" onclick="openQueryEditor('fa','Free Agent Query','ESPN API URL + X-Fantasy-Filter for free agents.');closeModal('espnQueriesModal')">
+        <div class="set-card-title">Free Agent Fetch</div>
+        <div class="set-card-sub" id="q-fa-preview2">Loading&hellip;</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('espnQueriesModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="arbPlayersModal" onclick="closeModalOutside(event,'arbPlayersModal')">
+  <div class="modal-box">
+    <div class="modal-header"><h2>ARB Players</h2><p>Tap any player to set a custom AAV</p></div>
+    <div class="modal-body" style="max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch">
+      <div id="arbPlayerList"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('arbPlayersModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="leagueRulesModal" onclick="closeModalOutside(event,'leagueRulesModal')">
+  <div class="modal-box">
+    <div class="modal-header"><h2>League Rules</h2><p>Changes apply immediately to all calculations</p></div>
+    <div class="modal-body">
+      <div id="rulesFields"></div>
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:.5rem">
+      <button class="btn-primary" onclick="saveLeagueRules();closeModal('leagueRulesModal')">Save</button>
+      <button class="btn-secondary" onclick="resetLeagueRules()">Reset Defaults</button>
+      <button class="btn-secondary" style="flex-basis:100%;text-align:center" onclick="closeModal('leagueRulesModal')">Cancel</button>
+    </div>
+    <div style="font-size:.7rem;color:var(--dim);padding:.5rem 1.5rem 1rem" id="rulesSaveStatus"></div>
+  </div>
+</div>
 
 <script>
 const DEFAULT_ROSTER={"Jaren":[{"fa":"2030","slot":"C","age":"29","name":"Cal Raleigh","aav":"17.5"},{"fa":"2026","slot":"1B","age":"27","name":"Alec Burleson","aav":"3.3"},{"fa":"2026","slot":"2B","age":"27","name":"Nico Hoerner","aav":"11.667"},{"fa":"?","slot":"3B","age":"?","name":"Sal Stewart","aav":"ARB"},{"fa":"2029","slot":"SS","age":"24","name":"Elly De La Cruz","aav":"ARB"},{"fa":"?","slot":"OF","age":"?","name":"Chase DeLauter","aav":"ARB"},{"fa":"2026","slot":"OF","age":"32","name":"Taylor Ward","aav":"12.175"},{"fa":"2028","slot":"OF","age":"28","name":"Ronald Acuna Jr.","aav":"12.5"},{"fa":"2030","slot":"UTIL","age":"31","name":"Alex Bregman","aav":"35.0"},{"fa":"2027","slot":"SP","age":"37","name":"Jacob deGrom","aav":"37.0"},{"fa":"2030","slot":"SP","age":"30","name":"Ranger Suarez","aav":"26.0"},{"fa":"2029","slot":"SP","age":"26","name":"Bryan Woo","aav":"ARB"},{"fa":"?","slot":"SP","age":"?","name":"Parker Messick","aav":"ARB"},{"fa":"2027","slot":"Bench","age":"33","name":"Jeffrey Springs","aav":"7.75"},{"fa":"2026","slot":"Bench","age":"29","name":"Ernie Clement","aav":"4.6"},{"fa":"2027","slot":"Bench","age":"26","name":"Isaac Paredes","aav":"9.35"},{"fa":"2033","slot":"Bench","age":"29","name":"Rafael Devers","aav":"31.35"},{"fa":"?","slot":"Bench","age":"?","name":"Emerson Hancock","aav":"ARB"},{"fa":"2028","slot":"Bench","age":"32","name":"Eduardo Rodriguez","aav":"20.0"},{"fa":"2026","slot":"IR","age":"27","name":"Hunter Brown","aav":"2.855"}],"Biscuit":[{"fa":"2030","slot":"C","age":"24","name":"Drake Baldwin","aav":"ARB"},{"fa":"2029","slot":"1B","age":"28","name":"Michael Busch","aav":"ARB"},{"fa":"2026","slot":"2B","age":"28","name":"Brendan Donovan","aav":"5.8"},{"fa":"2032","slot":"3B","age":"33","name":"Jose Ramirez","aav":"25.0"},{"fa":"2037","slot":"SS","age":"25","name":"Bobby Witt Jr.","aav":"26.253"},{"fa":"2034","slot":"OF","age":"26","name":"Fernando Tatis Jr.","aav":"24.286"},{"fa":"2030","slot":"OF","age":"34","name":"Mike Trout","aav":"35.542"},{"fa":"?","slot":"OF","age":"?","name":"Sal Frelick","aav":"ARB"},{"fa":"2031","slot":"UTIL","age":"31","name":"Corey Seager","aav":"32.5"},{"fa":"2028","slot":"SP","age":"32","name":"Framber Valdez","aav":"38.333"},{"fa":"2027","slot":"SP","age":"27","name":"Cole Ragans","aav":"4.417"},{"fa":"2028","slot":"SP","age":"30","name":"Michael King","aav":"25.0"},{"fa":"?","slot":"SP","age":"?","name":"Eury Perez","aav":"ARB"},{"fa":"2031","slot":"Bench","age":"33","name":"Bryce Harper","aav":"25.385"},{"fa":"2026","slot":"Bench","age":"32","name":"Brandon Woodruff","aav":"22.025"},{"fa":"2030","slot":"Bench","age":"28","name":"Josh Naylor","aav":"18.5"},{"fa":"2026","slot":"Bench","age":"28","name":"Trevor Rogers","aav":"6.2"},{"fa":"2027","slot":"Bench","age":"30","name":"Sandy Alcantara","aav":"11.2"},{"fa":"2030","slot":"Bench","age":"24","name":"Cade Horton","aav":"ARB"}],"Morgan":[{"fa":"2030","slot":"C","age":"27","name":"Carlos Narvaez","aav":"ARB"},{"fa":"2027","slot":"1B","age":"28","name":"Vinnie Pasquantino","aav":"5.55"},{"fa":"?","slot":"2B","age":"?","name":"Xavier Edwards","aav":"ARB"},{"fa":"2027","slot":"3B","age":"34","name":"Eugenio Suarez","aav":"15.0"},{"fa":"2031","slot":"SS","age":"32","name":"Francisco Lindor","aav":"34.1"},{"fa":"2029","slot":"OF","age":"26","name":"Wilyer Abreu","aav":"ARB"},{"fa":"2030","slot":"OF","age":"30","name":"Brent Rooker","aav":"12.0"},{"fa":"2026","slot":"OF","age":"29","name":"Jarren Duran","aav":"7.7"},{"fa":"2027","slot":"UTIL","age":"28","name":"Ozzie Albies","aav":"5.0"},{"fa":"2028","slot":"SP","age":"32","name":"Nick Pivetta","aav":"13.75"},{"fa":"2026","slot":"SP","age":"28","name":"Logan Gilbert","aav":"10.927"},{"fa":"2026","slot":"SP","age":"30","name":"Zac Gallen","aav":"22.025"},{"fa":"2026","slot":"SP","age":"28","name":"Jesus Luzardo","aav":"11.0"},{"fa":"2026","slot":"Bench","age":"27","name":"Adley Rutschman","aav":"7.25"},{"fa":"2028","slot":"Bench","age":"27","name":"Bo Bichette","aav":"42.0"},{"fa":"2029","slot":"Bench","age":"29","name":"Kazuma Okamoto","aav":"15.0"},{"fa":"2026","slot":"Bench","age":"26","name":"MacKenzie Gore","aav":"5.6"},{"fa":"2034","slot":"Bench","age":"21","name":"Roman Anthony","aav":"16.25"},{"fa":"2031","slot":"Bench","age":"25","name":"Garrett Crochet","aav":"28.333"},{"fa":"2027","slot":"IR","age":"29","name":"Pablo Lopez","aav":"9.188"}],"John M":[{"fa":"2026","slot":"C","age":"28","name":"Shea Langeliers","aav":"5.25"},{"fa":"2039","slot":"1B","age":"26","name":"Vladimir Guerrero Jr.","aav":"35.714"},{"fa":"2026","slot":"2B","age":"28","name":"Bryson Stott","aav":"5.9"},{"fa":"2031","slot":"3B","age":"25","name":"Maikel Garcia","aav":"11.5"},{"fa":"2026","slot":"SS","age":"24","name":"Gunnar Henderson","aav":"8.5"},{"fa":"2028","slot":"OF","age":"32","name":"Byron Buxton","aav":"14.286"},{"fa":"2026","slot":"OF","age":"28","name":"Steven Kwan","aav":"7.725"},{"fa":"2026","slot":"OF","age":"30","name":"Ian Happ","aav":"20.333"},{"fa":"2030","slot":"UTIL","age":"32","name":"Kyle Schwarber","aav":"30.0"},{"fa":"2026","slot":"SP","age":"29","name":"Tarik Skubal","aav":"32.0"},{"fa":"2030","slot":"SP","age":"26","name":"Tanner Bibee","aav":"9.6"},{"fa":"2028","slot":"SP","age":"33","name":"Luis Castillo","aav":"21.6"},{"fa":"2026","slot":"SP","age":"34","name":"Kevin Gausman","aav":"22.0"},{"fa":"2029","slot":"Bench","age":"27","name":"Spencer Strider","aav":"12.5"},{"fa":"2026","slot":"Bench","age":"34","name":"Robbie Ray","aav":"23.0"},{"fa":"2030","slot":"Bench","age":"32","name":"Blake Snell","aav":"36.4"},{"fa":"2030","slot":"Bench","age":"22","name":"Nick Kurtz","aav":"ARB"},{"fa":"2027","slot":"Bench","age":"35","name":"Salvador Perez","aav":"12.5"},{"fa":"2032","slot":"Bench","age":"24","name":"Michael Harris II","aav":"9.0"}],"Linn":[{"fa":"2026","slot":"C","age":"28","name":"William Contreras","aav":"9.4"},{"fa":"2030","slot":"1B","age":"26","name":"Ben Rice","aav":"ARB"},{"fa":"2026","slot":"2B","age":"26","name":"Brice Turang","aav":"4.15"},{"fa":"2033","slot":"3B","age":"28","name":"Austin Riley","aav":"21.2"},{"fa":"2033","slot":"SS","age":"32","name":"Trea Turner","aav":"27.273"},{"fa":"2032","slot":"OF","age":"24","name":"Tyler Soderstrom","aav":"12.286"},{"fa":"2031","slot":"OF","age":"33","name":"Aaron Judge","aav":"40.0"},{"fa":"2028","slot":"OF","age":"27","name":"Yordan Alvarez","aav":"19.167"},{"fa":"2026","slot":"UTIL","age":"28","name":"Luis Arraez","aav":"12.0"},{"fa":"2027","slot":"SP","age":"29","name":"Joe Ryan","aav":"6.2"},{"fa":"2030","slot":"SP","age":"28","name":"Cristopher Sanchez","aav":"5.625"},{"fa":"2035","slot":"SP","age":"27","name":"Yoshinobu Yamamoto","aav":"27.083"},{"fa":"2031","slot":"SP","age":"25","name":"Cam Schlittler","aav":"ARB"},{"fa":"2026","slot":"Bench","age":"28","name":"Jeremy Pena","aav":"9.475"},{"fa":"2030","slot":"Bench","age":"23","name":"James Wood","aav":"ARB"},{"fa":"2026","slot":"Bench","age":"29","name":"Kyle Bradish","aav":"3.55"},{"fa":"2028","slot":"Bench","age":"32","name":"Tyler Glasnow","aav":"27.312"},{"fa":"2027","slot":"Bench","age":"34","name":"Yusei Kikuchi","aav":"21.225"},{"fa":"2026","slot":"Bench","age":"27","name":"George Kirby","aav":"6.55"},{"fa":"2028","slot":"IR","age":"35","name":"Gerrit Cole","aav":"18.0"}],"John H":[{"fa":"2029","slot":"C","age":"26","name":"Hunter Goodman","aav":"ARB"},{"fa":"2030","slot":"1B","age":"31","name":"Matt Olson","aav":"21.0"},{"fa":"2029","slot":"2B","age":"34","name":"Jose Altuve","aav":"25.0"},{"fa":"2033","slot":"3B","age":"33","name":"Manny Machado","aav":"31.818"},{"fa":"2026","slot":"SS","age":"25","name":"CJ Abrams","aav":"4.2"},{"fa":"2026","slot":"OF","age":"30","name":"Randy Arozarena","aav":"15.65"},{"fa":"2031","slot":"OF","age":"25","name":"Corbin Carroll","aav":"13.875"},{"fa":"2026","slot":"OF","age":"25","name":"Riley Greene","aav":"5.0"},{"fa":"2026","slot":"UTIL","age":"28","name":"Gleyber Torres","aav":"22.025"},{"fa":"2026","slot":"SP","age":"36","name":"Chris Sale","aav":"19.0"},{"fa":"2029","slot":"SP","age":"26","name":"Gavin Williams","aav":"ARB"},{"fa":"2031","slot":"SP","age":"23","name":"Jacob Misiorowski","aav":"ARB"},{"fa":"2026","slot":"SP","age":"27","name":"Jose Soriano","aav":"2.9"},{"fa":"?","slot":"Bench","age":"?","name":"Marcelo Mayer","aav":"ARB"},{"fa":"?","slot":"Bench","age":"?","name":"Konnor Griffin","aav":"ARB"},{"fa":"2026","slot":"Bench","age":"31","name":"Seiya Suzuki","aav":"17.0"},{"fa":"2032","slot":"Bench","age":"29","name":"Dylan Cease","aav":"30.0"},{"fa":"2028","slot":"Bench","age":"28","name":"Logan Webb","aav":"18.0"},{"fa":"2039","slot":"Bench","age":"27","name":"Juan Soto","aav":"51.0"}],"Davis":[{"fa":"2033","slot":"C","age":"30","name":"Will Smith","aav":"14.0"},{"fa":"2030","slot":"1B","age":"31","name":"Pete Alonso","aav":"31.0"},{"fa":"?","slot":"2B","age":"?","name":"Jazz Chisholm Jr.","aav":"ARB"},{"fa":"2030","slot":"3B","age":"32","name":"Matt Chapman","aav":"25.167"},{"fa":"2030","slot":"SS","age":"25","name":"Geraldo Perdomo","aav":"11.25"},{"fa":"2029","slot":"OF","age":"24","name":"Wyatt Langford","aav":"ARB"},{"fa":"?","slot":"OF","age":"?","name":"Andy Pages","aav":"ARB"},{"fa":"2030","slot":"OF","age":"23","name":"Pete Crow-Armstrong","aav":"ARB"},{"fa":"2029","slot":"UTIL","age":"34","name":"Christian Yelich","aav":"26.929"},{"fa":"2027","slot":"SP","age":"36","name":"Sonny Gray","aav":"25.0"},{"fa":"2026","slot":"SP","age":"29","name":"Freddy Peralta","aav":"3.1"},{"fa":"2032","slot":"SP","age":"31","name":"Max Fried","aav":"27.25"},{"fa":"2031","slot":"SP","age":"23","name":"Chase Burns","aav":"ARB"},{"fa":"2027","slot":"Bench","age":"30","name":"Drew Rasmussen","aav":"4.25"},{"fa":"2026","slot":"Bench","age":"28","name":"Jhoan Duran","aav":"7.5"},{"fa":"2027","slot":"Bench","age":"37","name":"Aroldis Chapman","aav":"13.3"},{"fa":"2026","slot":"Bench","age":"35","name":"Raisel Iglesias","aav":"16.0"},{"fa":"2030","slot":"Bench","age":"30","name":"Cody Bellinger","aav":"32.5"},{"fa":"2033","slot":"Bench","age":"31","name":"Shohei Ohtani","aav":"70.0"}],"Dawson":[{"fa":"2026","slot":"C","age":"27","name":"Yainer Diaz","aav":"4.5"},{"fa":"2027","slot":"1B","age":"36","name":"Freddie Freeman","aav":"27.0"},{"fa":"2031","slot":"2B","age":"32","name":"Ketel Marte","aav":"19.417"},{"fa":"2030","slot":"3B","age":"22","name":"Junior Caminero","aav":"ARB"},{"fa":"2031","slot":"SS","age":"30","name":"Willy Adames","aav":"26.0"},{"fa":"2026","slot":"OF","age":"36","name":"George Springer","aav":"25.0"},{"fa":"2034","slot":"OF","age":"24","name":"Julio Rodriguez","aav":"17.442"},{"fa":"2029","slot":"OF","age":"28","name":"Kyle Tucker","aav":"60.0"},{"fa":"2035","slot":"UTIL","age":"21","name":"Jackson Merrill","aav":"15.0"},{"fa":"2026","slot":"SP","age":"27","name":"Mason Miller","aav":"4.0"},{"fa":"2029","slot":"SP","age":"26","name":"Cade Smith","aav":"ARB"},{"fa":"2029","slot":"SP","age":"31","name":"Edwin Diaz","aav":"23.0"},{"fa":"2028","slot":"SP","age":"26","name":"Andres Munoz","aav":"1.875"},{"fa":"2030","slot":"Bench","age":"32","name":"Brandon Nimmo","aav":"20.25"},{"fa":"2026","slot":"Bench","age":"32","name":"Trevor Megill","aav":"4.7"},{"fa":"2028","slot":"Bench","age":"31","name":"Josh Hader","aav":"19.0"},{"fa":"2028","slot":"Bench","age":"31","name":"Devin Williams","aav":"17.0"},{"fa":"2026","slot":"Bench","age":"31","name":"David Bednar","aav":"9.0"},{"fa":"2029","slot":"Bench","age":"23","name":"Paul Skenes","aav":"ARB"}]};
@@ -894,52 +1084,7 @@ var _ce=console.error;var _cw=console.warn;
 console.error=function(){};console.warn=function(){};
 var consoleEnabled=false;
 function toggleConsole(){consoleEnabled=!consoleEnabled;var btn=document.getElementById('consoleToggleBtn');if(consoleEnabled){console.error=_ce;console.warn=_cw;if(btn)btn.textContent='Disable Console Errors';showToast('Console enabled','yellow',1800);}else{console.error=function(){};console.warn=function(){};if(btn)btn.textContent='Enable Console Errors';showToast('Console hidden','green',1800);}}
-function setNav(id){document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});if(id){var el=document.getElementById(id);if(el)el.classList.add('active');}}
-function showPage(pid){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});var el=document.getElementById('page-'+pid);if(el)el.classList.add('active');}
-function showLeague(){showPage('league');setNav('nav-league');renderLeague();}
-function showDB(){showPage('salaries-db');setNav('nav-db');renderDB();}
-function showFA(){showPage('fa');setNav('nav-fa');var cached=localStorage.getItem('dyn26_v3_fa');if(cached){try{FA_DATA=JSON.parse(cached);}catch(e){}}if(FA_DATA.length){renderFA();}else{document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">Tap Refresh or import Excel to load free agents</td></tr>';}}
-function showSettings(){showPage('settings');setNav('nav-settings');buildTeamQueryCards();updateQueryPreviews();updateSalDbStatus();updateSeasonUI();}
-function showTeam(tn){currentTeam=tn;showPage('team');setNav(null);buildTeamTable(tn);updateTeamCells(tn);setTimeout(applyTableFont,0);setTimeout(applyProjectionState,80);}
-function updateSeasonUI(){
-  var ny=document.getElementById('navYear');if(ny)ny.textContent=String(CURRENT_SEASON);
-  var badge=document.getElementById('currentSeasonBadge');if(badge)badge.textContent=String(CURRENT_SEASON);
-  var sub=document.getElementById('leagueSub');if(sub)sub.textContent=CURRENT_SEASON+' Season \u00b7 Salary Cap $'+getBaseCap().toFixed(1)+'M \u00b7 Click a team to view roster';
-  YRS.forEach(function(yr,i){var h=document.getElementById('yr'+i+'hdr');if(h){h.textContent=String(yr);h.className='';}});
-  if(currentTeam){var tm=document.getElementById('teamMeta');if(tm)tm.textContent=CURRENT_SEASON+' Dynasty \u00b7 '+(ROSTER[currentTeam]||[]).length+' Players';}
-}
 function updateLastUpdated(){var el=document.getElementById('lastUpdated');if(!el)return;if(rosterLoadTime){var d=rosterLoadTime;el.textContent='Rosters: '+d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}else{el.textContent='';}}
-function renderLeague(){
-  var el=document.getElementById('teamCards');if(!el)return;
-  var sub=document.getElementById('leagueSub');
-  var cap=getBaseCap();
-  if(sub)sub.innerHTML='Cap: '+fs(cap);
-  var teamNames=Object.keys(TEAMS_CONFIG);
-  if(!Object.keys(ROSTER).length){
-    el.innerHTML='<div style="padding:2rem 1rem;text-align:center;color:#6b7280;font-size:.9rem">Loading… tap Refresh to load rosters</div>';
-    return;
-  }
-  var rows=teamNames.map(function(tn){return{tn:tn,n:(ROSTER[tn]||[]).length,sal:teamTotals(tn)[0]};}).sort(function(a,b){return b.sal-a.sal;});
-  el.innerHTML=rows.map(function(r){
-    var pct=(r.sal/cap)*100,over=r.sal>cap,bp=Math.min(pct,100);
-    var barColor=over?'#e84b4b':pct>90?'#f97316':'#e8c84b';
-    var spaceNum=cap-r.sal;
-    var spaceStr=(spaceNum>=0?'+':'-')+fsN(Math.abs(spaceNum));
-    var tn=r.tn;
-    return '<div class="team-card" onclick="showTeam(this.dataset.tn)" data-tn="'+r.tn.replace(/"/g,'&quot;')+'">' +
-      '<div class="team-card-top">'+
-      '<div class="team-card-name">'+r.tn+'</div>'+
-      '<div class="team-card-meta">'+r.n+' players</div>'+
-      '</div>'+
-      '<div class="team-card-stats">'+
-      '<div class="team-stat"><div class="team-stat-val" style="color:#f0f2f6">'+fsN(r.sal)+'</div><div class="team-stat-lbl">Salary</div></div>'+
-      '<div class="team-stat"><div class="team-stat-val" style="color:'+(over?'#e84b4b':'#4be87a')+'">'+spaceStr+'</div><div class="team-stat-lbl">Space</div></div>'+
-      '<div class="team-stat"><div class="team-stat-val" style="color:'+barColor+'">'+pct.toFixed(1)+'%</div><div class="team-stat-lbl">Cap %</div></div>'+
-      '</div>'+
-      '<div class="team-card-bar-track"><div class="team-card-bar-fill" style="width:'+bp+'%;background:'+barColor+'"></div></div>'+
-      '</div>';
-  }).join('');
-}
 
 function slotCls(slot){var s=(slot||'').trim().replace(/\s+/g,'');if(s==='C')return 'C';if(s==='1B'||s==='2B'||s==='3B')return 's'+s;return s;}
 function isArbPlayer(p){return(!p.aav||p.aav==='ARB'||p.aav==='?'||isNaN(parseFloat(p.aav)));}
@@ -1221,13 +1366,9 @@ var tsel=document.getElementById('dbTeam');
 salTeams.forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t;tsel.appendChild(o);});
 var dbSort={col:'aav',dir:-1};
 function sortDB(col){dbSort=dbSort.col===col?{col:col,dir:dbSort.dir*-1}:{col:col,dir:(col==='name'||col==='pos'||col==='team')?1:-1};renderDB();}
-function renderDB(){var q=(document.getElementById('dbSearch').value||'').toLowerCase();var pos=document.getElementById('dbPos').value;var team=document.getElementById('dbTeam').value;var exp=document.getElementById('dbExp').value;var data=SAL.filter(function(p){if(q&&!p.name.toLowerCase().includes(q))return false;if(pos&&p.pos!==pos)return false;if(team&&p.team!==team)return false;if(exp){var ex=parseInt(p.expires)||0;if(exp==='2031+'){if(ex<2031)return false;}else if(p.expires!==exp)return false;}return true;});var col=dbSort.col,dir=dbSort.dir;data.sort(function(a,b){var av=a[col]||'',bv=b[col]||'';if(col==='aav'){return((av==='ARB'?ARB():parseFloat(av)||0)-(bv==='ARB'?ARB():parseFloat(bv)||0))*dir;}var an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return(an-bn)*dir;return av.toString().localeCompare(bv.toString())*dir;});document.getElementById('dbCnt').textContent=data.length+' contracts';document.querySelectorAll('.dbt th').forEach(function(th){th.classList.remove('srt');var ar=th.querySelector('.sar');if(ar)ar.innerHTML='&#8645;';});var sh=document.querySelector('.dbt th[data-col="'+col+'"]');if(sh){sh.classList.add('srt');var ar=sh.querySelector('.sar');if(ar)ar.innerHTML=dir===1?'&#8593;':'&#8595;';}var tbody=document.getElementById('dbBody');if(!data.length){tbody.innerHTML='<tr><td colspan="8" class="no-res">No contracts found</td></tr>';return;}tbody.innerHTML=data.slice(0,300).map(function(p){var n=p.aav==='ARB'?ARB():parseFloat(p.aav)||0,isA=p.aav==='ARB';return '<tr><td style="color:var(--brt);font-weight:500">'+p.name+(isA?'<span class="arb-tag">ARB</span>':'')+'</td><td><span class="ptag">'+(p.pos||'\u2014')+'</span></td><td style="color:var(--dim)">'+(p.team||'\u2014')+'</td><td>'+(p.age||'\u2014')+'</td><td>'+(p.signed||'\u2014')+'</td><td style="color:'+(parseInt(p.expires)<=2026?'var(--dim)':'var(--txt)')+'">'+( p.expires||'\u2014')+'</td><td>'+(p.years||'\u2014')+'</td><td style="color:'+(isA?'var(--acc)':'var(--brt)')+';font-weight:500">'+(isA?'ARB ($'+ARB().toFixed(2)+'M)':'$'+n.toFixed(2)+'M')+'</td></tr>';}).join('');if(data.length>300)tbody.innerHTML+='<tr><td colspan="8" style="text-align:center;padding:1rem;color:var(--dim);font-size:.7rem">Showing 300 of '+data.length+'</td></tr>';}
-var FA_DATA=[];var FA_SORT={col:'TotalPoints',dir:-1};var FA_FETCHING=false;var LS_FA='dyn26_v3_fa';
 var POS_MAP={1:'C',2:'1B',3:'2B',4:'3B',5:'SS',6:'OF',7:'LF',8:'CF',9:'RF',10:'DH',11:'RP',12:'SP'};
 function fetchFreeAgents(){if(FA_FETCHING)return;FA_FETCHING=true;document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">&#8635; Fetching\u2026</td></tr>';var season='2026';var q=loadQueries();var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+season+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(season)]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+season},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+season]},limit:3000}};var filterText=(q.fa&&q.fa.value)?q.fa.value:'';var filterMatch=filterText.match(/\{[\s\S]*"players"[\s\S]*\}/);if(filterMatch){try{filterObj=JSON.parse(filterMatch[0]);}catch(e){}}fetch(url,{headers:{'X-Fantasy-Filter':JSON.stringify(filterObj)}}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){var players=data.players||[];FA_DATA=players.map(function(entry){var p=entry.player||{};var stats=p.stats||[];var totals=stats.map(function(s){return typeof s.appliedTotal==='number'?s.appliedTotal:null;}).filter(function(v){return v!==null;});var pts=totals.length?Math.max.apply(null,totals):null;var name=p.fullName||'Unknown';return{Player:name,Position:POS_MAP[p.defaultPositionId]||(p.defaultPositionId?String(p.defaultPositionId):'?'),Availability:entry.status||'FREEAGENT',TotalPoints:pts,AAV:AAV_DB[name]||null};}).filter(function(p){return p.Player!=='Unknown';});try{localStorage.setItem(LS_FA,JSON.stringify(FA_DATA));}catch(e){}renderFA();showToast('\u2713 '+FA_DATA.length+' free agents loaded','green',2500);}).catch(function(err){document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading" style="color:var(--red)">Failed: '+err.message+'</td></tr>';showToast('Failed to load free agents','red',3000);}).finally(function(){FA_FETCHING=false;});}
 function sortFA(col){FA_SORT=FA_SORT.col===col?{col:col,dir:FA_SORT.dir*-1}:{col:col,dir:(col==='TotalPoints'||col==='AAV')?-1:1};renderFA();}
-function renderFA(){var q=(document.getElementById('faSearch').value||'').toLowerCase();var pos=document.getElementById('faPos').value;var status=document.getElementById('faStatus').value;var maxSalEl=document.getElementById('faMaxSal');var maxSal=maxSalEl&&maxSalEl.value?parseFloat(maxSalEl.value):null;var data=FA_DATA.filter(function(p){if(q&&!p.Player.toLowerCase().includes(q))return false;if(pos){if(pos==='OF'){if(!['OF','LF','CF','RF'].includes(p.Position))return false;}else if(p.Position!==pos)return false;}if(status&&p.Availability!==status)return false;if(maxSal!==null&&!isNaN(maxSal)){var aR2=p.AAV!==undefined&&p.AAV!==null?p.AAV:AAV_DB[p.Player];var isArb2=(!aR2||aR2==='ARB'||aR2==='?'||isNaN(parseFloat(aR2)));var aNum2=isArb2?ARB():parseFloat(aR2);if(aNum2>maxSal)return false;}return true;});var col=FA_SORT.col,dir=FA_SORT.dir;data.sort(function(a,b){if(col==='TotalPoints'||col==='AAV'){var an,bn;if(col==='AAV'){var aR=a.AAV!==undefined?a.AAV:AAV_DB[a.Player];var bR=b.AAV!==undefined?b.AAV:AAV_DB[b.Player];an=(aR==='ARB'||!aR)?ARB():parseFloat(aR)||0;bn=(bR==='ARB'||!bR)?ARB():parseFloat(bR)||0;}else{an=a[col];bn=b[col];}if(an===null&&bn===null)return 0;if(an===null)return 1;if(bn===null)return -1;return(an-bn)*dir;}return(a[col]||'').toString().localeCompare((b[col]||'').toString())*dir;});document.getElementById('faCnt').textContent=data.length+' players';document.querySelectorAll('.fat th').forEach(function(th){th.classList.remove('srt');var ar=th.querySelector('.sar');if(ar)ar.innerHTML='&#8645;';});var sh=document.querySelector('.fat th[data-col="'+col+'"]');if(sh){sh.classList.add('srt');var ar=sh.querySelector('.sar');if(ar)ar.innerHTML=dir===1?'&#8593;':'&#8595;';}var tbody=document.getElementById('faBody');if(!data.length){tbody.innerHTML='<tr><td colspan="5" class="fa-loading">No players found</td></tr>';return;}tbody.innerHTML=data.slice(0,500).map(function(p){var posCls=p.Position==='SS'?'ss':p.Position;var ptsNum=p.TotalPoints!==null&&p.TotalPoints!==undefined?parseFloat(p.TotalPoints):NaN;var pts=!isNaN(ptsNum)?ptsNum.toFixed(1):'\u2014';var statusCls=p.Availability==='FREEAGENT'?'FREEAGENT':'WAIVERS';var statusLabel=p.Availability==='FREEAGENT'?'FA':'W';var aavRaw=p.AAV!==undefined&&p.AAV!==null?p.AAV:AAV_DB[p.Player];var isArb=(!aavRaw||aavRaw==='ARB'||aavRaw==='?'||isNaN(parseFloat(aavRaw)));var aavDisp=isArb?'ARB':parseFloat(aavRaw).toFixed(1);return '<tr><td style="color:var(--brt);font-weight:500;cursor:pointer" onclick="openFACard(\''+p.Player.replace(/\'/g,"\\\'")+'\')">'+p.Player+'</td><td><span class="pos-badge '+posCls+'">'+p.Position+'</span></td><td><span class="fa-status '+statusCls+'">'+statusLabel+'</span></td><td style="color:'+(isArb?'var(--acc)':'var(--brt)')+';font-weight:500">'+aavDisp+'</td><td class="fa-pts">'+pts+'</td></tr>';}).join('');if(data.length>500)tbody.innerHTML+='<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--dim);font-size:.7rem">Showing 500 of '+data.length+'</td></tr>';}
-var isFetching=false;
 function refreshRosters(silent){if(isFetching)return;isFetching=true;var btn=document.getElementById('refreshBtn');if(btn)btn.classList.add('spinning');if(!silent)showToast('Fetching live rosters\u2026','yellow',8000);var teamNames=Object.keys(TEAMS_CONFIG);var done=0;var errors=0;var newRoster={};var q=loadQueries();teamNames.forEach(function(teamName){var teamId=TEAMS_CONFIG[teamName];var qk='team_'+teamName.replace(/ /g,'_');var def='https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/2026/segments/0/leagues/'+LEAGUE_ID+'?forTeamId='+teamId+'&view=mRoster&view=mTeam';var url=(q[qk]&&q[qk].value)?q[qk].value:def;fetch(url).then(function(r){return r.json();}).then(function(data){var entries=data.teams[0].roster.entries;var players=[];entries.forEach(function(e){var slotId=e.lineupSlotId;var slot=SLOT_MAP[slotId]||'Bench';var p=e.playerPoolEntry.player;var name=p.fullName;var aav=AAV_DB[name]||'ARB';var injured=(p.injuryStatus&&p.injuryStatus!=='ACTIVE'&&p.injuryStatus!=='NORMAL')?p.injuryStatus:'';var salE=SAL_MAP[name];var age2=salE&&salE.age?salE.age:'?';players.push({slot:slot,name:name,aav:aav,age:age2,injured:injured,slotId:slotId,fa:salE&&salE.expires?salE.expires:'?'});});players.sort(function(a,b){return a.slotId-b.slotId;});newRoster[teamName]=players;}).catch(function(){errors++;if(ROSTER[teamName])newRoster[teamName]=ROSTER[teamName];}).finally(function(){done++;if(done===teamNames.length){isFetching=false;if(btn)btn.classList.remove('spinning');if(Object.keys(newRoster).length){ROSTER=newRoster;saveCachedRoster();teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateLastUpdated();if(errors===0)showToast('\u2713 Rosters updated from ESPN','green',2500);else showToast('\u26A0 Updated '+(teamNames.length-errors)+'/'+teamNames.length+' teams','yellow',3000);}else showToast('Failed to fetch rosters','red',3000);}});});}
 var _aavSelectedName=null;
 function openAAVEditor(){_aavSelectedName=null;document.getElementById('aavSearch').value='';document.getElementById('aavResults').style.display='none';document.getElementById('aavResults').innerHTML='';document.getElementById('aavSelected').style.display='none';document.getElementById('aavNewVal').value='';openModal('aavModal');setTimeout(function(){document.getElementById('aavSearch').focus();},150);}
@@ -1619,252 +1760,381 @@ var hadCache=loadCachedRoster();
 renderLeague();updateLastUpdated();updateSeasonUI();
 if(hadCache){setTimeout(function(){refreshRosters(true);},1000);}else{refreshRosters(false);}
 
+
+
+// ═══════════════════════════════════════════════════════
+// V26 NEW FUNCTIONS
+// ═══════════════════════════════════════════════════════
+
+// ── ROSTER VIEW TOGGLE ───────────────────────────────────
+var _rosterView = 'roster'; // 'roster' or 'proj'
+function setRosterView(view){
+  _rosterView = view;
+  document.getElementById('vt-roster').classList.toggle('active', view==='roster');
+  document.getElementById('vt-proj').classList.toggle('active', view==='proj');
+  document.getElementById('rosterSimple').style.display = view==='roster' ? '' : 'none';
+  document.getElementById('rosterProj').style.display = view==='proj' ? '' : 'none';
+  if(view==='roster' && currentTeam) buildSimpleRoster(currentTeam);
+  if(view==='proj' && currentTeam){ teamBuilt[currentTeam]=false; buildTeamTable(currentTeam); updateTeamCells(currentTeam); }
+}
+
+// ── SIMPLE ROSTER VIEW ───────────────────────────────────
+function buildSimpleRoster(tn){
+  var el=document.getElementById('rosterListEl');
+  if(!el)return;
+  var players=ROSTER[tn]||[];
+  if(!players.length){el.innerHTML='<div style="padding:2rem;text-align:center;color:var(--dim);font-family:\'Barlow Condensed\',sans-serif;font-size:.85rem;letter-spacing:1px">No players on roster</div>';return;}
+  el.innerHTML=players.map(function(p,i){
+    var cval=getC(tn,i);
+    var cNum=parseInt(cval)||0;
+    var carried=isCarried(tn,i);
+    var onIR=(p.slot==='IL'||p.slot==='IR'||p.slotId===17||p.slotId===18);
+    var _entry=getEntry(tn,i);
+    var _cleared=_entry&&_entry.cleared;
+    var needsDrop=_entry&&!_cleared&&(cNum===0);
+    var isArb=isArbPlayer(p);
+    var sals=playerSals(tn,p,i);
+    var sal0=sals[0];
+    var salStr=sal0!==null?'$'+sal0.toFixed(1)+'M':'$'+fsN(isArb?ARB():parseFloat(p.aav)||0)+'M';
+    var sk=slotCls(p.slot);
+    var slotDisp=(p.slot==='Bench'||p.slot==='BN')?'BN':p.slot;
+    var contractStr=carried?'Carried':cval===''?'Unsigned':cNum+'yr';
+    var yrsLeft=cNum>0?cNum+'yr left':cval===''?'unsigned':'final yr';
+    var tags='';
+    if(isArb)tags+='<span class="tag tag-arb">ARB</span>';
+    if(needsDrop)tags+='<span class="tag tag-drop">DROP</span>';
+    if(onIR)tags+='<span class="tag tag-il">IL</span>';
+    if(carried)tags+='<span class="tag tag-carried">Carried</span>';
+    var cardClass='roster-player-card'+(needsDrop?' drop-flag':'')+(onIR?' il-flag':'');
+    var inputStyle='color:#f0f2f6;-webkit-text-fill-color:#f0f2f6;text-align:center;width:100%';
+    var inputEl=carried
+      ?'<div class="ci-carried" style="font-size:.75rem;text-align:center;padding:.25rem .4rem;border-radius:6px">'+( cNum>0?cNum:'—')+'</div>'
+      :'<input type="number" min="0" max="20" step="1" class="rpc-contract-input" id="rci-'+tn+'-'+i+'" value="'+cval+'" placeholder="—" style="'+inputStyle+'" oninput="onC(\''+tn+'\','+i+')" onchange="onC(\''+tn+'\','+i+')" onkeydown="ciKeyDown(event,\''+tn+'\','+i+')">';
+    return '<div class="'+cardClass+'" onclick="openPlayerCard(\''+tn+'\','+i+')">'
+      +'<div class="rpc-slot"><span class="slot '+sk+'" style="font-size:.65rem">'+slotDisp+'</span></div>'
+      +'<div class="rpc-info">'
+      +'<div class="rpc-name" style="color:'+(needsDrop?'var(--red)':'var(--brt)')+'">'+p.name+(p.age&&p.age!='?'?' <span style="font-size:.7rem;color:var(--dim);font-family:\'Barlow Condensed\',sans-serif">'+p.age+'</span>':'')+'</div>'
+      +(tags?'<div class="rpc-tags">'+tags+'</div>':'')
+      +'</div>'
+      +'<div class="rpc-right" onclick="event.stopPropagation()">'
+      +'<div class="rpc-sal" style="color:'+(needsDrop?'var(--red)':onIR?'var(--acc)':'var(--brt)')+'">'+salStr+'</div>'
+      +inputEl
+      +'</div>'
+      +'</div>';
+  }).join('');
+  // Force input colors after render
+  setTimeout(function(){
+    var inputs=el.querySelectorAll('.rpc-contract-input');
+    inputs.forEach(function(inp){inp.style.color='#f0f2f6';inp.style.webkitTextFillColor='#f0f2f6';inp.style.textAlign='center';});
+  },50);
+}
+
+// Update simple roster when contracts change
+var _origOnC=null;
+function patchOnC(){
+  _origOnC=onC;
+  onC=function(tn,i){
+    if(isCarried(tn,i))return;
+    var inp=document.getElementById('ci-'+tn+'-'+i)||document.getElementById('rci-'+tn+'-'+i);
+    if(!inp||inp.tagName!=='INPUT')return;
+    setC(tn,i,inp.value);
+    updateTeamCells(tn);
+    renderLeague();
+    // Update other input if it exists
+    var other=inp.id.startsWith('ci-')?document.getElementById('rci-'+tn+'-'+i):document.getElementById('ci-'+tn+'-'+i);
+    if(other&&other.tagName==='INPUT'&&other.value!==inp.value)other.value=inp.value;
+  };
+}
+
+// ── CONTRACTS TAB ────────────────────────────────────────
+function showContracts(){
+  showPage('contracts');
+  setNav('nav-contracts');
+  buildContractsTab();
+}
+
+function buildContractsTab(){
+  var expiring=[], mustDrop=[], unsigned=[], arbPlayers=[];
+  Object.keys(TEAMS_CONFIG).forEach(function(tn){
+    (ROSTER[tn]||[]).forEach(function(p,i){
+      var cval=getC(tn,i);
+      var cNum=parseInt(cval)||0;
+      var carried=isCarried(tn,i);
+      var _entry=getEntry(tn,i);
+      var _cleared=_entry&&_entry.cleared;
+      var needsDrop=_entry&&!_cleared&&(cNum===0);
+      var isArb=isArbPlayer(p);
+      var sal0=playerSals(tn,p,i)[0];
+      var salStr=sal0!==null?'$'+sal0.toFixed(1)+'M':'—';
+      var item={name:p.name,slot:p.slot,team:tn,aav:p.aav,fa:p.fa,cNum:cNum,salStr:salStr,i:i,isArb:isArb};
+      if(needsDrop) mustDrop.push(item);
+      else if(cval===''&&!isArb) unsigned.push(item);
+      else if(cNum===1&&!needsDrop) expiring.push(item);
+      if(isArb) arbPlayers.push(item);
+    });
+  });
+  expiring.sort(function(a,b){return (parseFloat(b.aav)||0)-(parseFloat(a.aav)||0);});
+  mustDrop.sort(function(a,b){return (parseFloat(b.aav)||0)-(parseFloat(a.aav)||0);});
+  arbPlayers.sort(function(a,b){return a.team.localeCompare(b.team)||a.name.localeCompare(b.name);});
+
+  document.getElementById('expiring-count').textContent=expiring.length;
+  document.getElementById('drop-count').textContent=mustDrop.length;
+  document.getElementById('unsigned-count').textContent=unsigned.length;
+  document.getElementById('arb-count').textContent=arbPlayers.length;
+
+  function renderContractList(items, elId, emptyMsg, accentColor){
+    var el=document.getElementById(elId);
+    if(!el)return;
+    if(!items.length){
+      el.innerHTML='<div class="empty-state"><div class="empty-state-icon">✓</div><div class="empty-state-text">'+emptyMsg+'</div></div>';
+      return;
+    }
+    el.innerHTML=items.map(function(p){
+      var sk=slotCls(p.slot);
+      var slotDisp=(p.slot==='Bench'||p.slot==='BN')?'BN':p.slot;
+      var detail=p.cNum>0?p.cNum+' yr remaining':'FA after '+CURRENT_SEASON;
+      if(p.isArb) detail='ARB'+(p.fa&&p.fa!='?'?' · FA '+p.fa:'');
+      return '<div class="contract-row" onclick="showTeam(\''+p.team+'\')">'
+        +'<div class="cr-slot"><span class="slot '+sk+'" style="font-size:.6rem">'+slotDisp+'</span></div>'
+        +'<div class="cr-info">'
+        +'<div class="cr-name">'+p.name+'</div>'
+        +'<div class="cr-team">'+p.team+'</div>'
+        +'</div>'
+        +'<div class="cr-right">'
+        +'<div class="cr-aav" style="color:'+(accentColor||'var(--brt)')+'">'+p.salStr+'</div>'
+        +'<div class="cr-detail">'+detail+'</div>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+  }
+
+  renderContractList(expiring,'expiring-list','None expiring this season','#f97316');
+  renderContractList(mustDrop,'drop-list','No drops required','var(--red)');
+  renderContractList(unsigned,'unsigned-list','All players have contracts','var(--dim2)');
+  renderContractList(arbPlayers,'arb-contracts-list','No ARB players on rosters','var(--acc)');
+}
+
+// ── UPDATED renderLeague WITH ALERTS ─────────────────────
+function renderLeague(){
+  var el=document.getElementById('teamCards');if(!el)return;
+  var capAmt=document.getElementById('leagueCapAmt');
+  var cap=getBaseCap();
+  if(capAmt)capAmt.textContent='$'+cap.toFixed(0)+'M';
+  var teamNames=Object.keys(TEAMS_CONFIG);
+  if(!Object.keys(ROSTER).length){
+    el.innerHTML='<div style="padding:2.5rem 1rem;text-align:center;color:var(--dim);font-family:\'Barlow Condensed\',sans-serif;font-size:.85rem;letter-spacing:1px">Tap Refresh to load rosters</div>';
+    return;
+  }
+  var rows=teamNames.map(function(tn){
+    var sal=teamTotals(tn)[0];
+    var players=ROSTER[tn]||[];
+    var dropCount=0,expCount=0;
+    players.forEach(function(p,i){
+      var cval=getC(tn,i);var cNum=parseInt(cval)||0;
+      var _entry=getEntry(tn,i);var _cleared=_entry&&_entry.cleared;
+      if(_entry&&!_cleared&&cNum===0) dropCount++;
+      if(cNum===1&&!(dropCount>0)) expCount++;
+    });
+    return{tn:tn,n:players.length,sal:sal,dropCount:dropCount,expCount:expCount};
+  }).sort(function(a,b){return b.sal-a.sal;});
+
+  el.innerHTML=rows.map(function(r,rank){
+    var pct=(r.sal/cap)*100,over=r.sal>cap,bp=Math.min(pct,100);
+    var barColor=over?'var(--red)':pct>90?'var(--org)':'var(--acc)';
+    var spaceNum=cap-r.sal;
+    var spaceStr=(spaceNum>=0?'+':'')+fsN(Math.abs(spaceNum));
+    var alerts='';
+    if(r.dropCount>0)alerts+='<span class="alert-pill alert-drop">'+r.dropCount+' drop'+(r.dropCount>1?'s':'')+'</span>';
+    if(r.expCount>0)alerts+='<span class="alert-pill alert-exp">'+r.expCount+' expiring</span>';
+    return '<div class="team-card" onclick="showTeam(this.dataset.tn)" data-tn="'+r.tn.replace(/"/g,'&quot;')+'">'
+      +'<div class="team-card-accent" style="background:'+barColor+'"></div>'
+      +'<div class="team-card-body">'
+      +'<div class="team-card-top">'
+      +'<div class="team-card-left">'
+      +'<div class="team-card-name">'+r.tn+'</div>'
+      +'<div class="team-card-sub">#'+(rank+1)+' · '+r.n+' players</div>'
+      +(alerts?'<div class="team-card-alerts">'+alerts+'</div>':'')
+      +'</div>'
+      +'</div>'
+      +'<div class="team-card-stats">'
+      +'<div class="tc-stat"><div class="tc-stat-val" style="color:var(--brt)">'+fsN(r.sal)+'</div><div class="tc-stat-lbl">Salary</div></div>'
+      +'<div class="tc-stat"><div class="tc-stat-val" style="color:'+(over?'var(--red)':'var(--grn)')+'">'+spaceStr+'</div><div class="tc-stat-lbl">Space</div></div>'
+      +'<div class="tc-stat"><div class="tc-stat-val" style="color:'+barColor+'">'+pct.toFixed(1)+'%</div><div class="tc-stat-lbl">Cap %</div></div>'
+      +'</div>'
+      +'</div>'
+      +'<div class="team-card-bar"><div class="team-card-bar-fill" style="width:'+bp+'%;background:'+barColor+'"></div></div>'
+      +'</div>';
+  }).join('');
+}
+
+// ── UPDATED showTeam ─────────────────────────────────────
+function showTeam(tn){
+  currentTeam=tn;
+  showPage('team');
+  setNav(null);
+  _rosterView='roster';
+  document.getElementById('vt-roster').classList.add('active');
+  document.getElementById('vt-proj').classList.remove('active');
+  document.getElementById('rosterSimple').style.display='';
+  document.getElementById('rosterProj').style.display='none';
+  updateTeamHeader(tn);
+  buildSimpleRoster(tn);
+}
+
+function updateTeamHeader(tn){
+  var players=ROSTER[tn]||[];
+  var totals=teamTotals(tn);
+  var sal=totals[0];var cap=getBaseCap();
+  var over=sal>cap;var pct=(sal/cap)*100;
+  document.getElementById('teamTitle').textContent=tn;
+  document.getElementById('teamMeta').textContent=CURRENT_SEASON+' Dynasty · '+players.length+' players';
+  var salEl=document.getElementById('teamSal');
+  var spaceEl=document.getElementById('teamSpace');
+  var pctEl=document.getElementById('teamPct');
+  var fillEl=document.getElementById('capFill');
+  if(salEl){salEl.textContent='$'+sal.toFixed(1)+'M';salEl.style.color=over?'var(--red)':'var(--brt)';}
+  if(spaceEl){var sp=cap-sal;spaceEl.textContent=(sp>=0?'+':'')+sp.toFixed(1)+'M';spaceEl.style.color=over?'var(--red)':'var(--grn)';}
+  if(pctEl){pctEl.textContent=pct.toFixed(1)+'%';pctEl.style.color=over?'var(--red)':pct>90?'var(--org)':'var(--brt)';}
+  if(fillEl){var bc=over?'var(--red)':pct>90?'var(--org)':'var(--acc)';fillEl.style.width=Math.min(pct,100)+'%';fillEl.style.background=bc;}
+}
+
+// ── PATCH updateTeamCells TO REFRESH HEADER + SIMPLE VIEW ─
+var _origUpdateTeamCells=null;
+function patchUpdateTeamCells(){
+  _origUpdateTeamCells=updateTeamCells;
+  updateTeamCells=function(tn){
+    _origUpdateTeamCells(tn);
+    if(tn===currentTeam){
+      updateTeamHeader(tn);
+      if(_rosterView==='roster') buildSimpleRoster(tn);
+    }
+  };
+}
+
+// ── UPDATED setNav ────────────────────────────────────────
+function setNav(id){
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  if(id){var el=document.getElementById(id);if(el)el.classList.add('active');}
+}
+
+// ── PAGE ROUTING ──────────────────────────────────────────
+function showPage(name){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  var el=document.getElementById('page-'+name);
+  if(el)el.classList.add('active');
+}
+function showLeague(){showPage('league');setNav('nav-league');renderLeague();updateLastUpdated();}
+function showDB(){showPage('salaries-db');setNav('nav-db');renderDB();updateSalDbStatus();}
+function showFA(){
+  showPage('fa');setNav('nav-fa');
+  var cached=localStorage.getItem('dyn26_v3_fa');
+  if(cached){try{FA_DATA=JSON.parse(cached);}catch(e){}}
+  if(FA_DATA.length){renderFA();}else{document.getElementById('faBody').innerHTML='<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--dim);font-family:\'Barlow Condensed\',sans-serif;font-size:.8rem;letter-spacing:1px">Tap Refresh to load free agents</td></tr>';}
+}
+function showSettings(){
+  showPage('settings');setNav('nav-settings');
+  buildTeamQueryCards();updateQueryPreviews();updateSalDbStatus();updateSeasonUI();
+}
+
+// ── UPDATED renderFA ─────────────────────────────────────
+function renderFA(){
+  var q=(document.getElementById('faSearch').value||'').toLowerCase();
+  var pos=document.getElementById('faPos').value;
+  var status=document.getElementById('faStatus').value;
+  var maxSalEl=document.getElementById('faMaxSal');
+  var maxSal=maxSalEl&&maxSalEl.value?parseFloat(maxSalEl.value):null;
+  var data=FA_DATA.filter(function(p){
+    if(q&&!p.Player.toLowerCase().includes(q))return false;
+    if(pos){if(pos==='OF'){if(!['OF','LF','CF','RF'].includes(p.Position))return false;}else if(p.Position!==pos)return false;}
+    if(status&&p.Availability!==status)return false;
+    if(maxSal!==null&&!isNaN(maxSal)){var aR=p.AAV!==undefined&&p.AAV!==null?p.AAV:AAV_DB[p.Player];var isA=(!aR||aR==='ARB'||aR==='?'||isNaN(parseFloat(aR)));var aN=isA?ARB():parseFloat(aR);if(aN>maxSal)return false;}
+    return true;
+  });
+  var cntEl=document.getElementById('faCnt');
+  if(cntEl)cntEl.textContent=data.length+' players';
+  var tbody=document.getElementById('faBody');
+  if(!tbody)return;
+  tbody.innerHTML=data.slice(0,500).map(function(p){
+    var ptsNum=p.TotalPoints!==null&&p.TotalPoints!==undefined?parseFloat(p.TotalPoints):NaN;
+    var pts=!isNaN(ptsNum)?ptsNum.toFixed(1):'—';
+    var aavRaw=p.AAV!==undefined&&p.AAV!==null?p.AAV:AAV_DB[p.Player];
+    var isArb=(!aavRaw||aavRaw==='ARB'||aavRaw==='?'||isNaN(parseFloat(aavRaw)));
+    var aavDisp=isArb?'ARB':'$'+parseFloat(aavRaw).toFixed(1)+'M';
+    var statusCls=p.Availability==='FREEAGENT'?'FREEAGENT':'WAIVERS';
+    var statusLabel=p.Availability==='FREEAGENT'?'FA':'W';
+    return '<tr>'
+      +'<td onclick="openFACard(\''+p.Player.replace(/'/g,"\\'")+'\')" style="cursor:pointer;color:var(--acc2)">'+p.Player+'</td>'
+      +'<td><span class="pos-badge">'+p.Position+'</span></td>'
+      +'<td><span class="fa-status-badge '+statusCls+'">'+statusLabel+'</span></td>'
+      +'<td class="fa-pts">'+pts+'</td>'
+      +'<td>'+aavDisp+'</td>'
+      +'</tr>';
+  }).join('');
+  if(data.length>500)tbody.innerHTML+='<tr><td colspan="5" style="text-align:center;padding:.75rem;color:var(--dim);font-family:\'Barlow Condensed\',sans-serif;font-size:.72rem">+'+(data.length-500)+' more — refine your search</td></tr>';
+}
+
+// ── UPDATED renderDB ─────────────────────────────────────
+function renderDB(){
+  var q=(document.getElementById('dbSearch').value||'').toLowerCase();
+  var pos=(document.getElementById('dbPos')||{}).value||'';
+  var data=SAL.filter(function(p){
+    if(q&&!p.name.toLowerCase().includes(q)&&!(p.team||'').toLowerCase().includes(q))return false;
+    if(pos&&(p.pos||'')!==pos)return false;
+    return true;
+  });
+  data.sort(function(a,b){
+    var av=parseFloat(a[_dbSort])||0,bv=parseFloat(b[_dbSort])||0;
+    if(isNaN(av))av=a[_dbSort]||'';
+    if(isNaN(bv))bv=b[_dbSort]||'';
+    return _dbDir==='desc'?(bv>av?1:bv<av?-1:0):(av>bv?1:av<bv?-1:0);
+  });
+  var tbody=document.getElementById('dbBody');if(!tbody)return;
+  tbody.innerHTML=data.slice(0,300).map(function(p){
+    return '<tr>'
+      +'<td style="font-family:\'Inter\',sans-serif;font-weight:500;font-size:.75rem">'+p.name+'</td>'
+      +'<td><span class="pos-badge">'+( p.pos||'—')+'</span></td>'
+      +'<td style="font-family:\'Inter\',sans-serif;font-size:.72rem">'+( p.team||'—')+'</td>'
+      +'<td>'+(p.aav&&p.aav!=='ARB'?'$'+parseFloat(p.aav).toFixed(1)+'M':'—')+'</td>'
+      +'<td>'+(p.years||'—')+'</td>'
+      +'<td>'+(p.expires||'—')+'</td>'
+      +'<td>'+(p.age||'—')+'</td>'
+      +'</tr>';
+  }).join('');
+  var subEl=document.getElementById('dbSub');
+  if(subEl)subEl.textContent=data.length+' contracts'+( q||pos?' (filtered)':'');
+}
+
+// ── LEAGUE ID UPDATER ─────────────────────────────────────
+function updateLeagueId(){
+  var newId=(document.getElementById('leagueIdInput')||{}).value;
+  if(!newId)newId='';newId=newId.trim();
+  if(!newId||isNaN(parseInt(newId))){
+    var s=document.getElementById('leagueIdStatus');if(s)s.textContent='Enter a valid league ID';return;
+  }
+  var queries=loadQueries();var updated=0;
+  Object.keys(queries).forEach(function(k){
+    if(k.startsWith('team_')&&queries[k]&&queries[k].value){
+      queries[k].value=queries[k].value.replace(/leagues\/\d+/g,'leagues/'+newId);updated++;
+    }
+  });
+  saveQueriesStore(queries);
+  var s=document.getElementById('leagueIdStatus');
+  if(s)s.textContent='✓ Updated '+updated+' URLs to league '+newId;
+  showToast('✓ League ID updated','green',2500);
+}
+
+// ── INIT PATCHES ─────────────────────────────────────────
+function initV26(){
+  patchOnC();
+  patchUpdateTeamCells();
+}
+
+
+// V26 INIT
+(function(){
+  try{ initV26(); }catch(e){ console.warn('initV26 error:',e); }
+})();
 </script>
-
-<!-- ADVANCE SEASON -->
-
-<div class="modal-overlay" id="advanceModal" onclick="closeModalOutside(event,'advanceModal')">
-  <div class="modal-box">
-    <div class="modal-header"><h2>Advance Season</h2><p><span id="advFrom">2026</span> &rarr; <span id="advTo">2027</span></p></div>
-    <div class="modal-body">
-      <div style="font-size:.78rem;color:var(--txt);line-height:1.8;margin-bottom:.75rem">
-        &bull; All contracts decrease by 1 year<br>
-        &bull; Carried contracts lock (shown in blue)<br>
-        &bull; 0-year players flagged for DROP<br>
-        &bull; Unsigned players also flagged for DROP<br>
-        &bull; Projection columns shift to <span id="advNewEnd">2035</span>
-      </div>
-      <div style="font-size:.72rem;color:var(--acc);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px">Make sure everyone has submitted contracts first.</div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal('advanceModal')">Cancel</button>
-      <button class="btn-primary" onclick="doAdvanceSeason()">Advance</button>
-    </div>
-  </div>
-</div>
-
-<!-- CLEAR ALL DATA -->
-
-<div class="modal-overlay" id="clearModal" onclick="closeModalOutside(event,'clearModal')">
-  <div class="modal-box" style="border-color:var(--red)">
-    <div class="modal-header"><h2 style="color:var(--red)">Clear All Data?</h2><p>This cannot be undone.</p></div>
-    <div class="modal-body"><div style="font-size:.78rem;color:var(--dim);line-height:1.7">Erases all contracts, cached rosters, free agents, AAV overrides, and custom queries. Season resets to 2026.</div></div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal('clearModal')">Cancel</button>
-      <button class="btn-danger" onclick="doClearAllData()">Clear All</button>
-    </div>
-  </div>
-</div>
-
-<!-- QUERY EDITOR -->
-
-<div class="modal-overlay" id="queryModal" onclick="closeModalOutside(event,'queryModal')">
-  <div class="modal-box">
-    <div class="modal-header"><h2 id="queryModalTitle">Edit Query</h2><p id="queryModalDesc"></p></div>
-    <div class="modal-body"><textarea class="field-textarea" id="queryModalText" placeholder="Paste updated URL here&hellip;"></textarea></div>
-    <div class="modal-footer">
-      <button class="btn-primary" onclick="saveQuery()">Save Query</button>
-      <button class="btn-secondary" onclick="closeModal('queryModal')">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- ADD PLAYER -->
-
-<div class="modal-overlay" id="addPlayerModal" onclick="closeModalOutside(event,'addPlayerModal')">
-  <div class="modal-box">
-    <div class="modal-header"><h2>Add Player</h2><p>ARB players get flat rate from League Rules</p></div>
-    <div class="modal-body">
-      <label class="field-label">Player Name</label>
-      <input type="text" class="field-input" id="apName" placeholder="Full name" autocorrect="off">
-      <label class="field-label">Slot</label>
-      <select class="field-select" id="apSlot"><option>C</option><option>1B</option><option>2B</option><option>3B</option><option>SS</option><option>OF</option><option>UTIL</option><option>SP</option><option>RP</option><option selected>Bench</option><option>IL</option></select>
-      <label class="field-label">AAV ($M) &mdash; blank for ARB</label>
-      <input type="text" class="field-input" id="apAav" placeholder="e.g. 12.5 or leave blank">
-      <label class="field-label">FA After Year</label>
-      <input type="text" class="field-input" id="apFa" placeholder="e.g. 2029">
-    </div>
-    <div class="modal-footer">
-      <button class="btn-primary" onclick="confirmAddPlayer()">Add to Roster</button>
-      <button class="btn-secondary" onclick="closeModal('addPlayerModal')">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- PLAYER CARD -->
-
-<div class="modal-overlay" id="playerCardModal" onclick="closeModalOutside(event,'playerCardModal')">
-  <div class="modal-box">
-    <div class="modal-header">
-      <h2 id="pcName" style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:2px"></h2>
-      <p id="pcPos" style="font-size:.75rem;color:var(--dim);margin-top:.2rem"></p>
-    </div>
-    <div class="modal-body">
-      <div class="pc-row"><span class="pc-lbl">Age</span><span class="pc-val" id="pcAge">&mdash;</span></div>
-      <div class="pc-row"><span class="pc-lbl">MLB Salary (AAV)</span><span class="pc-val gold" id="pcSalary">&mdash;</span></div>
-      <div class="pc-row"><span class="pc-lbl">MLB Contract</span><span class="pc-val" id="pcContract">&mdash;</span></div>
-      <div class="pc-row"><span class="pc-lbl">FA After</span><span class="pc-val" id="pcFa">&mdash;</span></div>
-      <div class="pc-row"><span class="pc-lbl">MLB Team</span><span class="pc-val" id="pcTeam">&mdash;</span></div>
-      <div class="pc-row"><span class="pc-lbl">Dynasty Contract</span><span class="pc-val" id="pcDynContract">&mdash;</span></div>
-    </div>
-    <div class="modal-footer" style="flex-wrap:wrap;gap:.5rem">
-      <button class="btn-primary" id="pcResignBtn" onclick="resignPlayer()" style="display:none">&#10003; Clear Drop &amp; Re-sign</button>
-      <button class="btn-primary" style="background:var(--acc2)" onclick="openAAVEditorForPlayer(document.getElementById('pcName').textContent)">&#9998; Edit AAV</button>
-      <button class="btn-secondary" style="flex-basis:100%" onclick="closeModal('playerCardModal')">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- AAV EDITOR -->
-
-<div class="modal-overlay" id="aavModal" onclick="closeModalOutside(event,'aavModal')">
-  <div class="modal-box">
-    <div class="modal-header"><h2>Edit Player AAV</h2><p>Updates roster and salary database on this device</p></div>
-    <div class="modal-body">
-      <input type="text" class="field-input" id="aavSearch" placeholder="Search player name&hellip;" oninput="searchAAVPlayer()" autocomplete="off" autocorrect="off" spellcheck="false">
-      <div class="aav-results" id="aavResults"></div>
-      <div class="aav-selected" id="aavSelected">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:600;color:var(--brt);margin-bottom:.2rem" id="aavSelName"></div>
-        <div style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem" id="aavSelCur"></div>
-        <div style="display:flex;align-items:center;gap:.5rem">
-          <span style="font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);white-space:nowrap">New AAV ($M)</span>
-          <input type="number" style="flex:1;background:var(--bg);border:1px solid var(--acc);border-radius:4px;color:var(--acc);-webkit-text-fill-color:var(--acc);font-family:'DM Mono',monospace;font-size:.9rem;padding:.4rem .6rem;outline:none;-webkit-appearance:none;font-weight:600" id="aavNewVal" placeholder="e.g. 14.5" step="0.001" min="0">
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-primary" onclick="saveAAV()">Save AAV</button>
-      <button class="btn-secondary" onclick="closeModal('aavModal')">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- EXPORT CONTRACTS -->
-
-<div class="modal-overlay" id="exportModal" onclick="closeModalOutside(event,'exportModal')">
-  <div class="modal-box">
-    <div class="modal-header"><h2 id="expTitle">Export</h2><p>Copy and paste into iMessage or email</p></div>
-    <div class="modal-body">
-      <textarea style="width:100%;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);-webkit-text-fill-color:var(--txt);font-family:'DM Mono',monospace;font-size:.65rem;padding:.75rem;height:160px;resize:none;outline:none;-webkit-appearance:none;line-height:1.6" id="expText" readonly></textarea>
-      <div style="font-size:.72rem;color:var(--grn);margin-top:.5rem;min-height:1rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px" id="expCopied"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-primary" onclick="copyExport()">Copy All</button>
-      <button class="btn-secondary" onclick="closeModal('exportModal')">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- CLEAR TEAM CONTRACTS -->
-
-<div class="modal-overlay" id="clearTeamModal" onclick="closeModalOutside(event,'clearTeamModal')">
-  <div class="modal-box" style="border-color:var(--red)">
-    <div class="modal-header">
-      <h2 style="color:var(--red)">Clear Team?</h2>
-      <p id="clearTeamModalSub">Remove all contracts for this team</p>
-    </div>
-    <div class="modal-body">
-      <div style="font-size:.78rem;color:var(--dim);line-height:1.7">
-        Clears all contract years entered for <strong id="clearTeamModalName" style="color:var(--brt)"></strong>. Players with existing contracts will have their entries removed. Drop-flagged players will be marked as cleared (re-signing).
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal('clearTeamModal')">Cancel</button>
-      <button class="btn-danger" onclick="doCloseTeamContracts()">Clear All</button>
-    </div>
-  </div>
-</div>
-
-<!-- ARB INFO EDITOR -->
-
-<div class="modal-overlay" id="arbInfoModal" onclick="closeModalOutside(event,'arbInfoModal')">
-  <div class="modal-box">
-    <div class="modal-header">
-      <h2>Add Player Info</h2>
-      <p id="arbInfoName" style="font-size:.85rem;color:var(--brt);font-weight:600;margin-top:.2rem"></p>
-    </div>
-    <div class="modal-body">
-      <label class="field-label">Position</label>
-      <input type="text" class="field-input" id="arbInfoPos" placeholder="e.g. SP, C, OF" autocorrect="off">
-      <label class="field-label">MLB Team</label>
-      <input type="text" class="field-input" id="arbInfoTeam" placeholder="e.g. NYY" autocorrect="off" autocapitalize="characters">
-      <label class="field-label">Age</label>
-      <input type="number" class="field-input" id="arbInfoAge" placeholder="e.g. 24" min="18" max="45">
-      <label class="field-label">FA After (year)</label>
-      <input type="text" class="field-input" id="arbInfoExpires" placeholder="e.g. 2029" autocorrect="off">
-      <label class="field-label">Signed (year)</label>
-      <input type="text" class="field-input" id="arbInfoSigned" placeholder="e.g. 2026" autocorrect="off">
-    </div>
-    <div class="modal-footer">
-      <button class="btn-primary" onclick="saveArbInfo()">Save</button>
-      <button class="btn-secondary" onclick="closeModal('arbInfoModal')">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- TEAM NAMES MODAL -->
-
-<div class="modal-overlay" id="teamNamesModal" onclick="closeModalOutside(event,'teamNamesModal')">
-  <div class="modal-box">
-    <div class="modal-header"><h2>Edit Team Names</h2><p>Rename teams if ownership changes</p></div>
-    <div class="modal-body" id="teamNamesFields"></div>
-    <div class="modal-footer" style="flex-wrap:wrap;gap:.5rem">
-      <button class="btn-primary" onclick="saveTeamNames()">Save</button>
-      <button class="btn-secondary" onclick="resetTeamNames()">Reset Defaults</button>
-      <button class="btn-secondary" style="flex-basis:100%;text-align:center" onclick="closeModal('teamNamesModal')">Cancel</button>
-    </div>
-    <div style="font-size:.7rem;color:var(--dim);padding:.5rem 1.5rem 1rem" id="teamNamesSaveStatus"></div>
-  </div>
-</div>
-
-<!-- ESPN QUERIES MODAL -->
-
-<div class="modal-overlay" id="espnQueriesModal" onclick="closeModalOutside(event,'espnQueriesModal')">
-  <div class="modal-box">
-    <div class="modal-header"><h2>ESPN API Queries</h2><p>Tap a team to edit its URL</p></div>
-    <div class="modal-body" style="padding:.75rem 1.25rem">
-      <div id="espnQueryCards"></div>
-      <div class="set-card" style="margin-top:.5rem" onclick="openQueryEditor('fa','Free Agent Query','ESPN API URL + X-Fantasy-Filter for free agents.');closeModal('espnQueriesModal')">
-        <div class="set-card-title">Free Agent Fetch</div>
-        <div class="set-card-sub" id="q-fa-preview2">Loading&hellip;</div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal('espnQueriesModal')">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- ARB PLAYERS MODAL -->
-
-<div class="modal-overlay" id="arbPlayersModal" onclick="closeModalOutside(event,'arbPlayersModal')">
-  <div class="modal-box">
-    <div class="modal-header"><h2>ARB Players</h2><p>Tap any player to set a custom AAV</p></div>
-    <div class="modal-body" style="max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch">
-      <div id="arbPlayerList"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeModal('arbPlayersModal')">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- LEAGUE RULES MODAL -->
-
-<div class="modal-overlay" id="leagueRulesModal" onclick="closeModalOutside(event,'leagueRulesModal')">
-  <div class="modal-box">
-    <div class="modal-header"><h2>League Rules</h2><p>Changes apply immediately to all calculations</p></div>
-    <div class="modal-body">
-      <div id="rulesFields"></div>
-    </div>
-    <div class="modal-footer" style="flex-wrap:wrap;gap:.5rem">
-      <button class="btn-primary" onclick="saveLeagueRules();closeModal('leagueRulesModal')">Save</button>
-      <button class="btn-secondary" onclick="resetLeagueRules()">Reset Defaults</button>
-      <button class="btn-secondary" style="flex-basis:100%;text-align:center" onclick="closeModal('leagueRulesModal')">Cancel</button>
-    </div>
-    <div style="font-size:.7rem;color:var(--dim);padding:.5rem 1.5rem 1rem" id="rulesSaveStatus"></div>
-  </div>
-</div>
 
 </body>
 </html>
