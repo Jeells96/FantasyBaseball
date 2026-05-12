@@ -926,7 +926,7 @@ function renderLeague(){
     var spaceNum=cap-r.sal;
     var spaceStr=(spaceNum>=0?'+':'-')+fsN(Math.abs(spaceNum));
     var tn=r.tn;
-    return '<div class="team-card" onclick="showTeam('+JSON.stringify(tn)+')">' +
+    return '<div class="team-card" onclick="showTeam(this.dataset.tn)" data-tn="'+r.tn.replace(/"/g,'&quot;')+'">' +
       '<div class="team-card-top">'+
       '<div class="team-card-name">'+r.tn+'</div>'+
       '<div class="team-card-meta">'+r.n+' players</div>'+
