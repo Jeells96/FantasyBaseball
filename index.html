@@ -1004,56 +1004,7 @@ SAL.forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});
 var ROSTER={};
 var rosterLoadTime=null;
 function flattenRoster(r){if(!r)return{};var flat={};Object.keys(r).forEach(function(tn){var v=r[tn];flat[tn]=Array.isArray(v)?v:(v&&v.players?v.players:[]);});return flat;}
-function loadCachedRoster(){try{var r=JSON.parse(localStorage.getItem('dyn26_v3_roster')||'null');var t=localStorage.getItem('dyn26_v3_updated');if(r&&Object.keys(r).length){ROSTER=flattenRoster(r);rosterLoadTime=t?new Date(t):null;return true;}}catch(e){}if(Object.keys(DEFAULT_ROSTER).length){ROSTER=flattenRoster(DEFAULT_ROSTER);return true;}return false;}
-function saveCachedRoster(){try{localStorage.setItem('dyn26_v3_roster',JSON.stringify(ROSTER));var now=new Date();rosterLoadTime=now;localStorage.setItem('dyn26_v3_updated',now.toISOString());}catch(e){}}
-var CONTRACTS={};
-var LS_C='dyn26_v3_contracts';
-function loadContracts(){
-  // Load from localStorage first (instant)
-  try{CONTRACTS=JSON.parse(localStorage.getItem(LS_C)||'{}');}catch(e){CONTRACTS={};}
-  // Then load from Firestore and override (async)
-  var _cloudLoadAttempts=0;
-  function tryCloudLoad(){
-    _cloudLoadAttempts++;
-    if(!window.loadContractsCloud){
-      if(_cloudLoadAttempts<30){setTimeout(tryCloudLoad,300);}
-      else{console.warn('Firebase never loaded');}
-      return;
-    }
-    window.loadContractsCloud().then(function(cloudContracts){
-      if(cloudContracts && Object.keys(cloudContracts).length>0){
-        CONTRACTS=cloudContracts;
-        try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
-        if(currentTeam){teamBuilt[currentTeam]=false;buildTeamTable(currentTeam);updateTeamCells(currentTeam);}
-        renderLeague();
-        showToast('\u2713 Synced','green',1500);
-      }
-      // Start real-time listener
-      if(window.startContractsListener){
-        window.startContractsListener(function(incoming){
-          if(JSON.stringify(incoming)===JSON.stringify(CONTRACTS))return;
-          CONTRACTS=incoming;
-          try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
-          if(currentTeam){teamBuilt[currentTeam]=false;buildTeamTable(currentTeam);updateTeamCells(currentTeam);}
-          renderLeague();
-          showToast('\u21bb Live update','green',1500);
-        });
-      }
-    }).catch(function(err){console.warn('Cloud load error:',err);});
-  }
-  setTimeout(tryCloudLoad,500);
-}
-function saveContracts(){
-  try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
-  // Save to Firestore
-  var _saveAttempts=0;
-  function trySave(){
-    if(window.saveContractsCloud){window.saveContractsCloud(CONTRACTS);}
-    else if(_saveAttempts++<10){setTimeout(trySave,300);}
-  }
-  trySave();
-  showToast('\u2713 Saved','green',1400);
-}
+function loadCachedRoster(){return false;} // rosters come from ESPN only
 function ckey(tn,i){var p=(ROSTER[tn]||[])[i];return p?'player|'+p.name:'player|unk_'+tn+'_'+i;}
 function getC(tn,i){var k=ckey(tn,i);var e=CONTRACTS[k];if(!e)return '';if(e.cleared)return '';return e.years===0?'0':String(e.years||'');}
 function getEntry(tn,i){return CONTRACTS[ckey(tn,i)]||null;}
@@ -1756,10 +1707,7 @@ try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){JSON.parse(cs).forEach(fu
 try{var ao=JSON.parse(localStorage.getItem('dyn26_aav_overrides')||'{}');Object.keys(ao).forEach(function(n){AAV_DB[n]=ao[n];if(SAL_MAP[n])SAL_MAP[n].aav=ao[n];SAL.forEach(function(p){if(p.name===n)p.aav=ao[n];});Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n)p.aav=ao[n];});});});}catch(e){}
 // Load saved ARB player info
 try{var ai=JSON.parse(localStorage.getItem('dyn26_arb_info')||'{}');Object.keys(ai).forEach(function(n){var entry=ai[n];var inSal=false;SAL.forEach(function(p,i){if(p.name===n){Object.assign(SAL[i],entry);inSal=true;}});if(!inSal)SAL.push(entry);SAL_MAP[n]=entry;AAV_DB[n]=entry.aav||'ARB';Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n){if(entry.age)p.age=entry.age;if(entry.expires)p.fa=entry.expires;}});});});}catch(e){}
-// Always fetch fresh from ESPN — don't use stale roster cache
-localStorage.removeItem('dyn26_v3_roster');
-localStorage.removeItem('dyn26_v3_updated');
-loadCachedRoster();
+// Rosters always from ESPN, contracts from Firebase
 renderLeague();updateLastUpdated();updateSeasonUI();
 refreshRosters(false);
 
