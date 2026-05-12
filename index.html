@@ -520,7 +520,6 @@ window.startContractsListener = function(callback) {
         <button class="hdr-btn" onclick="showLeague()">&#8592; League</button>
         <button class="hdr-btn hdr-btn-gold" onclick="exportTeam()">&#8659; Export</button>
         <button class="hdr-btn" onclick="openAddPlayer()">+ Player</button>
-        <button class="hdr-btn" onclick="document.getElementById('teamXlsxImport').click()">&#8679; Excel</button>
         <button class="hdr-btn hdr-btn-red" onclick="clearTeamContracts()">&#10005; Clear</button>
         <input type="file" class="hidden-file" id="teamXlsxImport" accept=".xlsx,.xls" onchange="importRosterExcel(this)">
       </div>
@@ -538,7 +537,8 @@ window.startContractsListener = function(callback) {
     <span style="font-size:.6rem;color:var(--dim);white-space:nowrap">$400M</span>
   </div>
   <div class="roster-outer">
-    <div class="roster-hint" style="-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center"><span><span class="hint-box"></span> Type contract years &mdash; saves automatically</span><span style="display:-webkit-flex;display:flex;gap:.3rem;-webkit-align-items:center;align-items:center"><button onclick="tableZoom(-1)" style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:600;color:var(--dim);background:none;border:1px solid var(--bdr);border-radius:3px;width:24px;height:24px;cursor:pointer;-webkit-appearance:none;line-height:1;padding:0">&#8722;</button><button onclick="tableZoom(1)" style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:600;color:var(--dim);background:none;border:1px solid var(--bdr);border-radius:3px;width:24px;height:24px;cursor:pointer;-webkit-appearance:none;line-height:1;padding:0">+</button></span></div>
+    <div class="roster-hint" style="-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center"><span><span class="hint-box"></span> Type contract years &mdash; saves automatically</span><span style="display:-webkit-flex;display:flex;gap:.3rem;-webkit-align-items:center;align-items:center"><button onclick="tableZoom(-1)" style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:600;color:var(--dim);background:none;border:1px solid var(--bdr);border-radius:3px;width:24px;height:24px;cursor:pointer;-webkit-appearance:none;line-height:1;padding:0">&#8722;</button><button onclick="tableZoom(1)" style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:600;color:var(--dim);background:none;border:1px solid var(--bdr);border-radius:3px;width:24px;height:24px;cursor:pointer;-webkit-appearance:none;line-height:1;padding:0">+</button>
+<button onclick="toggleProjections()" id="projToggleBtn" style="font-family:'Barlow Condensed',sans-serif;font-size:.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--dim);background:none;border:1px solid var(--bdr);border-radius:3px;padding:.18rem .5rem;cursor:pointer;-webkit-appearance:none;margin-left:.3rem">10 YR</button></span></div>
     <div class="rt-scroll">
       <table class="rt">
         <colgroup><col><col><col><col><col><col><col><col><col><col><col><col><col><col><col></colgroup>
@@ -900,7 +900,7 @@ function showLeague(){showPage('league');setNav('nav-league');renderLeague();}
 function showDB(){showPage('salaries-db');setNav('nav-db');renderDB();}
 function showFA(){showPage('fa');setNav('nav-fa');var cached=localStorage.getItem('dyn26_v3_fa');if(cached){try{FA_DATA=JSON.parse(cached);}catch(e){}}if(FA_DATA.length){renderFA();}else{document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">Tap Refresh or import Excel to load free agents</td></tr>';}}
 function showSettings(){showPage('settings');setNav('nav-settings');buildTeamQueryCards();updateQueryPreviews();updateSalDbStatus();updateSeasonUI();}
-function showTeam(tn){currentTeam=tn;showPage('team');setNav(null);buildTeamTable(tn);updateTeamCells(tn);setTimeout(applyTableFont,0);}
+function showTeam(tn){currentTeam=tn;showPage('team');setNav(null);buildTeamTable(tn);updateTeamCells(tn);setTimeout(applyTableFont,0);setTimeout(applyProjectionState,80);}
 function updateSeasonUI(){
   var ny=document.getElementById('navYear');if(ny)ny.textContent=String(CURRENT_SEASON);
   var badge=document.getElementById('currentSeasonBadge');if(badge)badge.textContent=String(CURRENT_SEASON);
@@ -965,7 +965,7 @@ function buildTeamTable(tn){
   var capCells=YRS.map(function(_,yi){return '<td style="font-size:.30rem;text-align:center;color:#6b7280">'+fsN(capY(yi))+'</td>';}).join('');
   var pctCells=YRS.map(function(_,yi){return '<td id="tp-'+tn+'-'+yi+'"></td>';}).join('');
   tbody.innerHTML=rows+'<tr class="tr-tot"><td colspan="3" style="text-align:left;font-size:.30rem">Total Salary</td><td></td><td></td>'+totCells+'</tr>'+'<tr class="tr-cap"><td colspan="3" style="text-align:left;font-size:.30rem;color:#6b7280">Salary Cap</td><td></td><td></td>'+capCells+'</tr>'+'<tr class="tr-pct"><td colspan="3" style="text-align:left;font-size:.30rem;color:#6b7280">Cap Used</td><td></td><td></td>'+pctCells+'</tr>';
-  setTimeout(applyTableFont,50);
+  setTimeout(applyTableFont,50);setTimeout(applyProjectionState,70);
   // Force input text color (Safari fix for synced values)
   setTimeout(function(){
     var inputs=document.querySelectorAll('.ci');
@@ -1471,7 +1471,7 @@ function openFACard(name){
   openModal('playerCardModal');
 }
 
-var _tblFontSize=parseFloat(localStorage.getItem('dyn26_tbl_font')||'0.72');
+var _tblFontSize=parseFloat(localStorage.getItem('dyn26_tbl_font')||'0.55');
 function tableZoom(dir){
   _tblFontSize=Math.min(1.0,Math.max(0.5,Math.round((_tblFontSize+dir*0.04)*100)/100));
   localStorage.setItem('dyn26_tbl_font',String(_tblFontSize));
@@ -1588,6 +1588,27 @@ function updateLeagueId(){
   var s=document.getElementById('leagueIdStatus');
   if(s)s.textContent='✓ Updated '+updated+' team URLs to league '+newId;
   showToast('✓ League ID updated','green',2500);
+}
+
+var _showProjections=false;
+function applyProjectionState(){
+  var hidden=!_showProjections;
+  var rt=document.querySelector('.rt');if(!rt)return;
+  var ths=rt.querySelectorAll('thead th');
+  var rows=rt.querySelectorAll('tbody tr');
+  // Cols 7+ (index 6+) are the future years (2027 onwards)
+  ths.forEach(function(th,i){if(i>=6)th.style.display=hidden?'none':'';});
+  rows.forEach(function(tr){
+    tr.querySelectorAll('td').forEach(function(td,i){if(i>=6)td.style.display=hidden?'none':'';});
+  });
+  var scroll=document.querySelector('.rt-scroll');
+  if(scroll)scroll.style.overflowX=hidden?'hidden':'auto';
+  var btn=document.getElementById('projToggleBtn');
+  if(btn){btn.style.color=hidden?'':'#e8c84b';btn.style.borderColor=hidden?'':'#e8c84b';btn.textContent=hidden?'10 YR ►':'◄ SIMPLE';}
+}
+function toggleProjections(){
+  _showProjections=!_showProjections;
+  applyProjectionState();
 }
 loadContracts();
 try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){JSON.parse(cs).forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});}}catch(e){}
