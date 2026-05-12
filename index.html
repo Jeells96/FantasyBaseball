@@ -1756,10 +1756,12 @@ try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){JSON.parse(cs).forEach(fu
 try{var ao=JSON.parse(localStorage.getItem('dyn26_aav_overrides')||'{}');Object.keys(ao).forEach(function(n){AAV_DB[n]=ao[n];if(SAL_MAP[n])SAL_MAP[n].aav=ao[n];SAL.forEach(function(p){if(p.name===n)p.aav=ao[n];});Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n)p.aav=ao[n];});});});}catch(e){}
 // Load saved ARB player info
 try{var ai=JSON.parse(localStorage.getItem('dyn26_arb_info')||'{}');Object.keys(ai).forEach(function(n){var entry=ai[n];var inSal=false;SAL.forEach(function(p,i){if(p.name===n){Object.assign(SAL[i],entry);inSal=true;}});if(!inSal)SAL.push(entry);SAL_MAP[n]=entry;AAV_DB[n]=entry.aav||'ARB';Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n){if(entry.age)p.age=entry.age;if(entry.expires)p.fa=entry.expires;}});});});}catch(e){}
+// Always fetch fresh from ESPN — don't use stale roster cache
+localStorage.removeItem('dyn26_v3_roster');
+localStorage.removeItem('dyn26_v3_updated');
 loadCachedRoster();
 renderLeague();updateLastUpdated();updateSeasonUI();
-// Always fetch fresh from ESPN on load
-setTimeout(function(){refreshRosters(false);},800);
+refreshRosters(false);
 
 
 
