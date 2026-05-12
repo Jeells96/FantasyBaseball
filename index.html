@@ -26,7 +26,7 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin-icon{display:inline-block}
 
-.page{display:none;overflow-x:hidden}.page.active{display:block;overflow-x:hidden}
+.page{display:none;overflow-x:hidden}.page.active{display:block;overflow-x:hidden;padding-bottom:5rem}
 
 /* TOAST */
 .toast{position:fixed;bottom:1.25rem;right:1.25rem;background:var(–sur);border:1px solid var(–bdr);border-radius:6px;padding:.5rem 1rem;font-size:.72rem;font-family:“Barlow Condensed”,sans-serif;letter-spacing:1px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300;max-width:260px}
@@ -383,6 +383,31 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 
 .rt th:nth-child(-n+3),.rt td:nth-child(-n+3){text-align:left}
 .rt th:nth-child(4),.rt td:nth-child(4){text-align:right}
+
+/* ── BOTTOM TAB BAR ─────────────────────────── */
+.top-bar{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10,12,16,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid #252a35;padding:.6rem 1rem;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between}
+.tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(10,12,16,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-top:1px solid #252a35;display:-webkit-flex;display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+.tab-btn{-webkit-flex:1;flex:1;background:none;border:none;padding:.6rem .2rem .5rem;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:center;align-items:center;gap:.15rem;cursor:pointer;-webkit-appearance:none;color:#6b7280;-webkit-tap-highlight-color:transparent}
+.tab-btn.active{color:#e8c84b}
+.tab-icon{font-size:1.1rem;line-height:1}
+.tab-label{font-family:“Barlow Condensed”,sans-serif;font-size:.58rem;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+/* ── TEAM CARDS ─────────────────────────────── */
+.team-cards{padding:.75rem;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;gap:.75rem}
+.team-card{background:#111318;border:1px solid #252a35;border-radius:12px;padding:1rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.team-card:active{opacity:.7}
+.team-card-top{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:baseline;align-items:baseline;margin-bottom:.6rem}
+.team-card-name{font-family:“Bebas Neue”,sans-serif;font-size:1.5rem;letter-spacing:2px;color:#f0f2f6}
+.team-card-meta{font-family:“Barlow Condensed”,sans-serif;font-size:.7rem;color:#6b7280;letter-spacing:1px}
+.team-card-stats{display:-webkit-flex;display:flex;gap:.5rem;margin-bottom:.75rem}
+.team-stat{-webkit-flex:1;flex:1;background:#0a0c10;border-radius:8px;padding:.5rem .25rem;text-align:center}
+.team-stat-val{font-family:“DM Mono”,monospace;font-size:.9rem;font-weight:600;margin-bottom:.15rem}
+.team-stat-lbl{font-family:“Barlow Condensed”,sans-serif;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;color:#6b7280}
+.team-card-bar-track{height:4px;background:#252a35;border-radius:2px;overflow:hidden}
+.team-card-bar-fill{height:100%;border-radius:2px}
+/* ── LEAGUE HEADER ──────────────────────────── */
+.league-header{padding:1rem 1rem .5rem;border-bottom:1px solid #252a35}
+.league-title{font-family:“Bebas Neue”,sans-serif;font-size:1.6rem;letter-spacing:3px;color:#e8c84b;margin-bottom:.15rem}
+.league-sub{font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;color:#6b7280;letter-spacing:1px}
 </style>
 
 <!-- Firebase SDK -->
@@ -608,6 +633,16 @@ window.startContractsListener = function(callback) {
     <div class="pg-sub" style="margin-bottom:1.5rem">Configure data sources and queries</div>
 
 ```
+<div class="set-section">
+  <div class="set-section-title">ESPN League ID</div>
+  <p style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem;line-height:1.5">Entering a new league ID updates all 8 team ESPN API URLs at once.</p>
+  <div style="display:-webkit-flex;display:flex;gap:.6rem;-webkit-align-items:center;align-items:center">
+    <input type="text" class="field-input" id="leagueIdInput" placeholder="e.g. 69029411" style="font-size:.85rem;padding:.45rem .7rem;-webkit-flex:1;flex:1" autocorrect="off" inputmode="numeric">
+    <button class="set-btn accent" onclick="updateLeagueId()" style="white-space:nowrap">Update All</button>
+  </div>
+  <div style="font-size:.7rem;color:var(--dim);margin-top:.4rem" id="leagueIdStatus"></div>
+</div>
+
 <div class="set-section">
   <div class="set-section-title">Export All Data</div>
   <p style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem;line-height:1.5">Export all team rosters, contracts, and salary projections to Excel.</p>
@@ -855,7 +890,7 @@ var _ce=console.error;var _cw=console.warn;
 console.error=function(){};console.warn=function(){};
 var consoleEnabled=false;
 function toggleConsole(){consoleEnabled=!consoleEnabled;var btn=document.getElementById('consoleToggleBtn');if(consoleEnabled){console.error=_ce;console.warn=_cw;if(btn)btn.textContent='Disable Console Errors';showToast('Console enabled','yellow',1800);}else{console.error=function(){};console.warn=function(){};if(btn)btn.textContent='Enable Console Errors';showToast('Console hidden','green',1800);}}
-function setNav(id){document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});if(id){var el=document.getElementById(id);if(el)el.classList.add('active');}}
+function setNav(id){document.querySelectorAll('.tab-btn,.nav-btn').forEach(function(b){b.classList.remove('active');});if(id){var el=document.getElementById(id);if(el)el.classList.add('active');}}
 function showPage(pid){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});var el=document.getElementById('page-'+pid);if(el)el.classList.add('active');}
 function showLeague(){showPage('league');setNav('nav-league');renderLeague();}
 function showDB(){showPage('salaries-db');setNav('nav-db');renderDB();}
@@ -871,16 +906,36 @@ function updateSeasonUI(){
 }
 function updateLastUpdated(){var el=document.getElementById('lastUpdated');if(!el)return;if(rosterLoadTime){var d=rosterLoadTime;el.textContent='Rosters: '+d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}else{el.textContent='';}}
 function renderLeague(){
-  var tbody=document.getElementById('leagueBody');if(!tbody)return;
-  var teamNames=Object.keys(TEAMS_CONFIG);
-  if(!Object.keys(ROSTER).length){tbody.innerHTML='<tr class="loading-row"><td colspan="6">Loading rosters\u2026</td></tr>';return;}
-  var rows=teamNames.map(function(tn){return{tn:tn,n:(ROSTER[tn]||[]).length,sal:teamTotals(tn)[0]};}).sort(function(a,b){return b.sal-a.sal;});
+  var el=document.getElementById('teamCards');if(!el)return;
+  var sub=document.getElementById('leagueSub');
   var cap=getBaseCap();
-  tbody.innerHTML=rows.map(function(r){
-    var pct=(r.sal/cap)*100,over=r.sal>cap,bp=Math.min(pct,115);var c=over?'var(--red)':pct>90?'#f97316':'var(--acc)';
-    return '<tr onclick="showTeam(\''+r.tn+'\')">'+'<td><span class="team-link">'+r.tn+'</span></td>'+'<td>'+r.n+'</td>'+'<td class="'+(over?'ov':'')+'">'+fs(r.sal)+'</td>'+'<td><div class="cbw"><div class="cbar"><div class="cbar-f" style="width:'+bp+'%;background:'+c+'"></div></div><span class="'+(over?'ov':'ok')+'" style="min-width:42px;text-align:right;font-size:.74rem">'+pct.toFixed(1)+'%</span></div></td>'+'<td class="'+(over?'ov':'ok')+'">'+pct.toFixed(1)+'%</td>'+'<td class="'+(over?'ov':'ok')+'">'+(over?'':'+')+''+fs(cap-r.sal)+'</td></tr>';
+  if(sub)sub.innerHTML='Cap: '+fs(cap);
+  var teamNames=Object.keys(TEAMS_CONFIG);
+  if(!Object.keys(ROSTER).length){
+    el.innerHTML='<div style="padding:2rem;text-align:center;color:#6b7280;font-size:.85rem">Loading rosters…</div>';
+    return;
+  }
+  var rows=teamNames.map(function(tn){return{tn:tn,n:(ROSTER[tn]||[]).length,sal:teamTotals(tn)[0]};}).sort(function(a,b){return b.sal-a.sal;});
+  el.innerHTML=rows.map(function(r){
+    var pct=(r.sal/cap)*100,over=r.sal>cap,bp=Math.min(pct,100);
+    var barColor=over?'#e84b4b':pct>90?'#f97316':'#e8c84b';
+    var spaceNum=cap-r.sal;
+    var spaceStr=(spaceNum>=0?'+':'')+fsN(Math.abs(spaceNum));
+    return '<div class="team-card" onclick="showTeam(\''+r.tn+'\')">'
+      +'<div class="team-card-top">'
+      +'<div class="team-card-name">'+r.tn+'</div>'
+      +'<div class="team-card-meta">'+r.n+' players</div>'
+      +'</div>'
+      +'<div class="team-card-stats">'
+      +'<div class="team-stat"><div class="team-stat-val" style="color:#f0f2f6">'+fsN(r.sal)+'</div><div class="team-stat-lbl">Salary</div></div>'
+      +'<div class="team-stat"><div class="team-stat-val" style="color:'+(over?'#e84b4b':'#4be87a')+'">'+spaceStr+'</div><div class="team-stat-lbl">Space</div></div>'
+      +'<div class="team-stat"><div class="team-stat-val" style="color:'+barColor+'">'+pct.toFixed(1)+'%</div><div class="team-stat-lbl">Cap %</div></div>'
+      +'</div>'
+      +'<div class="team-card-bar-track"><div class="team-card-bar-fill" style="width:'+bp+'%;background:'+barColor+'"></div></div>'
+      +'</div>';
   }).join('');
 }
+
 function slotCls(slot){var s=(slot||'').trim().replace(/\s+/g,'');if(s==='C')return 'C';if(s==='1B'||s==='2B'||s==='3B')return 's'+s;return s;}
 function isArbPlayer(p){return(!p.aav||p.aav==='ARB'||p.aav==='?'||isNaN(parseFloat(p.aav)));}
 function buildTeamTable(tn){
@@ -1508,6 +1563,25 @@ document.addEventListener('keydown', function(e){
     if(nx){ nx.focus(); nx.select(); }
   }
 });
+
+function updateLeagueId(){
+  var newId=document.getElementById('leagueIdInput').value.trim();
+  if(!newId||isNaN(parseInt(newId))){
+    document.getElementById('leagueIdStatus').textContent='Enter a valid league ID';
+    return;
+  }
+  var queries=loadQueries();
+  var updated=0;
+  Object.keys(queries).forEach(function(k){
+    if(k.startsWith('team_')&&queries[k]&&queries[k].value){
+      queries[k].value=queries[k].value.replace(/leagues\/\d+/,'leagues/'+newId);
+      updated++;
+    }
+  });
+  saveQueriesStore(queries);
+  document.getElementById('leagueIdStatus').textContent='✓ Updated '+updated+' team URLs to league '+newId;
+  showToast('✓ League ID updated','green',2500);
+}
 loadContracts();
 try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){JSON.parse(cs).forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});}}catch(e){}
 try{var ao=JSON.parse(localStorage.getItem('dyn26_aav_overrides')||'{}');Object.keys(ao).forEach(function(n){AAV_DB[n]=ao[n];if(SAL_MAP[n])SAL_MAP[n].aav=ao[n];SAL.forEach(function(p){if(p.name===n)p.aav=ao[n];});Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n)p.aav=ao[n];});});});}catch(e){}
