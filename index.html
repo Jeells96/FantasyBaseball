@@ -33,12 +33,12 @@
 
 /* ── RESET ───────────────────────────────────────────── */
 *{-webkit-box-sizing:border-box;box-sizing:border-box;margin:0;padding:0}
-html,body{height:-webkit-fill-available;background:#080a0f;background-color:#080a0f;color:#e2e8f0;font-family:“Inter”,system-ui,sans-serif;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+html,body{height:-webkit-fill-available;background:var(–bg);color:var(–txt);font-family:“Inter”,system-ui,sans-serif;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 
 /* ── TOP BAR ─────────────────────────────────────────── */
 .top-bar{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(8,10,15,.92);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-bottom:1px solid var(–bdr);padding:0 1rem;height:52px;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between;gap:1rem}
 .brand{font-family:“Bebas Neue”,sans-serif;font-size:1.25rem;letter-spacing:3px;color:var(–acc);display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.5rem;white-space:nowrap}
-.brand-badge{font-family:“Inter”,sans-serif;font-size:.52rem;font-weight:600;letter-spacing:.5px;color:var(–dim);background:#141821;border:1px solid #1e2433;border-radius:4px;padding:.1rem .3rem;text-transform:uppercase;vertical-align:middle}
+.brand-badge{font-family:“Inter”,sans-serif;font-size:.52rem;font-weight:600;letter-spacing:.5px;color:var(–dim);background:var(–sur2);border:1px solid var(–bdr);border-radius:4px;padding:.1rem .3rem;text-transform:uppercase;vertical-align:middle}
 .top-bar-actions{display:-webkit-flex;display:flex;gap:.5rem;-webkit-align-items:center;align-items:center}
 .icon-btn{background:none;border:1px solid var(–bdr);border-radius:8px;color:var(–dim2);cursor:pointer;-webkit-appearance:none;padding:.35rem .6rem;font-size:.72rem;font-family:“Barlow Condensed”,sans-serif;font-weight:600;letter-spacing:1px;text-transform:uppercase;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.3rem;white-space:nowrap;transition:color .15s,border-color .15s}
 .icon-btn:active{opacity:.7}
@@ -53,7 +53,7 @@ html,body{height:-webkit-fill-available;background:#080a0f;background-color:#080
 .tab-label{font-family:“Barlow Condensed”,sans-serif;font-size:.58rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
 
 /* ── PAGE SYSTEM ─────────────────────────────────────── */
-.page{display:none;padding-bottom:5.5rem;min-height:100vh;background:#080a0f}
+.page{display:none;padding-bottom:5.5rem;min-height:100vh}
 .page.active{display:block}
 
 /* ── LEAGUE PAGE ─────────────────────────────────────── */
@@ -67,7 +67,7 @@ html,body{height:-webkit-fill-available;background:#080a0f;background-color:#080
 .last-updated-txt{font-family:“Barlow Condensed”,sans-serif;font-size:.62rem;color:var(–dim);letter-spacing:.5px;margin-top:.5rem}
 
 .team-cards{padding:.75rem;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;gap:.65rem}
-.team-card{background:#0e1117;border:1px solid #1e2433;border-radius:16px;overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative}
+.team-card{background:var(–sur);border:1px solid var(–bdr);border-radius:16px;overflow:hidden;cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative}
 .team-card:active{opacity:.75}
 .team-card-accent{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0}
 .team-card-body{padding:1rem 1rem 1rem 1.25rem}
@@ -376,7 +376,7 @@ callback(contracts);
 <nav class="top-bar">
   <div class="brand">
     ⚾ DYNASTY <span id="navYear">2026</span>
-    <span class="brand-badge">v26.1</span>
+    <span class="brand-badge">v26</span>
   </div>
   <div class="top-bar-actions">
     <button class="icon-btn" id="refreshBtn" onclick="refreshRosters()">
@@ -1004,7 +1004,56 @@ SAL.forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});
 var ROSTER={};
 var rosterLoadTime=null;
 function flattenRoster(r){if(!r)return{};var flat={};Object.keys(r).forEach(function(tn){var v=r[tn];flat[tn]=Array.isArray(v)?v:(v&&v.players?v.players:[]);});return flat;}
-function loadCachedRoster(){return false;} // rosters come from ESPN only
+function loadCachedRoster(){try{var r=JSON.parse(localStorage.getItem('dyn26_v3_roster')||'null');var t=localStorage.getItem('dyn26_v3_updated');if(r&&Object.keys(r).length){ROSTER=flattenRoster(r);rosterLoadTime=t?new Date(t):null;return true;}}catch(e){}if(Object.keys(DEFAULT_ROSTER).length){ROSTER=flattenRoster(DEFAULT_ROSTER);return true;}return false;}
+function saveCachedRoster(){try{localStorage.setItem('dyn26_v3_roster',JSON.stringify(ROSTER));var now=new Date();rosterLoadTime=now;localStorage.setItem('dyn26_v3_updated',now.toISOString());}catch(e){}}
+var CONTRACTS={};
+var LS_C='dyn26_v3_contracts';
+function loadContracts(){
+  // Load from localStorage first (instant)
+  try{CONTRACTS=JSON.parse(localStorage.getItem(LS_C)||'{}');}catch(e){CONTRACTS={};}
+  // Then load from Firestore and override (async)
+  var _cloudLoadAttempts=0;
+  function tryCloudLoad(){
+    _cloudLoadAttempts++;
+    if(!window.loadContractsCloud){
+      if(_cloudLoadAttempts<30){setTimeout(tryCloudLoad,300);}
+      else{console.warn('Firebase never loaded');}
+      return;
+    }
+    window.loadContractsCloud().then(function(cloudContracts){
+      if(cloudContracts && Object.keys(cloudContracts).length>0){
+        CONTRACTS=cloudContracts;
+        try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
+        if(currentTeam){teamBuilt[currentTeam]=false;buildTeamTable(currentTeam);updateTeamCells(currentTeam);}
+        renderLeague();
+        showToast('\u2713 Synced','green',1500);
+      }
+      // Start real-time listener
+      if(window.startContractsListener){
+        window.startContractsListener(function(incoming){
+          if(JSON.stringify(incoming)===JSON.stringify(CONTRACTS))return;
+          CONTRACTS=incoming;
+          try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
+          if(currentTeam){teamBuilt[currentTeam]=false;buildTeamTable(currentTeam);updateTeamCells(currentTeam);}
+          renderLeague();
+          showToast('\u21bb Live update','green',1500);
+        });
+      }
+    }).catch(function(err){console.warn('Cloud load error:',err);});
+  }
+  setTimeout(tryCloudLoad,500);
+}
+function saveContracts(){
+  try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
+  // Save to Firestore
+  var _saveAttempts=0;
+  function trySave(){
+    if(window.saveContractsCloud){window.saveContractsCloud(CONTRACTS);}
+    else if(_saveAttempts++<10){setTimeout(trySave,300);}
+  }
+  trySave();
+  showToast('\u2713 Saved','green',1400);
+}
 function ckey(tn,i){var p=(ROSTER[tn]||[])[i];return p?'player|'+p.name:'player|unk_'+tn+'_'+i;}
 function getC(tn,i){var k=ckey(tn,i);var e=CONTRACTS[k];if(!e)return '';if(e.cleared)return '';return e.years===0?'0':String(e.years||'');}
 function getEntry(tn,i){return CONTRACTS[ckey(tn,i)]||null;}
@@ -1035,8 +1084,14 @@ var _ce=console.error;var _cw=console.warn;
 console.error=function(){};console.warn=function(){};
 var consoleEnabled=false;
 function toggleConsole(){consoleEnabled=!consoleEnabled;var btn=document.getElementById('consoleToggleBtn');if(consoleEnabled){console.error=_ce;console.warn=_cw;if(btn)btn.textContent='Disable Console Errors';showToast('Console enabled','yellow',1800);}else{console.error=function(){};console.warn=function(){};if(btn)btn.textContent='Enable Console Errors';showToast('Console hidden','green',1800);}}
+function updateSeasonUI(){
+  var ny=document.getElementById('navYear');if(ny)ny.textContent=String(CURRENT_SEASON);
+  var badge=document.getElementById('currentSeasonBadge');if(badge)badge.textContent=String(CURRENT_SEASON);
+  var sub=document.getElementById('leagueSub');if(sub)sub.textContent=CURRENT_SEASON+' Season \u00b7 Salary Cap $'+getBaseCap().toFixed(1)+'M \u00b7 Click a team to view roster';
+  YRS.forEach(function(yr,i){var h=document.getElementById('yr'+i+'hdr');if(h){h.textContent=String(yr);h.className='';}});
+  if(currentTeam){var tm=document.getElementById('teamMeta');if(tm)tm.textContent=CURRENT_SEASON+' Dynasty \u00b7 '+(ROSTER[currentTeam]||[]).length+' Players';}
+}
 function updateLastUpdated(){var el=document.getElementById('lastUpdated');if(!el)return;if(rosterLoadTime){var d=rosterLoadTime;el.textContent='Rosters: '+d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}else{el.textContent='';}}
-
 function slotCls(slot){var s=(slot||'').trim().replace(/\s+/g,'');if(s==='C')return 'C';if(s==='1B'||s==='2B'||s==='3B')return 's'+s;return s;}
 function isArbPlayer(p){return(!p.aav||p.aav==='ARB'||p.aav==='?'||isNaN(parseFloat(p.aav)));}
 function buildTeamTable(tn){
@@ -1061,7 +1116,7 @@ function buildTeamTable(tn){
   var capCells=YRS.map(function(_,yi){return '<td style="font-size:.30rem;text-align:center;color:#6b7280">'+fsN(capY(yi))+'</td>';}).join('');
   var pctCells=YRS.map(function(_,yi){return '<td id="tp-'+tn+'-'+yi+'"></td>';}).join('');
   tbody.innerHTML=rows+'<tr class="tr-tot"><td colspan="3" style="text-align:left;font-size:.30rem">Total Salary</td><td></td><td></td>'+totCells+'</tr>'+'<tr class="tr-cap"><td colspan="3" style="text-align:left;font-size:.30rem;color:#6b7280">Salary Cap</td><td></td><td></td>'+capCells+'</tr>'+'<tr class="tr-pct"><td colspan="3" style="text-align:left;font-size:.30rem;color:#6b7280">Cap Used</td><td></td><td></td>'+pctCells+'</tr>';
-  setTimeout(applyTableFont,50);setTimeout(applyProjectionState,70);
+  setTimeout(applyTableFont,50);
   // Force input text color (Safari fix for synced values)
   setTimeout(function(){
     var inputs=document.querySelectorAll('.ci');
@@ -1317,11 +1372,12 @@ var tsel=document.getElementById('dbTeam');
 salTeams.forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t;tsel.appendChild(o);});
 var dbSort={col:'aav',dir:-1};
 function sortDB(col){dbSort=dbSort.col===col?{col:col,dir:dbSort.dir*-1}:{col:col,dir:(col==='name'||col==='pos'||col==='team')?1:-1};renderDB();}
+var FA_DATA=[];var FA_SORT={col:'TotalPoints',dir:-1};var FA_FETCHING=false;var LS_FA='dyn26_v3_fa';
 var POS_MAP={1:'C',2:'1B',3:'2B',4:'3B',5:'SS',6:'OF',7:'LF',8:'CF',9:'RF',10:'DH',11:'RP',12:'SP'};
 function fetchFreeAgents(){if(FA_FETCHING)return;FA_FETCHING=true;document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">&#8635; Fetching\u2026</td></tr>';var season='2026';var q=loadQueries();var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+season+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(season)]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+season},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+season]},limit:3000}};var filterText=(q.fa&&q.fa.value)?q.fa.value:'';var filterMatch=filterText.match(/\{[\s\S]*"players"[\s\S]*\}/);if(filterMatch){try{filterObj=JSON.parse(filterMatch[0]);}catch(e){}}fetch(url,{headers:{'X-Fantasy-Filter':JSON.stringify(filterObj)}}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){var players=data.players||[];FA_DATA=players.map(function(entry){var p=entry.player||{};var stats=p.stats||[];var totals=stats.map(function(s){return typeof s.appliedTotal==='number'?s.appliedTotal:null;}).filter(function(v){return v!==null;});var pts=totals.length?Math.max.apply(null,totals):null;var name=p.fullName||'Unknown';return{Player:name,Position:POS_MAP[p.defaultPositionId]||(p.defaultPositionId?String(p.defaultPositionId):'?'),Availability:entry.status||'FREEAGENT',TotalPoints:pts,AAV:AAV_DB[name]||null};}).filter(function(p){return p.Player!=='Unknown';});try{localStorage.setItem(LS_FA,JSON.stringify(FA_DATA));}catch(e){}renderFA();showToast('\u2713 '+FA_DATA.length+' free agents loaded','green',2500);}).catch(function(err){document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading" style="color:var(--red)">Failed: '+err.message+'</td></tr>';showToast('Failed to load free agents','red',3000);}).finally(function(){FA_FETCHING=false;});}
 function sortFA(col){FA_SORT=FA_SORT.col===col?{col:col,dir:FA_SORT.dir*-1}:{col:col,dir:(col==='TotalPoints'||col==='AAV')?-1:1};renderFA();}
 var isFetching=false;
-function refreshRosters(silent){if(isFetching)return;isFetching=true;var btn=document.getElementById('refreshBtn');if(btn)btn.classList.add('spinning');if(!silent)showToast('Fetching live rosters\u2026','yellow',8000);var teamNames=Object.keys(TEAMS_CONFIG);var done=0;var errors=0;var newRoster={};var q=loadQueries();teamNames.forEach(function(teamName){var teamId=TEAMS_CONFIG[teamName];var qk='team_'+teamName.replace(/ /g,'_');var def='https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/2026/segments/0/leagues/'+LEAGUE_ID+'?forTeamId='+teamId+'&view=mRoster&view=mTeam';var url=(q[qk]&&q[qk].value)?q[qk].value:def;fetch(url).then(function(r){return r.json();}).then(function(data){var entries=data.teams[0].roster.entries;var players=[];entries.forEach(function(e){var slotId=e.lineupSlotId;var slot=SLOT_MAP[slotId]||'Bench';var p=e.playerPoolEntry.player;var name=p.fullName;var aav=AAV_DB[name]||'ARB';var injured=(p.injuryStatus&&p.injuryStatus!=='ACTIVE'&&p.injuryStatus!=='NORMAL')?p.injuryStatus:'';var salE=SAL_MAP[name];var age2=salE&&salE.age?salE.age:'?';players.push({slot:slot,name:name,aav:aav,age:age2,injured:injured,slotId:slotId,fa:salE&&salE.expires?salE.expires:'?'});});players.sort(function(a,b){return a.slotId-b.slotId;});newRoster[teamName]=players;}).catch(function(){errors++;if(ROSTER[teamName])newRoster[teamName]=ROSTER[teamName];}).finally(function(){done++;if(done===teamNames.length){isFetching=false;if(btn)btn.classList.remove('spinning');if(Object.keys(newRoster).length){ROSTER=newRoster;saveCachedRoster();teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateLastUpdated();if(currentPage==='contracts')buildContractsTab();if(currentTeam&&currentPage==='team'&&_rosterView==='roster')buildSimpleRoster(currentTeam);if(errors===0)showToast('\u2713 Rosters updated from ESPN','green',2500);else showToast('\u26A0 Updated '+(teamNames.length-errors)+'/'+teamNames.length+' teams','yellow',3000);}else showToast('Failed to fetch rosters','red',3000);}});});}
+function refreshRosters(silent){if(isFetching)return;isFetching=true;var btn=document.getElementById('refreshBtn');if(btn)btn.classList.add('spinning');if(!silent)showToast('Fetching live rosters\u2026','yellow',8000);var teamNames=Object.keys(TEAMS_CONFIG);var done=0;var errors=0;var newRoster={};var q=loadQueries();teamNames.forEach(function(teamName){var teamId=TEAMS_CONFIG[teamName];var qk='team_'+teamName.replace(/ /g,'_');var def='https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/2026/segments/0/leagues/'+LEAGUE_ID+'?forTeamId='+teamId+'&view=mRoster&view=mTeam';var url=(q[qk]&&q[qk].value)?q[qk].value:def;fetch(url).then(function(r){return r.json();}).then(function(data){var entries=data.teams[0].roster.entries;var players=[];entries.forEach(function(e){var slotId=e.lineupSlotId;var slot=SLOT_MAP[slotId]||'Bench';var p=e.playerPoolEntry.player;var name=p.fullName;var aav=AAV_DB[name]||'ARB';var injured=(p.injuryStatus&&p.injuryStatus!=='ACTIVE'&&p.injuryStatus!=='NORMAL')?p.injuryStatus:'';var salE=SAL_MAP[name];var age2=salE&&salE.age?salE.age:'?';players.push({slot:slot,name:name,aav:aav,age:age2,injured:injured,slotId:slotId,fa:salE&&salE.expires?salE.expires:'?'});});players.sort(function(a,b){return a.slotId-b.slotId;});newRoster[teamName]=players;}).catch(function(){errors++;if(ROSTER[teamName])newRoster[teamName]=ROSTER[teamName];}).finally(function(){done++;if(done===teamNames.length){isFetching=false;if(btn)btn.classList.remove('spinning');if(Object.keys(newRoster).length){ROSTER=newRoster;saveCachedRoster();teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateLastUpdated();if(errors===0)showToast('\u2713 Rosters updated from ESPN','green',2500);else showToast('\u26A0 Updated '+(teamNames.length-errors)+'/'+teamNames.length+' teams','yellow',3000);}else showToast('Failed to fetch rosters','red',3000);}});});}
 var _aavSelectedName=null;
 function openAAVEditor(){_aavSelectedName=null;document.getElementById('aavSearch').value='';document.getElementById('aavResults').style.display='none';document.getElementById('aavResults').innerHTML='';document.getElementById('aavSelected').style.display='none';document.getElementById('aavNewVal').value='';openModal('aavModal');setTimeout(function(){document.getElementById('aavSearch').focus();},150);}
 function openAAVEditorForPlayer(name){closeModal('playerCardModal');openAAVEditor();document.getElementById('aavSearch').value=name;searchAAVPlayer();setTimeout(function(){var items=document.querySelectorAll('.aav-result-item');if(items.length===1)items[0].click();},100);}
@@ -1564,7 +1620,7 @@ function openFACard(name){
   openModal('playerCardModal');
 }
 
-var _tblFontSize=parseFloat(localStorage.getItem('dyn26_tbl_font')||'0.55');
+var _tblFontSize=parseFloat(localStorage.getItem('dyn26_tbl_font')||'0.72');
 function tableZoom(dir){
   _tblFontSize=Math.min(1.0,Math.max(0.5,Math.round((_tblFontSize+dir*0.04)*100)/100));
   localStorage.setItem('dyn26_tbl_font',String(_tblFontSize));
@@ -1661,54 +1717,14 @@ document.addEventListener('keydown', function(e){
     if(nx){ nx.focus(); nx.select(); }
   }
 });
-
-function updateLeagueId(){
-  var newId=(document.getElementById('leagueIdInput')||{}).value;
-  if(!newId)newId='';
-  newId=newId.trim();
-  if(!newId||isNaN(parseInt(newId))){
-    var s=document.getElementById('leagueIdStatus');if(s)s.textContent='Enter a valid league ID';
-    return;
-  }
-  var queries=loadQueries();var updated=0;
-  Object.keys(queries).forEach(function(k){
-    if(k.startsWith('team_')&&queries[k]&&queries[k].value){
-      queries[k].value=queries[k].value.replace(/leagues\/\d+/g,'leagues/'+newId);
-      updated++;
-    }
-  });
-  saveQueriesStore(queries);
-  var s=document.getElementById('leagueIdStatus');
-  if(s)s.textContent='✓ Updated '+updated+' team URLs to league '+newId;
-  showToast('✓ League ID updated','green',2500);
-}
-
-var _showProjections=false;
-function applyProjectionState(){
-  var hidden=!_showProjections;
-  var rt=document.querySelector('.rt');if(!rt)return;
-  var ths=rt.querySelectorAll('thead th');
-  var rows=rt.querySelectorAll('tbody tr');
-  // Cols 7+ (index 6+) are the future years (2027 onwards)
-  ths.forEach(function(th,i){if(i>=6)th.style.display=hidden?'none':'';});
-  rows.forEach(function(tr){
-    tr.querySelectorAll('td').forEach(function(td,i){if(i>=6)td.style.display=hidden?'none':'';});
-  });
-  var scroll=document.querySelector('.rt-scroll');
-  if(scroll)scroll.style.overflowX=hidden?'hidden':'auto';
-  var btn=document.getElementById('projToggleBtn');
-  if(btn){btn.style.color=hidden?'':'#e8c84b';btn.style.borderColor=hidden?'':'#e8c84b';btn.textContent=hidden?'10 YR ►':'◄ SIMPLE';}
-}
-function toggleProjections(){
-  _showProjections=!_showProjections;
-  applyProjectionState();
-}
 loadContracts();
 try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){JSON.parse(cs).forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});}}catch(e){}
 try{var ao=JSON.parse(localStorage.getItem('dyn26_aav_overrides')||'{}');Object.keys(ao).forEach(function(n){AAV_DB[n]=ao[n];if(SAL_MAP[n])SAL_MAP[n].aav=ao[n];SAL.forEach(function(p){if(p.name===n)p.aav=ao[n];});Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n)p.aav=ao[n];});});});}catch(e){}
 // Load saved ARB player info
 try{var ai=JSON.parse(localStorage.getItem('dyn26_arb_info')||'{}');Object.keys(ai).forEach(function(n){var entry=ai[n];var inSal=false;SAL.forEach(function(p,i){if(p.name===n){Object.assign(SAL[i],entry);inSal=true;}});if(!inSal)SAL.push(entry);SAL_MAP[n]=entry;AAV_DB[n]=entry.aav||'ARB';Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n){if(entry.age)p.age=entry.age;if(entry.expires)p.fa=entry.expires;}});});});}catch(e){}
-// Rosters fetched in V26 INIT below
+var hadCache=loadCachedRoster();
+renderLeague();updateLastUpdated();updateSeasonUI();
+if(hadCache){setTimeout(function(){refreshRosters(true);},1000);}else{refreshRosters(false);}
 
 
 
@@ -1968,9 +1984,7 @@ function setNav(id){
 }
 
 // ── PAGE ROUTING ──────────────────────────────────────────
-var currentPage='league';
 function showPage(name){
-  currentPage=name;
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   var el=document.getElementById('page-'+name);
   if(el)el.classList.add('active');
@@ -2082,13 +2096,9 @@ function initV26(){
 }
 
 
-// V26 INIT
+// V26 INIT — uses v23 startup sequence exactly
 (function(){
-  try{ initV26(); }catch(e){ console.warn('initV26 error:',e); }
-  isFetching=false;
-  renderLeague();updateLastUpdated();updateSeasonUI();
-  showLeague();
-  setTimeout(function(){refreshRosters(false);},500);
+  try{ initV26(); }catch(e){ console.warn('v26 init:',e); }
 })();
 </script>
 
