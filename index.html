@@ -12,7 +12,7 @@
 html,body{height:-webkit-fill-available}
 body{background:var(--bg);color:var(--txt);font-family:"DM Mono",monospace;min-height:100vh;overflow-x:hidden}
 
-nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10,12,16,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(–bdr);padding:0 1.25rem;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;height:52px;gap:.5rem}
+.top-bar{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10,12,16,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid #252a35;padding:.65rem 1rem;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between}
 .brand{font-family:“Bebas Neue”,sans-serif;font-size:1.3rem;color:var(–acc);letter-spacing:2px;white-space:nowrap;cursor:pointer;-webkit-flex-shrink:0;flex-shrink:0}
 .brand:hover{opacity:.8}
 .nav-sep{width:1px;height:20px;background:var(–bdr);-webkit-flex-shrink:0;flex-shrink:0;margin:0 .25rem}
@@ -384,30 +384,26 @@ nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10
 .rt th:nth-child(-n+3),.rt td:nth-child(-n+3){text-align:left}
 .rt th:nth-child(4),.rt td:nth-child(4){text-align:right}
 
-/* ── BOTTOM TAB BAR ─────────────────────────── */
-.top-bar{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10,12,16,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid #252a35;padding:.6rem 1rem;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between}
 .tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(10,12,16,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-top:1px solid #252a35;display:-webkit-flex;display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
-.tab-btn{-webkit-flex:1;flex:1;background:none;border:none;padding:.6rem .2rem .5rem;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:center;align-items:center;gap:.15rem;cursor:pointer;-webkit-appearance:none;color:#6b7280;-webkit-tap-highlight-color:transparent}
+.tab-btn{-webkit-flex:1;flex:1;background:none;border:none;padding:.65rem .2rem .5rem;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:center;align-items:center;gap:.18rem;cursor:pointer;-webkit-appearance:none;color:#6b7280;-webkit-tap-highlight-color:transparent}
 .tab-btn.active{color:#e8c84b}
-.tab-icon{font-size:1.1rem;line-height:1}
-.tab-label{font-family:“Barlow Condensed”,sans-serif;font-size:.58rem;font-weight:600;letter-spacing:1px;text-transform:uppercase}
-/* ── TEAM CARDS ─────────────────────────────── */
-.team-cards{padding:.75rem;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;gap:.75rem}
-.team-card{background:#111318;border:1px solid #252a35;border-radius:12px;padding:1rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tab-icon{font-size:1.2rem;line-height:1}
+.tab-label{font-family:“Barlow Condensed”,sans-serif;font-size:.6rem;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.team-cards{padding:.75rem;display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;gap:.75rem;padding-bottom:5rem}
+.team-card{background:#111318;border:1px solid #252a35;border-radius:14px;padding:1.1rem 1rem;cursor:pointer;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 .team-card:active{opacity:.7}
-.team-card-top{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:baseline;align-items:baseline;margin-bottom:.6rem}
-.team-card-name{font-family:“Bebas Neue”,sans-serif;font-size:1.5rem;letter-spacing:2px;color:#f0f2f6}
-.team-card-meta{font-family:“Barlow Condensed”,sans-serif;font-size:.7rem;color:#6b7280;letter-spacing:1px}
-.team-card-stats{display:-webkit-flex;display:flex;gap:.5rem;margin-bottom:.75rem}
-.team-stat{-webkit-flex:1;flex:1;background:#0a0c10;border-radius:8px;padding:.5rem .25rem;text-align:center}
-.team-stat-val{font-family:“DM Mono”,monospace;font-size:.9rem;font-weight:600;margin-bottom:.15rem}
+.team-card-top{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:baseline;align-items:baseline;margin-bottom:.7rem}
+.team-card-name{font-family:“Bebas Neue”,sans-serif;font-size:1.6rem;letter-spacing:2px;color:#f0f2f6}
+.team-card-meta{font-family:“Barlow Condensed”,sans-serif;font-size:.72rem;color:#6b7280;letter-spacing:1px;text-transform:uppercase}
+.team-card-stats{display:-webkit-flex;display:flex;gap:.5rem;margin-bottom:.8rem}
+.team-stat{-webkit-flex:1;flex:1;background:#0a0c10;border-radius:10px;padding:.55rem .25rem;text-align:center}
+.team-stat-val{font-family:“DM Mono”,monospace;font-size:.92rem;font-weight:600;margin-bottom:.18rem}
 .team-stat-lbl{font-family:“Barlow Condensed”,sans-serif;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;color:#6b7280}
-.team-card-bar-track{height:4px;background:#252a35;border-radius:2px;overflow:hidden}
-.team-card-bar-fill{height:100%;border-radius:2px}
-/* ── LEAGUE HEADER ──────────────────────────── */
-.league-header{padding:1rem 1rem .5rem;border-bottom:1px solid #252a35}
-.league-title{font-family:“Bebas Neue”,sans-serif;font-size:1.6rem;letter-spacing:3px;color:#e8c84b;margin-bottom:.15rem}
-.league-sub{font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;color:#6b7280;letter-spacing:1px}
+.team-card-bar-track{height:5px;background:#252a35;border-radius:3px;overflow:hidden}
+.team-card-bar-fill{height:100%;border-radius:3px}
+.league-header{padding:1rem 1rem .6rem;border-bottom:1px solid #252a35}
+.league-title{font-family:“Bebas Neue”,sans-serif;font-size:1.7rem;letter-spacing:3px;color:#e8c84b;margin-bottom:.2rem}
+.league-sub{font-family:“Barlow Condensed”,sans-serif;font-size:.75rem;color:#6b7280;letter-spacing:1px;text-transform:uppercase}
 </style>
 
 <!-- Firebase SDK -->
@@ -479,32 +475,40 @@ window.startContractsListener = function(callback) {
 </head>
 <body>
 
-<nav>
-  <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span></span>
-  <div class="nav-sep"></div>
-  <button class="nav-btn active" id="nav-league" onclick="showLeague()">League</button>
-  <button class="nav-btn" id="nav-db" onclick="showDB()">Salaries DB</button>
-  <button class="nav-btn" id="nav-fa" onclick="showFA()">Free Agents</button>
-  <button class="nav-btn" id="nav-settings" onclick="showSettings()">Settings</button>
-  <div class="nav-spacer"></div>
-  <button class="refresh-btn" id="refreshBtn" onclick="refreshRosters()"><span class="spin-icon">&#8635;</span> Refresh Rosters</button>
+<nav class="top-bar">
+  <span class="brand">⚾ DYNASTY <span id="navYear">2026</span> <span style="font-size:.6rem;color:#6b7280;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif">v25</span></span>
+  <button class="refresh-btn" id="refreshBtn" onclick="refreshRosters()"><span class="spin-icon">&#8635;</span> Refresh</button>
 </nav>
+<div class="tab-bar">
+  <button class="tab-btn active" id="nav-league" onclick="showLeague()">
+    <span class="tab-icon">⚾</span>
+    <span class="tab-label">League</span>
+  </button>
+  <button class="tab-btn" id="nav-db" onclick="showDB()">
+    <span class="tab-icon">📄</span>
+    <span class="tab-label">Salaries</span>
+  </button>
+  <button class="tab-btn" id="nav-fa" onclick="showFA()">
+    <span class="tab-icon">👥</span>
+    <span class="tab-label">Free Agents</span>
+  </button>
+  <button class="tab-btn" id="nav-settings" onclick="showSettings()">
+    <span class="tab-icon">⚙</span>
+    <span class="tab-label">Settings</span>
+  </button>
+</div>
 
 <div class="toast" id="toast"></div>
 
 <!-- LEAGUE -->
 
 <div id="page-league" class="page active">
-  <div class="pg-wrap">
-    <div class="pg-title">League Overview</div>
-    <div class="pg-sub" id="leagueSub">2026 Season &middot; Salary Cap $321M &middot; Click a team to view roster</div>
+  <div class="league-header">
+    <div class="league-title">⚾ Dynasty <span id="leagueYear">2026</span></div>
+    <div class="league-sub" id="leagueSub">Cap: $321M</div>
     <div class="last-updated" id="lastUpdated"></div>
-    <br>
-    <table class="std-tbl">
-      <thead><tr><th>Team</th><th>Players</th><th>2026 Salary</th><th>vs Cap</th><th>Cap %</th><th>Space</th></tr></thead>
-      <tbody id="leagueBody"></tbody>
-    </table>
   </div>
+  <div id="teamCards" class="team-cards"></div>
 </div>
 
 <!-- TEAM PAGE -->
@@ -635,9 +639,9 @@ window.startContractsListener = function(callback) {
 ```
 <div class="set-section">
   <div class="set-section-title">ESPN League ID</div>
-  <p style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem;line-height:1.5">Entering a new league ID updates all 8 team ESPN API URLs at once.</p>
+  <p style="font-size:.72rem;color:var(--dim);margin-bottom:.75rem;line-height:1.5">Update the ESPN league ID to refresh all 8 team API URLs at once each season.</p>
   <div style="display:-webkit-flex;display:flex;gap:.6rem;-webkit-align-items:center;align-items:center">
-    <input type="text" class="field-input" id="leagueIdInput" placeholder="e.g. 69029411" style="font-size:.85rem;padding:.45rem .7rem;-webkit-flex:1;flex:1" autocorrect="off" inputmode="numeric">
+    <input type="text" class="field-input" id="leagueIdInput" placeholder="e.g. 69029411" style="font-size:.85rem;-webkit-flex:1;flex:1" autocorrect="off" inputmode="numeric">
     <button class="set-btn accent" onclick="updateLeagueId()" style="white-space:nowrap">Update All</button>
   </div>
   <div style="font-size:.7rem;color:var(--dim);margin-top:.4rem" id="leagueIdStatus"></div>
@@ -890,7 +894,7 @@ var _ce=console.error;var _cw=console.warn;
 console.error=function(){};console.warn=function(){};
 var consoleEnabled=false;
 function toggleConsole(){consoleEnabled=!consoleEnabled;var btn=document.getElementById('consoleToggleBtn');if(consoleEnabled){console.error=_ce;console.warn=_cw;if(btn)btn.textContent='Disable Console Errors';showToast('Console enabled','yellow',1800);}else{console.error=function(){};console.warn=function(){};if(btn)btn.textContent='Enable Console Errors';showToast('Console hidden','green',1800);}}
-function setNav(id){document.querySelectorAll('.tab-btn,.nav-btn').forEach(function(b){b.classList.remove('active');});if(id){var el=document.getElementById(id);if(el)el.classList.add('active');}}
+function setNav(id){document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});if(id){var el=document.getElementById(id);if(el)el.classList.add('active');}}
 function showPage(pid){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});var el=document.getElementById('page-'+pid);if(el)el.classList.add('active');}
 function showLeague(){showPage('league');setNav('nav-league');renderLeague();}
 function showDB(){showPage('salaries-db');setNav('nav-db');renderDB();}
@@ -912,7 +916,7 @@ function renderLeague(){
   if(sub)sub.innerHTML='Cap: '+fs(cap);
   var teamNames=Object.keys(TEAMS_CONFIG);
   if(!Object.keys(ROSTER).length){
-    el.innerHTML='<div style="padding:2rem;text-align:center;color:#6b7280;font-size:.85rem">Loading rosters…</div>';
+    el.innerHTML='<div style="padding:2rem 1rem;text-align:center;color:#6b7280;font-size:.9rem">Loading… tap Refresh to load rosters</div>';
     return;
   }
   var rows=teamNames.map(function(tn){return{tn:tn,n:(ROSTER[tn]||[]).length,sal:teamTotals(tn)[0]};}).sort(function(a,b){return b.sal-a.sal;});
@@ -920,19 +924,20 @@ function renderLeague(){
     var pct=(r.sal/cap)*100,over=r.sal>cap,bp=Math.min(pct,100);
     var barColor=over?'#e84b4b':pct>90?'#f97316':'#e8c84b';
     var spaceNum=cap-r.sal;
-    var spaceStr=(spaceNum>=0?'+':'')+fsN(Math.abs(spaceNum));
-    return '<div class="team-card" onclick="showTeam(\''+r.tn+'\')">'
-      +'<div class="team-card-top">'
-      +'<div class="team-card-name">'+r.tn+'</div>'
-      +'<div class="team-card-meta">'+r.n+' players</div>'
-      +'</div>'
-      +'<div class="team-card-stats">'
-      +'<div class="team-stat"><div class="team-stat-val" style="color:#f0f2f6">'+fsN(r.sal)+'</div><div class="team-stat-lbl">Salary</div></div>'
-      +'<div class="team-stat"><div class="team-stat-val" style="color:'+(over?'#e84b4b':'#4be87a')+'">'+spaceStr+'</div><div class="team-stat-lbl">Space</div></div>'
-      +'<div class="team-stat"><div class="team-stat-val" style="color:'+barColor+'">'+pct.toFixed(1)+'%</div><div class="team-stat-lbl">Cap %</div></div>'
-      +'</div>'
-      +'<div class="team-card-bar-track"><div class="team-card-bar-fill" style="width:'+bp+'%;background:'+barColor+'"></div></div>'
-      +'</div>';
+    var spaceStr=(spaceNum>=0?'+':'-')+fsN(Math.abs(spaceNum));
+    var tn=r.tn;
+    return '<div class="team-card" onclick="showTeam('+JSON.stringify(tn)+')">' +
+      '<div class="team-card-top">'+
+      '<div class="team-card-name">'+r.tn+'</div>'+
+      '<div class="team-card-meta">'+r.n+' players</div>'+
+      '</div>'+
+      '<div class="team-card-stats">'+
+      '<div class="team-stat"><div class="team-stat-val" style="color:#f0f2f6">'+fsN(r.sal)+'</div><div class="team-stat-lbl">Salary</div></div>'+
+      '<div class="team-stat"><div class="team-stat-val" style="color:'+(over?'#e84b4b':'#4be87a')+'">'+spaceStr+'</div><div class="team-stat-lbl">Space</div></div>'+
+      '<div class="team-stat"><div class="team-stat-val" style="color:'+barColor+'">'+pct.toFixed(1)+'%</div><div class="team-stat-lbl">Cap %</div></div>'+
+      '</div>'+
+      '<div class="team-card-bar-track"><div class="team-card-bar-fill" style="width:'+bp+'%;background:'+barColor+'"></div></div>'+
+      '</div>';
   }).join('');
 }
 
@@ -1565,21 +1570,23 @@ document.addEventListener('keydown', function(e){
 });
 
 function updateLeagueId(){
-  var newId=document.getElementById('leagueIdInput').value.trim();
+  var newId=(document.getElementById('leagueIdInput')||{}).value;
+  if(!newId)newId='';
+  newId=newId.trim();
   if(!newId||isNaN(parseInt(newId))){
-    document.getElementById('leagueIdStatus').textContent='Enter a valid league ID';
+    var s=document.getElementById('leagueIdStatus');if(s)s.textContent='Enter a valid league ID';
     return;
   }
-  var queries=loadQueries();
-  var updated=0;
+  var queries=loadQueries();var updated=0;
   Object.keys(queries).forEach(function(k){
     if(k.startsWith('team_')&&queries[k]&&queries[k].value){
-      queries[k].value=queries[k].value.replace(/leagues\/\d+/,'leagues/'+newId);
+      queries[k].value=queries[k].value.replace(/leagues\/\d+/g,'leagues/'+newId);
       updated++;
     }
   });
   saveQueriesStore(queries);
-  document.getElementById('leagueIdStatus').textContent='✓ Updated '+updated+' team URLs to league '+newId;
+  var s=document.getElementById('leagueIdStatus');
+  if(s)s.textContent='✓ Updated '+updated+' team URLs to league '+newId;
   showToast('✓ League ID updated','green',2500);
 }
 loadContracts();
