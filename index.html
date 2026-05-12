@@ -376,7 +376,7 @@ callback(contracts);
 <nav class="top-bar">
   <div class="brand">
     ⚾ DYNASTY <span id="navYear">2026</span>
-    <span class="brand-badge">v26</span>
+    <span class="brand-badge">v26.1</span>
   </div>
   <div class="top-bar-actions">
     <button class="icon-btn" id="refreshBtn" onclick="refreshRosters()">
@@ -1725,7 +1725,11 @@ try{var ai=JSON.parse(localStorage.getItem('dyn26_arb_info')||'{}');Object.keys(
 loadCachedRoster();
 renderLeague();updateLastUpdated();updateSeasonUI();
 showToast('Loading rosters…','yellow',5000);
-refreshRosters(false);
+// Auto-fetch ESPN — wrapped in timeout to ensure DOM is ready
+setTimeout(function(){
+  isFetching=false;
+  refreshRosters(false);
+},100);
 
 
 
