@@ -533,6 +533,16 @@ input,select,textarea,input[type="text"],input[type="number"],input[type="email"
 /* V27 PIN MODAL must appear above all other modals */
 #pinModal{z-index:9999!important}
 #pinModal .modal-box{z-index:10000!important}
+
+/* V27.4 YEARS BUTTON & PICKER */
+.spcard-yrs-btn{background:rgba(232,200,75,.06);border:1.5px solid rgba(232,200,75,.4);border-radius:10px;color:#f0f2f6;font-family:"DM Mono",monospace;font-size:1.05rem;font-weight:600;width:72px;height:44px;text-align:center;cursor:pointer;-webkit-appearance:none;-webkit-tap-highlight-color:transparent;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;padding:0}
+.spcard-yrs-btn:active{background:rgba(232,200,75,.15);border-color:#e8c84b}
+
+.years-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:.5rem}
+.yrs-btn{font-family:"DM Mono",monospace;font-size:1.4rem;font-weight:500;color:#f0f2f6;background:#181c24;border:1.5px solid #252a35;border-radius:12px;padding:1.1rem .5rem;cursor:pointer;-webkit-appearance:none;-webkit-tap-highlight-color:transparent;min-height:60px;transition:none}
+.yrs-btn:active{background:rgba(232,200,75,.15);border-color:#e8c84b;color:#e8c84b}
+.yrs-btn.yrs-clear{font-family:"Barlow Condensed",sans-serif;font-size:.85rem;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:#e84b4b;border-color:rgba(232,75,75,.3);background:rgba(232,75,75,.06)}
+.yrs-btn.yrs-clear:active{background:rgba(232,75,75,.15);border-color:#e84b4b}
 </style>
 <!-- Firebase SDK -->
 <script type="module">
@@ -603,7 +613,7 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v27.3</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v27.4</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid">
@@ -665,7 +675,7 @@ window.startContractsListener = function(callback) {
   <div class="roster-instructions" id="rosterInstructions">
     <div class="roster-instructions-icon">&#9998;</div>
     <div class="roster-instructions-text" id="rosterInstructionsText">
-      <strong>How to enter contracts:</strong> Tap the gold <span class="ki">Yrs</span> box next to any player and type how many years remain on their contract. Saves automatically and syncs to everyone in the league.
+      <strong>How to enter contracts:</strong> Tap the gold <span class="ki">Yrs</span> box next to any player, then pick how many years are left on their contract. Saves automatically and syncs to everyone in the league.
     </div>
   </div>
   <div id="rosterSimple" class="simple-list"></div>
@@ -1873,7 +1883,7 @@ function setRosterView(view){
   var instr=document.getElementById('rosterInstructionsText');
   if(instr){
     if(view==='simple'){
-      instr.innerHTML='<strong>How to enter contracts:</strong> Tap the gold <span class="ki">Yrs</span> box next to any player and type how many years remain on their contract. Saves automatically and syncs to everyone in the league.';
+      instr.innerHTML='<strong>How to enter contracts:</strong> Tap the gold <span class="ki">Yrs</span> box next to any player, then pick how many years are left on their contract. Saves automatically and syncs to everyone in the league.';
     } else {
       instr.innerHTML='<strong>10-Year Projection:</strong> See how each player\'s salary grows over their contract with the AAV escalator applied. Type contract years in the <span class="ki">Yrs</span> column to update projections.';
     }
@@ -1911,9 +1921,10 @@ function buildSimpleRoster(tn){
     if(onIR)tags+='<span class="spcard-tag il">IL</span>';
     var cardClass='spcard'+(needsDrop?' drop-flag':'')+(onIR?' il-flag':'');
     var ageStr=p.age&&p.age!='?'?'Age '+p.age:'';
+    var displayVal = cval===''?'\u2014':cval;
     var input=carried
       ? '<div class="spcard-yrs-carried">'+(cNum>0?cNum:'\u2014')+'</div>'
-      : '<input type="number" min="0" max="20" step="1" inputmode="numeric" class="spcard-yrs-input" id="rci-'+tn+'-'+i+'" value="'+cval+'" placeholder="\u2014" style="color:#f0f2f6;-webkit-text-fill-color:#f0f2f6;text-align:center;font-size:16px" oninput="onCSimple(\''+tn+'\','+i+')" onchange="onCSimple(\''+tn+'\','+i+')">';
+      : '<button type="button" class="spcard-yrs-btn" id="rci-'+tn+'-'+i+'" onclick="event.stopPropagation();openYearsPicker(\''+tn+'\','+i+')">'+displayVal+'</button>';
     return '<div class="'+cardClass+'" onclick="if(event.target.tagName!=='+"'"+'INPUT'+"'"+')openPlayerCard(\''+tn+'\','+i+')">'+
       '<div class="spcard-slot"><span class="slot '+sk+'">'+slotDisp+'</span></div>'+
       '<div class="spcard-mid">'+
@@ -1931,11 +1942,7 @@ function buildSimpleRoster(tn){
       '</div>'+
       '</div>';
   }).join('');
-  setTimeout(function(){
-    el.querySelectorAll('.spcard-yrs-input').forEach(function(inp){
-      inp.style.color='#f0f2f6';inp.style.webkitTextFillColor='#f0f2f6';inp.style.textAlign='center';inp.style.fontSize='16px';
-    });
-  },50);
+  // No input force-color needed — buttons don't need it
 }
 
 function onCSimple(tn,i){
@@ -2024,21 +2031,38 @@ document.addEventListener('keydown',function(e){
 
 
 
-// V27.3 iOS focus-zoom fix: temporarily bump font to 16px on input focus
-// Keeps pinch zoom available, prevents auto-zoom on input tap
-document.addEventListener('focusin',function(e){
-  var t=e.target;
-  if(t && (t.tagName==='INPUT' || t.tagName==='SELECT' || t.tagName==='TEXTAREA')){
-    if(!t.dataset.origFs) t.dataset.origFs = window.getComputedStyle(t).fontSize || '';
-    t.style.fontSize = '16px';
+
+
+// V27.4 YEARS PICKER
+var _ypTeam=null, _ypIdx=null;
+function openYearsPicker(tn, i){
+  _ypTeam=tn; _ypIdx=i;
+  var p=(ROSTER[tn]||[])[i];
+  if(p){
+    document.getElementById('ypTitle').textContent=p.name;
+    document.getElementById('ypSubtitle').textContent='How many contract years remaining?';
   }
-},true);
-document.addEventListener('focusout',function(e){
-  var t=e.target;
-  if(t && t.dataset.origFs){
-    t.style.fontSize = t.dataset.origFs;
+  openModal('yearsPickerModal');
+}
+function setYearsFromPicker(years){
+  if(_ypTeam===null || _ypIdx===null){closeModal('yearsPickerModal');return;}
+  var tn=_ypTeam, i=_ypIdx;
+  if(isCarried(tn,i)){closeModal('yearsPickerModal');return;}
+  setC(tn, i, years===''?'':String(years));
+  closeModal('yearsPickerModal');
+  // Update team header stats
+  if(teamBuilt[tn]) updateTeamCells(tn);
+  else {
+    var totals=teamTotals(tn);var cap=getBaseCap();var sal=totals[0];var over=sal>cap;var pct=(sal/cap)*100;
+    var statRow=document.getElementById('teamStats');
+    if(statRow){statRow.innerHTML='<div><span class="stat-val" style="color:'+(over?'#e84b4b':'#f0f2f6')+'">$'+sal.toFixed(1)+'M</span> <span class="stat-lbl">'+CURRENT_SEASON+' Salary</span></div><div><span class="stat-val" style="color:'+(over?'#e84b4b':'#4be87a')+'">'+(sal>cap?'-':'+')+'$'+Math.abs(cap-sal).toFixed(1)+'M</span> <span class="stat-lbl">Cap Space</span></div><div><span class="stat-val" style="color:'+(over?'#e84b4b':pct>90?'#f97316':'#f0f2f6')+'">'+pct.toFixed(1)+'%</span> <span class="stat-lbl">Cap %</span></div>';}
+    var fill=document.getElementById('capFill');
+    if(fill){fill.style.width=Math.min(pct,115)+'%';fill.style.background=over?'#e84b4b':pct>90?'#f97316':'#e8c84b';}
   }
-},true);
+  renderLeague();
+  buildSimpleRoster(tn);
+  _ypTeam=null; _ypIdx=null;
+}
 
 loadContracts();
 try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){JSON.parse(cs).forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});}}catch(e){}
@@ -2108,6 +2132,35 @@ if(hadCache){setTimeout(function(){refreshRosters(true);},1000);}else{refreshRos
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeModal('pinModal')">Cancel</button>
       <button class="btn-primary" onclick="submitPin()">Unlock</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- V27.4: YEARS PICKER MODAL -->
+<div class="modal-overlay" id="yearsPickerModal" onclick="closeModalOutside(event,'yearsPickerModal')">
+  <div class="modal-box" style="max-width:380px">
+    <div class="modal-header" style="text-align:center;padding-bottom:.6rem">
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.35rem;letter-spacing:2px" id="ypTitle">Contract Years</h2>
+      <p style="font-size:.7rem;color:var(--dim);margin-top:.2rem" id="ypSubtitle">Tap the number of years remaining</p>
+    </div>
+    <div class="modal-body" style="padding:1rem 1.25rem .5rem">
+      <div class="years-grid">
+        <button class="yrs-btn yrs-clear" onclick="setYearsFromPicker('')">Clear</button>
+        <button class="yrs-btn" onclick="setYearsFromPicker(1)">1</button>
+        <button class="yrs-btn" onclick="setYearsFromPicker(2)">2</button>
+        <button class="yrs-btn" onclick="setYearsFromPicker(3)">3</button>
+        <button class="yrs-btn" onclick="setYearsFromPicker(4)">4</button>
+        <button class="yrs-btn" onclick="setYearsFromPicker(5)">5</button>
+        <button class="yrs-btn" onclick="setYearsFromPicker(6)">6</button>
+        <button class="yrs-btn" onclick="setYearsFromPicker(7)">7</button>
+        <button class="yrs-btn" onclick="setYearsFromPicker(8)">8</button>
+        <button class="yrs-btn" onclick="setYearsFromPicker(9)">9</button>
+        <button class="yrs-btn" onclick="setYearsFromPicker(10)">10</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" style="flex:1" onclick="closeModal('yearsPickerModal')">Cancel</button>
     </div>
   </div>
 </div>
