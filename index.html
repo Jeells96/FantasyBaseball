@@ -543,6 +543,10 @@ input,select,textarea,input[type="text"],input[type="number"],input[type="email"
 .yrs-btn:active{background:rgba(232,200,75,.15);border-color:#e8c84b;color:#e8c84b}
 .yrs-btn.yrs-clear{font-family:"Barlow Condensed",sans-serif;font-size:.85rem;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:#e84b4b;border-color:rgba(232,75,75,.3);background:rgba(232,75,75,.06)}
 .yrs-btn.yrs-clear:active{background:rgba(232,75,75,.15);border-color:#e84b4b}
+
+/* V27.5 Projection table button (replaces input) */
+.ci-btn{background:rgba(232,200,75,.06);border:1px solid rgba(232,200,75,.35);border-radius:5px;color:#f0f2f6;font-family:"DM Mono",monospace;font-size:.32rem;font-weight:600;width:100%;text-align:center;cursor:pointer;-webkit-appearance:none;-webkit-tap-highlight-color:transparent;padding:.15rem .05rem;line-height:1.1;min-height:18px}
+.ci-btn:active{background:rgba(232,200,75,.2);border-color:#e8c84b}
 </style>
 <!-- Firebase SDK -->
 <script type="module">
@@ -613,7 +617,7 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v27.4</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v27.5</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid">
@@ -1139,7 +1143,7 @@ function buildTeamTable(tn){
     var dropBadge=needsDrop?'<span class="drop-tag">DROP \u2715</span>':'';
     var lockIcon=carried&&cNum>0?'<span class="lock-icon">\ud83d\udd12</span>':'';
     var yearCells=YRS.map(function(_,yi){return '<td class="yval muted" id="y-'+tn+'-'+i+'-'+yi+'">&mdash;</td>';}).join('');
-    var inputEl=carried?'<div class="ci-carried" id="ci-'+tn+'-'+i+'">'+(cNum>0?cNum:'&mdash;')+'</div>':'<input type="number" min="0" max="20" step="1" class="ci" id="ci-'+tn+'-'+i+'" value="'+cval+'" placeholder="&mdash;" style="color:#f0f2f6;-webkit-text-fill-color:#f0f2f6;text-align:center;width:100%;font-size:16px" oninput="onC(\''+tn+'\','+i+')" onchange="onC(\''+tn+'\','+i+')" onkeydown="ciKeyDown(event,\\\'+tn+\'\\\',\'+i+\')">';
+    var inputEl=carried?'<div class="ci-carried" id="ci-'+tn+'-'+i+'">'+(cNum>0?cNum:'&mdash;')+'</div>':'<button type="button" class="ci-btn" id="ci-'+tn+'-'+i+'" onclick="openYearsPicker(\''+tn+'\','+i+')">'+(cval===''?'\u2014':cval)+'</button>';
     return '<tr class="'+(needsDrop?'row-drop':'')+'">'+'<td><span class="slot '+sk+'">'+(p.slot==='Bench'||p.slot==='BN'?'BN':p.slot)+'</span></td>'+'<td>'+(p.age||'?')+'</td>'+'<td class="pname"><span style="'+nameStyle+';cursor:pointer" onclick="openPlayerCard(\''+tn+'\','+i+')">'+p.name+'</span>'+(arb?'<span class="arb-tag">ARB</span>':'')+dropBadge+lockIcon+injTag+'</td>'+'<td>'+aavDisp+'</td>'+'<td>'+inputEl+'</td>'+yearCells+'</tr>';
   }).join('');
   var totCells=YRS.map(function(_,yi){return '<td id="tt-'+tn+'-'+yi+'"></td>';}).join('');
