@@ -603,7 +603,7 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v27.1</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v27.2</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid">
@@ -1129,7 +1129,7 @@ function buildTeamTable(tn){
     var dropBadge=needsDrop?'<span class="drop-tag">DROP \u2715</span>':'';
     var lockIcon=carried&&cNum>0?'<span class="lock-icon">\ud83d\udd12</span>':'';
     var yearCells=YRS.map(function(_,yi){return '<td class="yval muted" id="y-'+tn+'-'+i+'-'+yi+'">&mdash;</td>';}).join('');
-    var inputEl=carried?'<div class="ci-carried" id="ci-'+tn+'-'+i+'">'+(cNum>0?cNum:'&mdash;')+'</div>':'<input type="number" min="0" max="20" step="1" class="ci" id="ci-'+tn+'-'+i+'" value="'+cval+'" placeholder="&mdash;" style="color:#f0f2f6;-webkit-text-fill-color:#f0f2f6;text-align:center;width:100%" oninput="onC(\''+tn+'\','+i+')" onchange="onC(\''+tn+'\','+i+')" onkeydown="ciKeyDown(event,\\\'+tn+\'\\\',\'+i+\')">';
+    var inputEl=carried?'<div class="ci-carried" id="ci-'+tn+'-'+i+'">'+(cNum>0?cNum:'&mdash;')+'</div>':'<input type="number" min="0" max="20" step="1" class="ci" id="ci-'+tn+'-'+i+'" value="'+cval+'" placeholder="&mdash;" style="color:#f0f2f6;-webkit-text-fill-color:#f0f2f6;text-align:center;width:100%;font-size:16px" oninput="onC(\''+tn+'\','+i+')" onchange="onC(\''+tn+'\','+i+')" onkeydown="ciKeyDown(event,\\\'+tn+\'\\\',\'+i+\')">';
     return '<tr class="'+(needsDrop?'row-drop':'')+'">'+'<td><span class="slot '+sk+'">'+(p.slot==='Bench'||p.slot==='BN'?'BN':p.slot)+'</span></td>'+'<td>'+(p.age||'?')+'</td>'+'<td class="pname"><span style="'+nameStyle+';cursor:pointer" onclick="openPlayerCard(\''+tn+'\','+i+')">'+p.name+'</span>'+(arb?'<span class="arb-tag">ARB</span>':'')+dropBadge+lockIcon+injTag+'</td>'+'<td>'+aavDisp+'</td>'+'<td>'+inputEl+'</td>'+yearCells+'</tr>';
   }).join('');
   var totCells=YRS.map(function(_,yi){return '<td id="tt-'+tn+'-'+yi+'"></td>';}).join('');
@@ -1913,7 +1913,7 @@ function buildSimpleRoster(tn){
     var ageStr=p.age&&p.age!='?'?'Age '+p.age:'';
     var input=carried
       ? '<div class="spcard-yrs-carried">'+(cNum>0?cNum:'\u2014')+'</div>'
-      : '<input type="number" min="0" max="20" step="1" inputmode="numeric" class="spcard-yrs-input" id="rci-'+tn+'-'+i+'" value="'+cval+'" placeholder="\u2014" style="color:#f0f2f6;-webkit-text-fill-color:#f0f2f6;text-align:center" oninput="onCSimple(\''+tn+'\','+i+')" onchange="onCSimple(\''+tn+'\','+i+')">';
+      : '<input type="number" min="0" max="20" step="1" inputmode="numeric" class="spcard-yrs-input" id="rci-'+tn+'-'+i+'" value="'+cval+'" placeholder="\u2014" style="color:#f0f2f6;-webkit-text-fill-color:#f0f2f6;text-align:center;font-size:16px" oninput="onCSimple(\''+tn+'\','+i+')" onchange="onCSimple(\''+tn+'\','+i+')">';
     return '<div class="'+cardClass+'" onclick="if(event.target.tagName!=='+"'"+'INPUT'+"'"+')openPlayerCard(\''+tn+'\','+i+')">'+
       '<div class="spcard-slot"><span class="slot '+sk+'">'+slotDisp+'</span></div>'+
       '<div class="spcard-mid">'+
@@ -1933,7 +1933,7 @@ function buildSimpleRoster(tn){
   }).join('');
   setTimeout(function(){
     el.querySelectorAll('.spcard-yrs-input').forEach(function(inp){
-      inp.style.color='#f0f2f6';inp.style.webkitTextFillColor='#f0f2f6';inp.style.textAlign='center';
+      inp.style.color='#f0f2f6';inp.style.webkitTextFillColor='#f0f2f6';inp.style.textAlign='center';inp.style.fontSize='16px';
     });
   },50);
 }
