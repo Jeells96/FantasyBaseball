@@ -547,6 +547,47 @@ input,select,textarea,input[type="text"],input[type="number"],input[type="email"
 /* V27.5 Projection table button (replaces input) */
 .ci-btn{background:rgba(232,200,75,.06);border:1px solid rgba(232,200,75,.35);border-radius:5px;color:#f0f2f6;font-family:"DM Mono",monospace;font-size:.55rem;font-weight:600;width:100%;text-align:center;cursor:pointer;-webkit-appearance:none;-webkit-tap-highlight-color:transparent;padding:.18rem .05rem;line-height:1.1;min-height:22px}
 .ci-btn:active{background:rgba(232,200,75,.2);border-color:#e8c84b}
+
+/* ═══ V28: CAP PENALTY BADGE ═══ */
+.cap-penalty-badge{margin:.75rem 1rem 0;padding:.65rem .85rem;border-radius:10px;background:rgba(232,75,75,.1);border:1px solid rgba(232,75,75,.3);display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.6rem}
+.cap-penalty-icon{font-size:1.1rem;flex-shrink:0}
+.cap-penalty-text{-webkit-flex:1;flex:1;font-family:"Inter",sans-serif;font-size:.78rem;color:#f0f2f6;line-height:1.4}
+.cap-penalty-text strong{color:#e84b4b;font-weight:600}
+
+/* ═══ V28: DRAFT ROOM ═══ */
+.draft-status{background:#181c24;border:1px solid #252a35;border-radius:12px;padding:1rem;margin:0 1rem 1rem;text-align:center}
+.draft-onclock-lbl{font-family:"Barlow Condensed",sans-serif;font-size:.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:.3rem}
+.draft-onclock-team{font-family:"Bebas Neue",sans-serif;font-size:1.8rem;letter-spacing:2px;color:#e8c84b;line-height:1;margin-bottom:.3rem}
+.draft-onclock-meta{font-family:"Barlow Condensed",sans-serif;font-size:.72rem;letter-spacing:1px;color:#94a3b8}
+.draft-pick-list{padding:0 1rem 2rem}
+.draft-player-card{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.65rem;padding:.7rem .85rem;background:#111318;border:1px solid #252a35;border-radius:10px;margin-bottom:.4rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.draft-player-card:active{opacity:.7;background:rgba(232,200,75,.05)}
+.draft-search{padding:.5rem 1rem .25rem;display:-webkit-flex;display:flex;gap:.4rem}
+.draft-section-hdr{font-family:"Barlow Condensed",sans-serif;font-size:.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#6b7280;padding:.6rem 1rem .25rem}
+.draft-pick-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.5rem;padding:.4rem 1rem;border-bottom:1px solid #181c24;font-family:"Barlow Condensed",sans-serif;font-size:.72rem}
+.draft-pick-num{font-family:"DM Mono",monospace;font-size:.68rem;color:#6b7280;min-width:36px}
+.draft-pick-team{color:#94a3b8;font-weight:600;letter-spacing:.5px;text-transform:uppercase;-webkit-flex:1;flex:1}
+.draft-pick-player{color:#f0f2f6;font-family:"Inter",sans-serif;font-size:.78rem;font-weight:500;-webkit-flex:1;flex:1;text-align:right}
+.draft-pick-skipped{color:#e84b4b;font-style:italic}
+.draft-undo-btn{font-family:"Barlow Condensed",sans-serif;font-size:.7rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:.45rem .85rem;border-radius:8px;background:rgba(232,75,75,.1);color:#e84b4b;border:1px solid rgba(232,75,75,.3);cursor:pointer;-webkit-appearance:none}
+.draft-order-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.5rem;padding:.5rem .5rem;background:#181c24;border:1px solid #252a35;border-radius:8px;margin-bottom:.35rem}
+.draft-order-num{font-family:"DM Mono",monospace;font-size:.8rem;color:#e8c84b;min-width:28px;font-weight:600}
+.draft-order-team{font-family:"Inter",sans-serif;font-size:.85rem;color:#f0f2f6;-webkit-flex:1;flex:1;font-weight:500}
+.draft-order-btns{display:-webkit-flex;display:flex;gap:.25rem}
+.draft-order-btn{font-family:"DM Mono",monospace;font-size:1rem;width:32px;height:32px;border-radius:6px;background:#0a0c10;border:1px solid #252a35;color:#94a3b8;cursor:pointer;-webkit-appearance:none}
+.draft-order-btn:active{opacity:.5}
+
+/* Needs to Add */
+.nta-team-section{margin-bottom:1.25rem}
+.nta-team-hdr{font-family:"Bebas Neue",sans-serif;font-size:1.1rem;letter-spacing:2px;color:#e8c84b;padding:.5rem 1rem;border-bottom:1px solid #252a35;display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center}
+.nta-team-count{font-family:"Barlow Condensed",sans-serif;font-size:.7rem;color:#6b7280;background:#181c24;border:1px solid #252a35;border-radius:20px;padding:.1rem .4rem;font-weight:700}
+.nta-player-row{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.6rem;padding:.65rem 1rem;border-bottom:1px solid #181c24}
+.nta-player-name{font-family:"Inter",sans-serif;font-size:.85rem;color:#f0f2f6;-webkit-flex:1;flex:1;font-weight:500}
+.nta-player-meta{font-family:"Barlow Condensed",sans-serif;font-size:.65rem;color:#6b7280;letter-spacing:.5px}
+.nta-remove-btn{font-family:"Barlow Condensed",sans-serif;font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:.3rem .55rem;border-radius:6px;background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.3);cursor:pointer;-webkit-appearance:none}
+
+/* Conditional 6-tab nav grid */
+.nav-grid-6{grid-template-columns:1fr 1fr 1fr!important}
 </style>
 <!-- Firebase SDK -->
 <script type="module">
@@ -600,6 +641,57 @@ window.loadContractsCloud = async function() {
 };
 
 // ── Real-time listener ────────────────────────────────────────
+// V28 draft + NTA cloud sync
+window.saveDraftSettingsCloud = async function(s){
+  if(!window._db) return;
+  try{await setDoc(doc(db,'league','draftSettings'),{data:JSON.stringify(s),updated:new Date().toISOString()});}catch(e){console.warn(e);}
+};
+window.saveDraftPicksCloud = async function(p){
+  if(!window._db) return;
+  try{await setDoc(doc(db,'league','draftPicks'),{data:JSON.stringify(p),updated:new Date().toISOString()});}catch(e){console.warn(e);}
+};
+window.saveNTACloud = async function(n){
+  if(!window._db) return;
+  try{await setDoc(doc(db,'league','ntaList'),{data:JSON.stringify(n),updated:new Date().toISOString()});}catch(e){console.warn(e);}
+};
+window.startDraftListeners = function(){
+  if(!window._db || window._draftListenersStarted) return;
+  window._draftListenersStarted = true;
+  onSnapshot(doc(db,'league','draftSettings'),function(snap){
+    if(snap.exists()){try{
+      var s=JSON.parse(snap.data().data);
+      if(JSON.stringify(s)===JSON.stringify(DRAFT_SETTINGS))return;
+      DRAFT_SETTINGS=s;
+      localStorage.setItem('dyn27_draft_settings',JSON.stringify(s));
+      applyDraftTabsVisibility();
+if(window.startDraftListeners)setTimeout(window.startDraftListeners,1500);
+      var pd=document.getElementById('page-draft');
+      if(pd&&pd.classList.contains('active'))buildDraftPage();
+    }catch(e){}}
+  });
+  onSnapshot(doc(db,'league','draftPicks'),function(snap){
+    if(snap.exists()){try{
+      var p=JSON.parse(snap.data().data);
+      if(JSON.stringify(p)===JSON.stringify(DRAFT_PICKS))return;
+      DRAFT_PICKS=p;
+      localStorage.setItem('dyn27_draft_picks',JSON.stringify(p));
+      var pd=document.getElementById('page-draft');
+      if(pd&&pd.classList.contains('active'))buildDraftPage();
+      showToast('↻ Draft update','green',1500);
+    }catch(e){}}
+  });
+  onSnapshot(doc(db,'league','ntaList'),function(snap){
+    if(snap.exists()){try{
+      var n=JSON.parse(snap.data().data);
+      if(JSON.stringify(n)===JSON.stringify(NTA_LIST))return;
+      NTA_LIST=n;
+      localStorage.setItem('dyn27_nta_list',JSON.stringify(n));
+      var pn=document.getElementById('page-nta');
+      if(pn&&pn.classList.contains('active'))renderNTA();
+    }catch(e){}}
+  });
+};
+
 window.startContractsListener = function(callback) {
   if(!window._db) return;
   return onSnapshot(doc(db, 'league', 'contracts'), (snap) => {
@@ -617,14 +709,16 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v27.8</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
-  <div class="nav-grid">
+  <div class="nav-grid" id="navGrid">
     <button class="nav-btn active" id="nav-league" onclick="showLeague()">League</button>
     <button class="nav-btn" id="nav-db" onclick="showDB()">Salaries DB</button>
     <button class="nav-btn" id="nav-fa" onclick="showFA()">Free Agents</button>
     <button class="nav-btn" id="nav-contracts" onclick="showContracts()">Contracts</button>
+    <button class="nav-btn draft-tab-btn" id="nav-draft" onclick="showDraft()" style="display:none">Draft</button>
+    <button class="nav-btn draft-tab-btn" id="nav-nta" onclick="showNeedsToAdd()" style="display:none">Needs To Add</button>
   </div>
 </nav>
 
@@ -774,6 +868,58 @@ window.startContractsListener = function(callback) {
   <div class="set-wrap">
     <div class="pg-title">Settings</div>
     <div class="pg-sub" style="margin-bottom:1.5rem">Configure data sources and queries</div>
+
+    <div class="set-section">
+      <div class="set-section-title">Draft Room</div>
+      <div style="display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center;margin-bottom:.75rem">
+        <span style="font-family:'Inter',sans-serif;font-size:.85rem;color:#f0f2f6;font-weight:500">Show Draft Tabs</span>
+        <label class="toggle-switch" style="position:relative;display:inline-block;width:46px;height:26px">
+          <input type="checkbox" id="draftEnabledToggle" onchange="toggleDraftEnabled(this.checked)" style="opacity:0;width:0;height:0">
+          <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#252a35;border:1px solid #1e2433;border-radius:26px;transition:.2s"></span>
+        </label>
+      </div>
+      <p style="font-size:.7rem;color:#6b7280;margin-bottom:.75rem;line-height:1.5">Enables Draft and Needs To Add tabs in bottom nav.</p>
+
+      <div id="draftSettingsBody" style="display:none">
+        <label class="field-label">Rounds</label>
+        <input type="number" class="field-input" id="draftRoundsInput" min="1" max="20" value="4" oninput="saveDraftSettings()" style="font-size:16px">
+
+        <label class="field-label">Draft Type</label>
+        <select class="field-input" id="draftTypeInput" onchange="saveDraftSettings()" style="font-size:16px">
+          <option value="snake">Snake (1→8, 8→1, 1→8…)</option>
+          <option value="straight">Straight (1→8 every round)</option>
+        </select>
+
+        <label class="field-label">Draft Order</label>
+        <p style="font-size:.65rem;color:#6b7280;margin-bottom:.5rem">Use arrows to reorder. Position 1 picks first.</p>
+        <div id="draftOrderList"></div>
+
+        <button class="set-btn" onclick="resetDraftPicks()" style="margin-top:.75rem;background:rgba(232,75,75,.08);color:#e84b4b;border-color:rgba(232,75,75,.3);width:100%">Reset All Picks</button>
+      </div>
+    </div>
+
+    <div class="set-section">
+      <div class="set-section-title">Cap Penalty Brackets</div>
+      <p style="font-size:.7rem;color:#6b7280;margin-bottom:.75rem;line-height:1.5">Teams over the cap forfeit draft picks. Adjust the percent thresholds below.</p>
+      <label class="field-label">Tier 1: forfeit 1 draft pick</label>
+      <div style="display:-webkit-flex;display:flex;gap:.4rem;-webkit-align-items:center;align-items:center">
+        <input type="number" class="field-input" id="penalty1Min" step="0.1" placeholder="100.1" oninput="saveCapPenalties()" style="font-size:16px;-webkit-flex:1;flex:1">
+        <span style="color:#6b7280">to</span>
+        <input type="number" class="field-input" id="penalty1Max" step="0.1" placeholder="110" oninput="saveCapPenalties()" style="font-size:16px;-webkit-flex:1;flex:1">
+        <span style="color:#6b7280">%</span>
+      </div>
+
+      <label class="field-label">Tier 2: forfeit 2 draft picks</label>
+      <div style="display:-webkit-flex;display:flex;gap:.4rem;-webkit-align-items:center;align-items:center">
+        <input type="number" class="field-input" id="penalty2Min" step="0.1" placeholder="110.1" oninput="saveCapPenalties()" style="font-size:16px;-webkit-flex:1;flex:1">
+        <span style="color:#6b7280">to</span>
+        <input type="number" class="field-input" id="penalty2Max" step="0.1" placeholder="120" oninput="saveCapPenalties()" style="font-size:16px;-webkit-flex:1;flex:1">
+        <span style="color:#6b7280">%</span>
+      </div>
+
+      <label class="field-label">Tier 3: forfeit all draft picks (% over)</label>
+      <input type="number" class="field-input" id="penalty3Min" step="0.1" placeholder="120.1" oninput="saveCapPenalties()" style="font-size:16px">
+    </div>
 
     <div class="set-section">
       <div class="set-section-title">ESPN League ID</div>
@@ -1049,7 +1195,7 @@ function showFA(){
   }
 }
 function _origShowSettings(){showPage('settings');setNav('nav-settings');buildTeamQueryCards();updateQueryPreviews();updateSalDbStatus();updateSeasonUI();}
-function showSettings(){requirePin(_origShowSettings);}
+function showSettings(){requirePin(function(){_origShowSettings();setTimeout(function(){loadPenaltyFields();loadDraftSettings();},0);});}
 
 function showTeam(tn){currentTeam=tn;showPage('team');setNav(null);buildTeamTable(tn);updateTeamCells(tn);setTimeout(applyTableFont,0);}
 function updateSeasonUI(){
@@ -2066,7 +2212,441 @@ function setYearsFromPicker(years){
   _ypTeam=null; _ypIdx=null;
 }
 
+
+// ════════════ V28: CAP PENALTY ════════════
+var CAP_PENALTIES = JSON.parse(localStorage.getItem('dyn27_cap_penalties')||'null')||{
+  t1Min:100.1,t1Max:110,t2Min:110.1,t2Max:120,t3Min:120.1
+};
+
+function saveCapPenalties(){
+  var t1Min=parseFloat(document.getElementById('penalty1Min').value);
+  var t1Max=parseFloat(document.getElementById('penalty1Max').value);
+  var t2Min=parseFloat(document.getElementById('penalty2Min').value);
+  var t2Max=parseFloat(document.getElementById('penalty2Max').value);
+  var t3Min=parseFloat(document.getElementById('penalty3Min').value);
+  if(!isNaN(t1Min))CAP_PENALTIES.t1Min=t1Min;
+  if(!isNaN(t1Max))CAP_PENALTIES.t1Max=t1Max;
+  if(!isNaN(t2Min))CAP_PENALTIES.t2Min=t2Min;
+  if(!isNaN(t2Max))CAP_PENALTIES.t2Max=t2Max;
+  if(!isNaN(t3Min))CAP_PENALTIES.t3Min=t3Min;
+  localStorage.setItem('dyn27_cap_penalties',JSON.stringify(CAP_PENALTIES));
+}
+
+function getPenaltyTier(pct){
+  if(pct>=CAP_PENALTIES.t3Min)return 3;
+  if(pct>=CAP_PENALTIES.t2Min && pct<=CAP_PENALTIES.t2Max)return 2;
+  if(pct>=CAP_PENALTIES.t1Min && pct<=CAP_PENALTIES.t1Max)return 1;
+  return 0;
+}
+
+function getPenaltyText(tier){
+  if(tier===1)return 'forfeits <strong>1 draft pick</strong>';
+  if(tier===2)return 'forfeits <strong>2 draft picks</strong>';
+  if(tier===3)return 'forfeits <strong>all draft picks</strong>';
+  return '';
+}
+
+function loadPenaltyFields(){
+  if(!document.getElementById('penalty1Min'))return;
+  document.getElementById('penalty1Min').value=CAP_PENALTIES.t1Min;
+  document.getElementById('penalty1Max').value=CAP_PENALTIES.t1Max;
+  document.getElementById('penalty2Min').value=CAP_PENALTIES.t2Min;
+  document.getElementById('penalty2Max').value=CAP_PENALTIES.t2Max;
+  document.getElementById('penalty3Min').value=CAP_PENALTIES.t3Min;
+}
+
+// ════════════ V28: DRAFT SETTINGS ════════════
+var DRAFT_SETTINGS = JSON.parse(localStorage.getItem('dyn27_draft_settings')||'null')||{
+  enabled:false, rounds:4, type:'snake', order:[]
+};
+var DRAFT_PICKS = JSON.parse(localStorage.getItem('dyn27_draft_picks')||'[]');
+var NTA_LIST = JSON.parse(localStorage.getItem('dyn27_nta_list')||'{}');
+
+function saveDraftSettings(){
+  var r=parseInt(document.getElementById('draftRoundsInput').value)||4;
+  var t=document.getElementById('draftTypeInput').value||'snake';
+  DRAFT_SETTINGS.rounds=r;
+  DRAFT_SETTINGS.type=t;
+  localStorage.setItem('dyn27_draft_settings',JSON.stringify(DRAFT_SETTINGS));
+  if(window.saveDraftSettingsCloud)window.saveDraftSettingsCloud(DRAFT_SETTINGS);
+}
+
+function toggleDraftEnabled(on){
+  DRAFT_SETTINGS.enabled=on;
+  localStorage.setItem('dyn27_draft_settings',JSON.stringify(DRAFT_SETTINGS));
+  if(window.saveDraftSettingsCloud)window.saveDraftSettingsCloud(DRAFT_SETTINGS);
+  applyDraftTabsVisibility();
+  document.getElementById('draftSettingsBody').style.display=on?'block':'none';
+  // Update toggle visual
+  var slider=document.querySelector('#draftEnabledToggle + .toggle-slider');
+  if(slider){
+    if(on){slider.style.background='#e8c84b';slider.style.borderColor='#e8c84b';}
+    else{slider.style.background='#252a35';slider.style.borderColor='#1e2433';}
+  }
+}
+
+function applyDraftTabsVisibility(){
+  var draftBtn=document.getElementById('nav-draft');
+  var ntaBtn=document.getElementById('nav-nta');
+  var grid=document.getElementById('navGrid');
+  if(DRAFT_SETTINGS.enabled){
+    if(draftBtn)draftBtn.style.display='';
+    if(ntaBtn)ntaBtn.style.display='';
+    if(grid)grid.classList.add('nav-grid-6');
+  } else {
+    if(draftBtn)draftBtn.style.display='none';
+    if(ntaBtn)ntaBtn.style.display='none';
+    if(grid)grid.classList.remove('nav-grid-6');
+  }
+}
+
+function loadDraftSettings(){
+  if(!document.getElementById('draftEnabledToggle'))return;
+  document.getElementById('draftEnabledToggle').checked=!!DRAFT_SETTINGS.enabled;
+  document.getElementById('draftRoundsInput').value=DRAFT_SETTINGS.rounds||4;
+  document.getElementById('draftTypeInput').value=DRAFT_SETTINGS.type||'snake';
+  document.getElementById('draftSettingsBody').style.display=DRAFT_SETTINGS.enabled?'block':'none';
+  // Toggle slider visual
+  var slider=document.querySelector('#draftEnabledToggle + .toggle-slider');
+  if(slider){
+    if(DRAFT_SETTINGS.enabled){slider.style.background='#e8c84b';slider.style.borderColor='#e8c84b';}
+    else{slider.style.background='#252a35';slider.style.borderColor='#1e2433';}
+  }
+  // Initialize order if empty
+  if(!DRAFT_SETTINGS.order||!DRAFT_SETTINGS.order.length){
+    DRAFT_SETTINGS.order=Object.keys(TEAMS_CONFIG);
+    localStorage.setItem('dyn27_draft_settings',JSON.stringify(DRAFT_SETTINGS));
+  }
+  renderDraftOrder();
+}
+
+function renderDraftOrder(){
+  var el=document.getElementById('draftOrderList');
+  if(!el)return;
+  el.innerHTML=DRAFT_SETTINGS.order.map(function(tn,i){
+    return '<div class="draft-order-row">'+
+      '<div class="draft-order-num">'+(i+1)+'</div>'+
+      '<div class="draft-order-team">'+tn+'</div>'+
+      '<div class="draft-order-btns">'+
+      '<button class="draft-order-btn" onclick="moveDraftOrder('+i+',-1)">↑</button>'+
+      '<button class="draft-order-btn" onclick="moveDraftOrder('+i+',1)">↓</button>'+
+      '</div>'+
+      '</div>';
+  }).join('');
+}
+
+function moveDraftOrder(idx,dir){
+  var newIdx=idx+dir;
+  if(newIdx<0||newIdx>=DRAFT_SETTINGS.order.length)return;
+  var arr=DRAFT_SETTINGS.order;
+  var tmp=arr[idx];arr[idx]=arr[newIdx];arr[newIdx]=tmp;
+  localStorage.setItem('dyn27_draft_settings',JSON.stringify(DRAFT_SETTINGS));
+  if(window.saveDraftSettingsCloud)window.saveDraftSettingsCloud(DRAFT_SETTINGS);
+  renderDraftOrder();
+}
+
+function resetDraftPicks(){
+  if(!confirm('Reset all draft picks? This cannot be undone.'))return;
+  DRAFT_PICKS=[];NTA_LIST={};
+  localStorage.setItem('dyn27_draft_picks','[]');
+  localStorage.setItem('dyn27_nta_list','{}');
+  if(window.saveDraftPicksCloud)window.saveDraftPicksCloud(DRAFT_PICKS);
+  if(window.saveNTACloud)window.saveNTACloud(NTA_LIST);
+  showToast('✓ Draft reset','green',2000);
+}
+
+// ════════════ V28: DRAFT POOL & PICKS ════════════
+function getDraftPool(){
+  var pool=[];
+  var pickedSet={};
+  DRAFT_PICKS.forEach(function(p){if(p.player)pickedSet[p.player]=true;});
+
+  // Add Must Drop players league-wide
+  Object.keys(ROSTER||{}).forEach(function(tn){
+    (ROSTER[tn]||[]).forEach(function(p,i){
+      var cval=getC(tn,i);var cNum=parseInt(cval)||0;
+      var _entry=getEntry(tn,i);var _cleared=_entry&&_entry.cleared;
+      var needsDrop=_entry&&!_cleared&&(cNum===0);
+      if(needsDrop && !pickedSet[p.name]){
+        var aav=parseFloat(p.aav)||0;
+        var pts=p.pts||0;
+        pool.push({
+          name:p.name, pos:p.slot, team:tn,
+          aav:aav, pts:pts, age:p.age,
+          source:'drop'
+        });
+      }
+    });
+  });
+
+  // Add FA players
+  (FA_DATA||[]).forEach(function(p){
+    if(pickedSet[p.Player])return;
+    var aavRaw=p.AAV!==undefined&&p.AAV!==null?p.AAV:AAV_DB[p.Player];
+    var isArb=(!aavRaw||aavRaw==='ARB'||aavRaw==='?'||isNaN(parseFloat(aavRaw)));
+    pool.push({
+      name:p.Player, pos:p.Position,
+      aav:isArb?ARB():parseFloat(aavRaw)||0,
+      pts:p.TotalPoints||0, status:p.Availability,
+      source:'fa'
+    });
+  });
+
+  return pool;
+}
+
+function getDraftPickAssignments(){
+  // Returns ordered list of {round, pickNum, team, skipped, reason}
+  if(!DRAFT_SETTINGS.order||!DRAFT_SETTINGS.order.length)return [];
+  var cap=getBaseCap();
+  // Determine skipped rounds per team (penalty)
+  var skips={};
+  DRAFT_SETTINGS.order.forEach(function(tn){
+    var sal=teamTotals(tn)[0];
+    var pct=(sal/cap)*100;
+    var tier=getPenaltyTier(pct);
+    skips[tn]=tier;
+  });
+
+  var assignments=[];
+  var pickNum=0;
+  for(var r=1;r<=DRAFT_SETTINGS.rounds;r++){
+    var order=DRAFT_SETTINGS.order.slice();
+    if(DRAFT_SETTINGS.type==='snake' && r%2===0) order.reverse();
+    order.forEach(function(tn){
+      pickNum++;
+      var skipped=false, reason='';
+      var teamSkipCount=skips[tn]||0;
+      // Penalty tier 3 = all picks
+      // Tier 1 = first 1 round
+      // Tier 2 = first 2 rounds
+      // Count how many of this team's prior rounds have been skipped
+      if(teamSkipCount===3){skipped=true;reason='Forfeit (cap penalty)';}
+      else if(teamSkipCount>0 && r<=teamSkipCount){skipped=true;reason='Forfeit round '+r+' (cap penalty)';}
+      assignments.push({round:r, pickNum:pickNum, team:tn, skipped:skipped, reason:reason});
+    });
+  }
+  return assignments;
+}
+
+function getCurrentPickIndex(){
+  // Returns assignment index for next pick (skipping skipped picks)
+  var assigns=getDraftPickAssignments();
+  // Skip any assignment that's either marked skipped OR already has a pick
+  var madePicks={};
+  DRAFT_PICKS.forEach(function(p){madePicks[p.pickNum]=true;});
+  for(var i=0;i<assigns.length;i++){
+    if(assigns[i].skipped)continue;
+    if(madePicks[assigns[i].pickNum])continue;
+    return i;
+  }
+  return -1;
+}
+
+function showDraft(){
+  showPage('draft');setNav('nav-draft');
+  buildDraftPage();
+  if(window.startDraftListeners)window.startDraftListeners();
+}
+
+function buildDraftPage(){
+  var assigns=getDraftPickAssignments();
+  var curIdx=getCurrentPickIndex();
+  var oc=document.getElementById('draftOnClock');
+  var meta=document.getElementById('draftRoundMeta');
+  var pickCount=document.getElementById('draftPickCount');
+
+  if(curIdx<0){
+    oc.textContent='Draft Complete';
+    meta.textContent=DRAFT_PICKS.length+' picks made';
+  } else {
+    var cur=assigns[curIdx];
+    oc.textContent=cur.team;
+    meta.textContent='Round '+cur.round+' · Pick '+cur.pickNum;
+  }
+  pickCount.textContent=DRAFT_PICKS.length+' picks made';
+
+  renderDraftPool();
+  renderDraftHistory();
+}
+
+function renderDraftPool(){
+  var el=document.getElementById('draftPool');
+  if(!el)return;
+  var q=(document.getElementById('draftSearch').value||'').toLowerCase();
+  var pos=document.getElementById('draftPos').value;
+  var pool=getDraftPool().filter(function(p){
+    if(q&&!p.name.toLowerCase().includes(q))return false;
+    if(pos){if(pos==='OF'){if(!['OF','LF','CF','RF'].includes(p.pos))return false;}else if(p.pos!==pos)return false;}
+    return true;
+  });
+  pool.sort(function(a,b){return (b.pts||0)-(a.pts||0);});
+
+  if(!pool.length){
+    el.innerHTML='<div class="empty-state"><span class="empty-state-icon">✓</span>No available players</div>';
+    return;
+  }
+
+  el.innerHTML=pool.slice(0,200).map(function(p){
+    var sk=slotCls(p.pos);
+    var sourceTag = p.source==='drop'
+      ? '<span class="spcard-tag drop" style="margin-left:.3rem">DROP · '+(p.team||'')+'</span>'
+      : '';
+    return '<div class="draft-player-card" onclick="makePick(\''+p.name.replace(/\'/g,"\\\\'")+'\')">'+
+      '<div class="cr-slot-wrap"><span class="slot '+sk+'">'+p.pos+'</span></div>'+
+      '<div class="cr-info">'+
+      '<div class="cr-name">'+p.name+sourceTag+'</div>'+
+      '<div class="cr-team">'+(p.age?'Age '+p.age+' · ':'')+'$'+p.aav.toFixed(1)+'M AAV</div>'+
+      '</div>'+
+      '<div class="cr-right">'+
+      '<div class="cr-aav" style="color:#e8c84b">'+(p.pts?p.pts.toFixed(1):'—')+'</div>'+
+      '<div class="cr-detail">ESPN Pts</div>'+
+      '</div>'+
+      '</div>';
+  }).join('');
+  if(pool.length>200)el.innerHTML+='<div style="text-align:center;padding:.5rem;color:#6b7280;font-size:.7rem">+'+(pool.length-200)+' more — refine search</div>';
+}
+
+function renderDraftHistory(){
+  var el=document.getElementById('draftHistory');
+  if(!el)return;
+  var assigns=getDraftPickAssignments();
+  var picksByNum={};
+  DRAFT_PICKS.forEach(function(p){picksByNum[p.pickNum]=p;});
+  el.innerHTML=assigns.map(function(a){
+    var pick=picksByNum[a.pickNum];
+    var right='';
+    if(a.skipped) right='<span class="draft-pick-skipped">'+a.reason+'</span>';
+    else if(pick) right='<span class="draft-pick-player">'+pick.player+'</span>';
+    else right='<span style="color:#6b7280;font-style:italic">—</span>';
+    return '<div class="draft-pick-row">'+
+      '<span class="draft-pick-num">'+a.round+'.'+(((a.pickNum-1)%DRAFT_SETTINGS.order.length)+1)+'</span>'+
+      '<span class="draft-pick-team">'+a.team+'</span>'+
+      right+
+      '</div>';
+  }).join('');
+}
+
+function makePick(playerName){
+  var curIdx=getCurrentPickIndex();
+  if(curIdx<0){showToast('Draft is complete','yellow',2000);return;}
+  var assigns=getDraftPickAssignments();
+  var cur=assigns[curIdx];
+  var pick={pickNum:cur.pickNum,round:cur.round,team:cur.team,player:playerName,timestamp:Date.now()};
+  DRAFT_PICKS.push(pick);
+  // Add to team's NTA
+  if(!NTA_LIST[cur.team])NTA_LIST[cur.team]=[];
+  NTA_LIST[cur.team].push(playerName);
+  // Save
+  localStorage.setItem('dyn27_draft_picks',JSON.stringify(DRAFT_PICKS));
+  localStorage.setItem('dyn27_nta_list',JSON.stringify(NTA_LIST));
+  if(window.saveDraftPicksCloud)window.saveDraftPicksCloud(DRAFT_PICKS);
+  if(window.saveNTACloud)window.saveNTACloud(NTA_LIST);
+  showToast('✓ '+cur.team+' picked '+playerName,'green',2000);
+  buildDraftPage();
+}
+
+function undoLastPick(){
+  if(!DRAFT_PICKS.length){showToast('No picks to undo','yellow',1500);return;}
+  var last=DRAFT_PICKS.pop();
+  // Remove from NTA
+  if(NTA_LIST[last.team]){
+    NTA_LIST[last.team]=NTA_LIST[last.team].filter(function(n){return n!==last.player;});
+    if(!NTA_LIST[last.team].length)delete NTA_LIST[last.team];
+  }
+  localStorage.setItem('dyn27_draft_picks',JSON.stringify(DRAFT_PICKS));
+  localStorage.setItem('dyn27_nta_list',JSON.stringify(NTA_LIST));
+  if(window.saveDraftPicksCloud)window.saveDraftPicksCloud(DRAFT_PICKS);
+  if(window.saveNTACloud)window.saveNTACloud(NTA_LIST);
+  showToast('↶ Undone: '+last.team+' '+last.player,'yellow',2000);
+  buildDraftPage();
+}
+
+// ════════════ V28: NEEDS TO ADD ════════════
+function showNeedsToAdd(){
+  showPage('nta');setNav('nav-nta');
+  renderNTA();
+}
+
+function renderNTA(){
+  var el=document.getElementById('ntaList');
+  if(!el)return;
+  var teams=Object.keys(NTA_LIST).filter(function(t){return NTA_LIST[t]&&NTA_LIST[t].length;});
+  if(!teams.length){
+    el.innerHTML='<div class="empty-state"><span class="empty-state-icon">✓</span>All drafted players added</div>';
+    return;
+  }
+  el.innerHTML=teams.map(function(tn){
+    var players=NTA_LIST[tn]||[];
+    return '<div class="nta-team-section">'+
+      '<div class="nta-team-hdr">'+tn+'<span class="nta-team-count">'+players.length+'</span></div>'+
+      players.map(function(name){
+        return '<div class="nta-player-row">'+
+          '<div style="-webkit-flex:1;flex:1">'+
+          '<div class="nta-player-name">'+name+'</div>'+
+          '<div class="nta-player-meta">Drafted · add in ESPN</div>'+
+          '</div>'+
+          '<button class="nta-remove-btn" onclick="markNTADone(\''+tn.replace(/\'/g,"\\\\'")+'\',\''+name.replace(/\'/g,"\\\\'")+'\')">✓ Done</button>'+
+          '</div>';
+      }).join('')+
+      '</div>';
+  }).join('');
+}
+
+function markNTADone(tn,name){
+  if(NTA_LIST[tn]){
+    NTA_LIST[tn]=NTA_LIST[tn].filter(function(n){return n!==name;});
+    if(!NTA_LIST[tn].length)delete NTA_LIST[tn];
+  }
+  localStorage.setItem('dyn27_nta_list',JSON.stringify(NTA_LIST));
+  if(window.saveNTACloud)window.saveNTACloud(NTA_LIST);
+  renderNTA();
+}
+
+// ════════════ V28: ADD PENALTY BADGE TO TEAM PAGE ════════════
+function updatePenaltyBadge(tn){
+  var existing=document.getElementById('penaltyBadge');
+  if(existing)existing.remove();
+  var sal=teamTotals(tn)[0];var cap=getBaseCap();
+  var pct=(sal/cap)*100;
+  var tier=getPenaltyTier(pct);
+  if(tier===0||!DRAFT_SETTINGS.enabled)return;
+  var hdr=document.querySelector('.team-hdr');
+  if(!hdr)return;
+  var badge=document.createElement('div');
+  badge.id='penaltyBadge';
+  badge.className='cap-penalty-badge';
+  badge.innerHTML='<div class="cap-penalty-icon">⚠</div><div class="cap-penalty-text"><strong>Cap Penalty:</strong> Over '+pct.toFixed(1)+'% — '+getPenaltyText(tier)+'</div>';
+  hdr.parentNode.insertBefore(badge,hdr.nextSibling);
+}
+
+// Patch showTeam to update badge
+var _origShowTeam_v28=null;
+function patchShowTeamForPenalty(){
+  if(_origShowTeam_v28)return;
+  _origShowTeam_v28=showTeam;
+  showTeam=function(tn){
+    _origShowTeam_v28(tn);
+    updatePenaltyBadge(tn);
+  };
+}
+
+// Also update badge when contracts change
+var _origUpdateTeamCells_v28=null;
+function patchUpdateTeamCells_v28(){
+  if(_origUpdateTeamCells_v28)return;
+  _origUpdateTeamCells_v28=updateTeamCells;
+  updateTeamCells=function(tn){
+    _origUpdateTeamCells_v28(tn);
+    if(currentTeam===tn)updatePenaltyBadge(tn);
+  };
+}
+
+
 loadContracts();
+patchShowTeamForPenalty();
+patchUpdateTeamCells_v28();
+applyDraftTabsVisibility();
 try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){JSON.parse(cs).forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});}}catch(e){}
 try{var ao=JSON.parse(localStorage.getItem('dyn26_aav_overrides')||'{}');Object.keys(ao).forEach(function(n){AAV_DB[n]=ao[n];if(SAL_MAP[n])SAL_MAP[n].aav=ao[n];SAL.forEach(function(p){if(p.name===n)p.aav=ao[n];});Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n)p.aav=ao[n];});});});}catch(e){}
 // Load saved ARB player info
@@ -2164,6 +2744,50 @@ if(hadCache){setTimeout(function(){refreshRosters(true);},1000);}else{refreshRos
     <div class="modal-footer">
       <button class="btn-secondary" style="flex:1" onclick="closeModal('yearsPickerModal')">Cancel</button>
     </div>
+  </div>
+</div>
+
+
+<!-- V28: DRAFT PAGE -->
+<div id="page-draft" class="page">
+  <div class="pg-wrap">
+    <div class="pg-title">Draft Room</div>
+    <div class="pg-sub" id="draftSub">Live draft</div>
+
+    <div class="draft-status" id="draftStatus">
+      <div class="draft-onclock-lbl">On The Clock</div>
+      <div class="draft-onclock-team" id="draftOnClock">—</div>
+      <div class="draft-onclock-meta" id="draftRoundMeta">—</div>
+    </div>
+
+    <div style="display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;padding:0 1rem .75rem;-webkit-align-items:center;align-items:center">
+      <button class="draft-undo-btn" onclick="undoLastPick()">↶ Undo Last Pick</button>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:.65rem;letter-spacing:.5px;color:#6b7280" id="draftPickCount">0 picks made</span>
+    </div>
+
+    <div class="draft-search">
+      <input type="text" class="search-input" id="draftSearch" placeholder="Search available players…" oninput="renderDraftPool()" style="font-size:16px">
+      <select class="fa-sel" id="draftPos" onchange="renderDraftPool()">
+        <option value="">All Pos</option>
+        <option>C</option><option>1B</option><option>2B</option><option>3B</option>
+        <option>SS</option><option>OF</option><option>SP</option><option>RP</option>
+      </select>
+    </div>
+
+    <div class="draft-section-hdr">Available Players (tap to pick)</div>
+    <div class="draft-pick-list" id="draftPool"></div>
+
+    <div class="draft-section-hdr">Pick History</div>
+    <div id="draftHistory"></div>
+  </div>
+</div>
+
+<!-- V28: NEEDS TO ADD PAGE -->
+<div id="page-nta" class="page">
+  <div class="pg-wrap">
+    <div class="pg-title">Needs To Add</div>
+    <div class="pg-sub">Drafted players to add in ESPN. Tap done after adding.</div>
+    <div id="ntaList"></div>
   </div>
 </div>
 
