@@ -522,6 +522,17 @@ body{background:#0a0c10!important;background-color:#0a0c10!important}
 .nav-grid .nav-btn.active{background:rgba(232,200,75,.1);border-color:rgba(232,200,75,.35);color:#e8c84b}
 .nav-grid .nav-btn:active{opacity:.7}
 .nav-sep,.nav-spacer{display:none}
+
+/* V27 iOS AUTO-ZOOM FIX — all inputs must be 16px+ to prevent Safari zoom on focus */
+input,select,textarea,input[type="text"],input[type="number"],input[type="email"],input[type="tel"]{font-size:16px!important}
+.spcard-yrs-input,.ci,.field-input,.search-input,.team-name-input,.set-input,#leagueIdInput,#pinInput{font-size:16px!important}
+/* Maintain visual size with width/height/padding */
+.ci{width:42px!important;height:28px!important;padding:.1rem!important}
+.spcard-yrs-input{width:72px;height:44px}
+
+/* V27 PIN MODAL must appear above all other modals */
+#pinModal{z-index:9999!important}
+#pinModal .modal-box{z-index:10000!important}
 </style>
 <!-- Firebase SDK -->
 <script type="module">
@@ -592,7 +603,7 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v27</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v27.1</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid">
@@ -1011,7 +1022,24 @@ function setNav(id){document.querySelectorAll('.nav-btn').forEach(function(b){b.
 function showPage(pid){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});var el=document.getElementById('page-'+pid);if(el)el.classList.add('active');}
 function showLeague(){showPage('league');setNav('nav-league');renderLeague();}
 function showDB(){showPage('salaries-db');setNav('nav-db');renderDB();}
-function showFA(){showPage('fa');setNav('nav-fa');var cached=localStorage.getItem('dyn26_v3_fa');if(cached){try{FA_DATA=JSON.parse(cached);}catch(e){}}if(FA_DATA.length){renderFA();}else{document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">Tap Refresh or import Excel to load free agents</td></tr>';}}
+function showFA(){
+  showPage('fa');
+  setNav('nav-fa');
+  var cached=localStorage.getItem('dyn26_v3_fa');
+  if(cached){try{FA_DATA=JSON.parse(cached);}catch(e){}}
+  if(FA_DATA.length){
+    renderFA();
+    // Auto-refresh in background if data is older than 1 hour
+    var lastFetch=parseInt(localStorage.getItem('dyn26_v3_fa_time')||'0');
+    if(Date.now()-lastFetch > 60*60*1000){
+      setTimeout(function(){if(!FA_FETCHING)fetchFreeAgents();},500);
+    }
+  } else {
+    // Auto-fetch on first visit
+    document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">&#8635; Loading free agents\u2026</td></tr>';
+    setTimeout(function(){if(!FA_FETCHING)fetchFreeAgents();},300);
+  }
+}
 function _origShowSettings(){showPage('settings');setNav('nav-settings');buildTeamQueryCards();updateQueryPreviews();updateSalDbStatus();updateSeasonUI();}
 function showSettings(){requirePin(_origShowSettings);}
 
@@ -1347,7 +1375,7 @@ function importRosterExcel(input){
         }
         if(faList.length){
           FA_DATA=faList;
-          try{localStorage.setItem('dyn26_v3_fa',JSON.stringify(FA_DATA));}catch(ex){}
+          try{localStorage.setItem('dyn26_v3_fa',JSON.stringify(FA_DATA));localStorage.setItem('dyn26_v3_fa_time',String(Date.now()));}catch(ex){}
         }
       } else {
         // Fallback: derive FAs from Salaries sheet (no points data)
