@@ -545,7 +545,7 @@ input,select,textarea,input[type="text"],input[type="number"],input[type="email"
 .yrs-btn.yrs-clear:active{background:rgba(232,75,75,.15);border-color:#e84b4b}
 
 /* V27.5 Projection table button (replaces input) */
-.ci-btn{background:rgba(232,200,75,.06);border:1px solid rgba(232,200,75,.35);border-radius:5px;color:#f0f2f6;font-family:"DM Mono",monospace;font-size:.32rem;font-weight:600;width:100%;text-align:center;cursor:pointer;-webkit-appearance:none;-webkit-tap-highlight-color:transparent;padding:.15rem .05rem;line-height:1.1;min-height:18px}
+.ci-btn{background:rgba(232,200,75,.06);border:1px solid rgba(232,200,75,.35);border-radius:5px;color:#f0f2f6;font-family:"DM Mono",monospace;font-size:.55rem;font-weight:600;width:100%;text-align:center;cursor:pointer;-webkit-appearance:none;-webkit-tap-highlight-color:transparent;padding:.18rem .05rem;line-height:1.1;min-height:22px}
 .ci-btn:active{background:rgba(232,200,75,.2);border-color:#e8c84b}
 </style>
 <!-- Firebase SDK -->
@@ -617,7 +617,7 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v27.6</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v27.8</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid">
@@ -2046,7 +2046,13 @@ function setYearsFromPicker(years){
   if(isCarried(tn,i)){closeModal('yearsPickerModal');return;}
   setC(tn, i, years===''?'':String(years));
   closeModal('yearsPickerModal');
-  // Update team header stats
+  // Update the projection table button directly
+  var btn=document.getElementById('ci-'+tn+'-'+i);
+  if(btn && btn.tagName==='BUTTON'){
+    var newVal=years===''?'\u2014':String(years);
+    btn.textContent=newVal;
+  }
+  // Update team header stats and projection cells
   if(teamBuilt[tn]) updateTeamCells(tn);
   else {
     var totals=teamTotals(tn);var cap=getBaseCap();var sal=totals[0];var over=sal>cap;var pct=(sal/cap)*100;
