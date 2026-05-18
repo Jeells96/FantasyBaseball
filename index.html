@@ -698,6 +698,10 @@ window.loadContractsCloud = async function() {
 
 // ── Real-time listener ────────────────────────────────────────
 // V28 draft + NTA cloud sync
+window.saveRostersFrozenCloud = async function(frozen){
+  if(!window._db) return;
+  try{await setDoc(doc(db,'league','rostersFrozen'),{data:String(frozen),updated:new Date().toISOString()});}catch(e){console.warn(e);}
+};
 window.saveDeadCapCloud = async function(d){
   if(!window._db) return;
   try{await setDoc(doc(db,'league','deadCap'),{data:JSON.stringify(d),updated:new Date().toISOString()});}catch(e){console.warn(e);}
@@ -746,6 +750,15 @@ window.startDraftListeners = function(){
       if(currentTeam&&teamBuilt[currentTeam])updateTeamCells(currentTeam);
     }catch(e){}}
   });
+  onSnapshot(doc(db,'league','rostersFrozen'),function(snap){
+    if(snap.exists()){try{
+      var frozen=snap.data().data==='true';
+      if(frozen===ROSTERS_FROZEN)return;
+      ROSTERS_FROZEN=frozen;
+      localStorage.setItem('dyn28_rosters_frozen',String(frozen));
+      if(document.getElementById('freezeRostersToggle'))loadFreezeRostersUI();
+    }catch(e){}}
+  });
   onSnapshot(doc(db,'league','contractsLocked'),function(snap){
     if(snap.exists()){try{
       var locked=snap.data().data==='true';
@@ -763,11 +776,6 @@ window.startDraftListeners = function(){
       DRAFT_SETTINGS=s;
       localStorage.setItem('dyn27_draft_settings',JSON.stringify(s));
       applyDraftTabsVisibility();
-patchSetCForLock();
-patchShowTeamForV283();
-patchUpdateCellsForV283();
-saveRosterSnapshot();
-if(window.startDraftListeners)setTimeout(window.startDraftListeners,1500);
       var pd=document.getElementById('page-draft');
       if(pd&&pd.classList.contains('active'))buildDraftPage();
     }catch(e){}}
@@ -812,7 +820,7 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.3.9</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.4</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1697,7 +1705,7 @@ function sortDB(col){dbSort=dbSort.col===col?{col:col,dir:dbSort.dir*-1}:{col:co
 function renderDB(){var q=(document.getElementById('dbSearch').value||'').toLowerCase();var pos=document.getElementById('dbPos').value;var team=document.getElementById('dbTeam').value;var exp=document.getElementById('dbExp').value;var data=SAL.filter(function(p){if(q&&!p.name.toLowerCase().includes(q))return false;if(pos&&p.pos!==pos)return false;if(team&&p.team!==team)return false;if(exp){var ex=parseInt(p.expires)||0;if(exp==='2031+'){if(ex<2031)return false;}else if(p.expires!==exp)return false;}return true;});var col=dbSort.col,dir=dbSort.dir;data.sort(function(a,b){var av=a[col]||'',bv=b[col]||'';if(col==='aav'){return((av==='ARB'?ARB():parseFloat(av)||0)-(bv==='ARB'?ARB():parseFloat(bv)||0))*dir;}var an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return(an-bn)*dir;return av.toString().localeCompare(bv.toString())*dir;});document.getElementById('dbCnt').textContent=data.length+' contracts';document.querySelectorAll('.dbt th').forEach(function(th){th.classList.remove('srt');var ar=th.querySelector('.sar');if(ar)ar.innerHTML='&#8645;';});var sh=document.querySelector('.dbt th[data-col="'+col+'"]');if(sh){sh.classList.add('srt');var ar=sh.querySelector('.sar');if(ar)ar.innerHTML=dir===1?'&#8593;':'&#8595;';}var tbody=document.getElementById('dbBody');if(!data.length){tbody.innerHTML='<tr><td colspan="8" class="no-res">No contracts found</td></tr>';return;}tbody.innerHTML=data.slice(0,300).map(function(p){var n=p.aav==='ARB'?ARB():parseFloat(p.aav)||0,isA=p.aav==='ARB';return '<tr><td style="color:var(--brt);font-weight:500">'+p.name+(isA?'<span class="arb-tag">ARB</span>':'')+'</td><td><span class="ptag">'+(p.pos||'\u2014')+'</span></td><td style="color:var(--dim)">'+(p.team||'\u2014')+'</td><td>'+(p.age||'\u2014')+'</td><td>'+(p.signed||'\u2014')+'</td><td style="color:'+(parseInt(p.expires)<=2026?'var(--dim)':'var(--txt)')+'">'+( p.expires||'\u2014')+'</td><td>'+(p.years||'\u2014')+'</td><td style="color:'+(isA?'var(--acc)':'var(--brt)')+';font-weight:500">'+(isA?'ARB ($'+ARB().toFixed(2)+'M)':'$'+n.toFixed(2)+'M')+'</td></tr>';}).join('');if(data.length>300)tbody.innerHTML+='<tr><td colspan="8" style="text-align:center;padding:1rem;color:var(--dim);font-size:.7rem">Showing 300 of '+data.length+'</td></tr>';}
 var FA_DATA=[];var FA_SORT={col:'TotalPoints',dir:-1};var FA_FETCHING=false;var LS_FA='dyn26_v3_fa';
 var POS_MAP={1:'SP',2:'C',3:'1B',4:'2B',5:'3B',6:'SS',7:'OF',8:'OF',9:'OF',10:'OF',11:'OF',14:'RP',15:'P'};
-function fetchFreeAgents(){if(FA_FETCHING)return;FA_FETCHING=true;document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">&#8635; Fetching\u2026</td></tr>';var season='2026';var q=loadQueries();var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+season+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(season)]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+season},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+season]},limit:3000}};var filterText=(q.fa&&q.fa.value)?q.fa.value:'';var filterMatch=filterText.match(/\{[\s\S]*"players"[\s\S]*\}/);if(filterMatch){try{filterObj=JSON.parse(filterMatch[0]);}catch(e){}}fetch(url,{headers:{'X-Fantasy-Filter':JSON.stringify(filterObj)}}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){var players=data.players||[];FA_DATA=players.map(function(entry){var p=entry.player||{};var stats=p.stats||[];var totals=stats.map(function(s){return typeof s.appliedTotal==='number'?s.appliedTotal:null;}).filter(function(v){return v!==null;});var pts=totals.length?Math.max.apply(null,totals):null;var name=p.fullName||'Unknown';var eligibleIds=p.eligibleSlots||[];
+function fetchFreeAgents(){if(FA_FETCHING)return;FA_FETCHING=true;document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">&#8635; Fetching\u2026</td></tr>';var season=(typeof DRAFT_VIEW_PREFS!=='undefined' && DRAFT_VIEW_PREFS.statsYear)?DRAFT_VIEW_PREFS.statsYear:'2025';var q=loadQueries();var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+season+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(season)]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+season},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+season]},limit:3000}};var filterText=(q.fa&&q.fa.value)?q.fa.value:'';var filterMatch=filterText.match(/\{[\s\S]*"players"[\s\S]*\}/);if(filterMatch){try{filterObj=JSON.parse(filterMatch[0]);}catch(e){}}fetch(url,{headers:{'X-Fantasy-Filter':JSON.stringify(filterObj)}}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){var players=data.players||[];FA_DATA=players.map(function(entry){var p=entry.player||{};var stats=p.stats||[];var totals=stats.map(function(s){return typeof s.appliedTotal==='number'?s.appliedTotal:null;}).filter(function(v){return v!==null;});var pts=totals.length?Math.max.apply(null,totals):null;var name=p.fullName||'Unknown';var eligibleIds=p.eligibleSlots||[];
       // Map ESPN MLB lineupSlot IDs to position abbreviations
       // 0=C, 1=1B, 2=2B, 3=3B, 4=SS, 5=OF, 8=LF, 9=CF, 10=RF, 11=DH, 14=SP, 15=RP
       // Skip: 6 (2B/SS combo), 7 (1B/3B combo), 12 (UTIL), 13 (P generic), 16 (BE), 17 (IL), 19 (IF)
@@ -2664,8 +2672,9 @@ function buildDraftPage(){
 var DRAFT_VIEW_PREFS = JSON.parse(localStorage.getItem('dyn28_draft_view_prefs')||'null') || {
   sortBy:'pts', sortDir:'desc',
   minAge:'', maxAge:'', minPts:'', maxAAV:'',
-  hideARB:false
+  hideARB:false, statsYear:'2025'
 };
+if(typeof DRAFT_VIEW_PREFS.statsYear==='undefined')DRAFT_VIEW_PREFS.statsYear='2025';
 if(typeof DRAFT_VIEW_PREFS.minAge==='undefined')DRAFT_VIEW_PREFS.minAge='';
 if(typeof DRAFT_VIEW_PREFS.maxAge==='undefined')DRAFT_VIEW_PREFS.maxAge='';
 if(typeof DRAFT_VIEW_PREFS.hideARB==='undefined')DRAFT_VIEW_PREFS.hideARB=false;
@@ -2693,12 +2702,23 @@ function renderDraftPool(){
   var pos=document.getElementById('draftPos').value;
   var pool=getDraftPool().filter(function(p){
     if(q&&!p.name.toLowerCase().includes(q))return false;
-    if(pos){if(pos==='OF'){if(!['OF','LF','CF','RF'].includes(p.pos))return false;}else if(p.pos!==pos)return false;}
-    if(DRAFT_VIEW_PREFS.minPts!==''&&!isNaN(parseFloat(DRAFT_VIEW_PREFS.minPts))){
-      if((p.pts||0)<parseFloat(DRAFT_VIEW_PREFS.minPts))return false;
+    if(pos){if(pos==='OF'){if(p.pos.indexOf('OF')<0)return false;}else if(p.pos.indexOf(pos)<0)return false;}
+    var prefs=DRAFT_VIEW_PREFS;
+    if(prefs.minAge!==''&&!isNaN(parseFloat(prefs.minAge))){
+      var a=parseInt(p.age);if(isNaN(a)||a<parseFloat(prefs.minAge))return false;
     }
-    if(DRAFT_VIEW_PREFS.maxAAV!==''&&!isNaN(parseFloat(DRAFT_VIEW_PREFS.maxAAV))){
-      if((p.aav||0)>parseFloat(DRAFT_VIEW_PREFS.maxAAV))return false;
+    if(prefs.maxAge!==''&&!isNaN(parseFloat(prefs.maxAge))){
+      var a2=parseInt(p.age);if(isNaN(a2)||a2>parseFloat(prefs.maxAge))return false;
+    }
+    if(prefs.minPts!==''&&!isNaN(parseFloat(prefs.minPts))){
+      if((p.pts||0)<parseFloat(prefs.minPts))return false;
+    }
+    if(prefs.maxAAV!==''&&!isNaN(parseFloat(prefs.maxAAV))){
+      if((p.aav||0)>parseFloat(prefs.maxAAV))return false;
+    }
+    if(prefs.hideARB){
+      var arbVal=ARB();
+      if(p.aav<=arbVal+0.01)return false;
     }
     return true;
   });
@@ -2721,22 +2741,19 @@ function renderDraftPool(){
     return;
   }
 
-  var prefs=DRAFT_VIEW_PREFS;
   el.innerHTML=pool.slice(0,300).map(function(p){
     var sk=slotCls(p.pos);
     var sourceTag='';
-    if(prefs.showSource){
-      if(p.source==='drop') sourceTag='<span class="spcard-tag drop" style="margin-left:.3rem;font-size:.5rem">DROP·'+(p.team||'')+'</span>';
-      else if(p.source==='unsigned') sourceTag='<span class="spcard-tag" style="margin-left:.3rem;font-size:.5rem;background:rgba(148,163,184,.15);color:#94a3b8;border:1px solid rgba(148,163,184,.25)">UNSIGNED·'+(p.team||'')+'</span>';
-    }
+    if(p.source==='drop') sourceTag='<span class="spcard-tag drop" style="margin-left:.3rem;font-size:.5rem">DROP·'+(p.team||'')+'</span>';
+    else if(p.source==='unsigned') sourceTag='<span class="spcard-tag" style="margin-left:.3rem;font-size:.5rem;background:rgba(148,163,184,.15);color:#94a3b8;border:1px solid rgba(148,163,184,.25)">UNSIGNED·'+(p.team||'')+'</span>';
     var metaParts=[];
-    if(prefs.showAge && p.age && p.age!='?') metaParts.push('Age '+p.age);
-    if(prefs.showMLB && p.mlbTeam) metaParts.push(p.mlbTeam);
-    if(prefs.showAAV) metaParts.push('$'+p.aav.toFixed(1)+'M');
-    if(prefs.showFA && p.fa && p.fa!='?') metaParts.push('FA '+p.fa);
+    if(p.age && p.age!='?') metaParts.push('Age '+p.age);
+    if(p.mlbTeam) metaParts.push(p.mlbTeam);
+    metaParts.push('$'+p.aav.toFixed(1)+'M');
+    if(p.fa && p.fa!='?') metaParts.push('FA '+p.fa);
     var meta=metaParts.join(' · ');
     var safeName=p.name.replace(/'/g,"\\'");
-    var rightCol=prefs.showPts ? '<div class="cr-right"><div class="cr-aav" style="color:#e8c84b">'+(p.pts?p.pts.toFixed(1):'—')+'</div><div class="cr-detail">ESPN Pts</div></div>' : '';
+    var rightCol='<div class="cr-right"><div class="cr-aav" style="color:#e8c84b">'+(p.pts?p.pts.toFixed(1):'—')+'</div><div class="cr-detail">ESPN Pts</div></div>';
     return '<div class="draft-player-card" onclick="openDraftConfirm(\''+safeName+'\')">'+
       '<div class="cr-slot-wrap"><span class="slot '+sk+'">'+p.pos+'</span></div>'+
       '<div class="cr-info">'+
@@ -3130,7 +3147,7 @@ function updateTradesDisplay(tn){
   section.id='tradesSection';
   section.innerHTML='<div class="trades-title-row">'+
     '<div class="trades-title">Salary Trades</div>'+
-    '<button class="trade-add-btn" onclick="requirePin(function(){openTradeModal(null,\''+tn.replace(/\'/g,"\\'")+'\');})">+ Add Trade</button>'+
+    '<button class="trade-add-btn" onclick="openTradeModal(null,\''+tn.replace(/\'/g,"\\'")+'\')">+ Add Trade</button>'+
     '</div>';
   if(!trades.length){
     section.innerHTML+='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.65rem;color:#6b7280;padding:.4rem 0;letter-spacing:.5px">No salary trades</div>';
@@ -3144,7 +3161,7 @@ function updateTradesDisplay(tn){
       var dirSign=isPayer?'+':'-';
       var totalAmt=amts.reduce(function(s,a){return s+(parseFloat(a.amount)||0);},0);
       var yearsStr=amts.map(function(a){return a.year+': $'+parseFloat(a.amount).toFixed(1)+'M';}).join(' · ');
-      section.innerHTML+='<div class="trade-card" onclick="requirePin(function(){openTradeModal(\''+t.id+'\',\''+tn.replace(/\'/g,"\\'")+'\');})">'+
+      section.innerHTML+='<div class="trade-card" onclick="openTradeModal(\''+t.id+'\',\''+tn.replace(/\'/g,"\\'")+'\')">'+
         '<div class="trade-card-top">'+
         '<div class="trade-card-dir">'+other+' '+dirIcon+'</div>'+
         '<div class="trade-card-direction '+dirCls+'">'+dirSign+'$'+totalAmt.toFixed(1)+'M</div>'+
@@ -3192,7 +3209,7 @@ function openTradeModal(tradeId, fromTeam){
     document.getElementById('tradeIsPayer').value='pay';
     document.getElementById('tradeAmount').value='';
     document.getElementById('tradeStartYear').value=CURRENT_SEASON;
-    document.getElementById('tradeYears').value=1;
+    document.getElementById('tradeYears').value='';
     document.getElementById('tradeNote').value='';
     _modalAmounts=[];
     document.getElementById('tradeDeleteBtn').style.display='none';
@@ -3369,6 +3386,24 @@ try{
   }
 }catch(e){}
 
+
+function resetDraftFilters(){
+  DRAFT_VIEW_PREFS = {
+    sortBy:'pts', sortDir:'desc',
+    minAge:'', maxAge:'', minPts:'', maxAAV:'',
+    hideARB:false, statsYear:'2025'
+  };
+  saveDraftViewPrefs();
+  // Update inputs visually
+  ['dvMinAge','dvMaxAge','dvMinPts','dvMaxAAV'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var ha=document.getElementById('dvHideARB');if(ha)ha.checked=false;
+  var sb=document.getElementById('dvSortBy');if(sb)sb.value='pts';
+  var sd=document.getElementById('dvSortDir');if(sd)sd.value='desc';
+  renderDraftPool();
+  showToast('✓ Filters reset','green',1500);
+}
+
+
 loadContracts();
 patchShowTeamForPenalty();
 patchUpdateTeamCells_v28();
@@ -3509,32 +3544,46 @@ if(hadCache){setTimeout(function(){refreshRosters(true);},1000);}else{refreshRos
       <button class="hdr-btn" onclick="toggleDraftViewMenu()" style="white-space:nowrap;padding:.4rem .65rem">⚙ View</button>
     </div>
     <div id="draftViewMenu" style="display:none;background:#111318;border:1px solid #252a35;border-radius:10px;padding:.85rem 1rem;margin:0 1rem .5rem">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:.5rem">My View (only you)</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem .8rem;margin-bottom:.6rem">
-        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#e2e8f0"><input type="checkbox" id="dvShowAge" onchange="setDraftViewPref('showAge',this.checked)"> Age</label>
-        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#e2e8f0"><input type="checkbox" id="dvShowAAV" onchange="setDraftViewPref('showAAV',this.checked)"> AAV</label>
-        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#e2e8f0"><input type="checkbox" id="dvShowFA" onchange="setDraftViewPref('showFA',this.checked)"> FA Year</label>
-        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#e2e8f0"><input type="checkbox" id="dvShowPts" onchange="setDraftViewPref('showPts',this.checked)"> ESPN Pts</label>
-        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#e2e8f0"><input type="checkbox" id="dvShowMLB" onchange="setDraftViewPref('showMLB',this.checked)"> MLB Team</label>
-        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#e2e8f0"><input type="checkbox" id="dvShowSource" onchange="setDraftViewPref('showSource',this.checked)"> Source Tag</label>
-      </div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:.5rem">My Filters (only you see this)</div>
+
+      <label class="field-label" style="margin-top:0">Sort By</label>
       <div style="display:flex;gap:.4rem;margin-bottom:.5rem">
         <select class="field-input" id="dvSortBy" onchange="setDraftViewPref('sortBy',this.value)" style="font-size:16px;flex:1">
-          <option value="pts">Sort: ESPN Pts</option>
-          <option value="aav">Sort: AAV</option>
-          <option value="age">Sort: Age</option>
-          <option value="name">Sort: Name</option>
-          <option value="pos">Sort: Position</option>
+          <option value="pts">ESPN Pts</option>
+          <option value="aav">AAV</option>
+          <option value="age">Age</option>
+          <option value="name">Name</option>
+          <option value="pos">Position</option>
         </select>
         <select class="field-input" id="dvSortDir" onchange="setDraftViewPref('sortDir',this.value)" style="font-size:16px;width:130px">
           <option value="desc">Highest first</option>
           <option value="asc">Lowest first</option>
         </select>
       </div>
-      <div style="display:flex;gap:.4rem">
-        <input type="number" class="field-input" id="dvMinPts" placeholder="Min Pts" oninput="setDraftViewPref('minPts',this.value)" style="font-size:16px;flex:1">
+
+      <label class="field-label">ESPN Stats Year</label>
+      <select class="field-input" id="dvStatsYear" onchange="setDraftViewPref('statsYear',this.value);if(typeof fetchFreeAgents===&quot;function&quot;){localStorage.removeItem(&quot;dyn26_v3_fa&quot;);FA_DATA=[];fetchFreeAgents();}" style="font-size:16px">
+        <option value="2025">2025 (last season)</option>
+        <option value="2026">2026 (current)</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+      </select>
+
+      <label class="field-label" style="margin-top:.85rem">Filter by Age</label>
+      <div style="display:flex;gap:.4rem;margin-bottom:.5rem">
+        <input type="number" class="field-input" id="dvMinAge" placeholder="Min age" oninput="setDraftViewPref('minAge',this.value)" style="font-size:16px;flex:1">
+        <input type="number" class="field-input" id="dvMaxAge" placeholder="Max age" oninput="setDraftViewPref('maxAge',this.value)" style="font-size:16px;flex:1">
+      </div>
+
+      <label class="field-label">Filter by ESPN Pts / AAV</label>
+      <div style="display:flex;gap:.4rem;margin-bottom:.5rem">
+        <input type="number" class="field-input" id="dvMinPts" placeholder="Min ESPN Pts" oninput="setDraftViewPref('minPts',this.value)" style="font-size:16px;flex:1">
         <input type="number" class="field-input" id="dvMaxAAV" placeholder="Max AAV $M" oninput="setDraftViewPref('maxAAV',this.value)" style="font-size:16px;flex:1">
       </div>
+
+      <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#e2e8f0;padding:.3rem 0"><input type="checkbox" id="dvHideARB" onchange="setDraftViewPref('hideARB',this.checked)"> Hide ARB players</label>
+
+      <button class="set-btn" onclick="resetDraftFilters()" style="width:100%;margin-top:.5rem;background:#181c24;border:1px solid #252a35">Reset Filters</button>
     </div>
 
     <div id="draftPoolSection">
@@ -3633,7 +3682,7 @@ if(hadCache){setTimeout(function(){refreshRosters(true);},1000);}else{refreshRos
         </div>
         <div style="flex:1">
           <label class="field-label">Years</label>
-          <input type="number" min="1" max="10" class="field-input" id="tradeYears" placeholder="1" oninput="recomputeTradeAmounts()" style="font-size:16px">
+          <input type="number" min="1" max="10" class="field-input" id="tradeYears" placeholder="# of years" oninput="recomputeTradeAmounts()" style="font-size:16px">
         </div>
       </div>
 
