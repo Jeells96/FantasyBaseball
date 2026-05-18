@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.9</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.10</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1769,19 +1769,19 @@ function fetchFreeAgents(){
 
   var statsYear=(typeof DRAFT_VIEW_PREFS!=='undefined' && DRAFT_VIEW_PREFS.statsYear)?String(DRAFT_VIEW_PREFS.statsYear):String(CURRENT_SEASON-1);
   var leagueSeason=String(CURRENT_SEASON);
-  var isProjection = (statsYear === leagueSeason); // current year = projections
-  var statSourceWanted = isProjection ? 1 : 0; // 0=actual, 1=projection
+  var isCurrent = (statsYear === leagueSeason);
 
   var q=loadQueries();
   var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+leagueSeason+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');
 
-  var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(statsYear)]},filterStatsForSourceIds:{value:[statSourceWanted]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+statsYear},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+statsYear]},limit:3000}};
+  // Request both years and both source types so we have everything; pick the right slice below
+  var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(leagueSeason),parseInt(leagueSeason)-1]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+statsYear},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+statsYear]},limit:3000}};
 
   var filterText=(q.fa&&q.fa.value)?q.fa.value:'';
   var filterMatch=filterText.match(/\{[\s\S]*"players"[\s\S]*\}/);
   if(filterMatch){try{filterObj=JSON.parse(filterMatch[0]);}catch(e){}}
 
-  console.log('[FA] statsYear:',statsYear,'sourceId:',statSourceWanted,'(0=actual,1=proj)');
+  console.log('[FA] statsYear:',statsYear,'isCurrent:',isCurrent);
 
   fetch(url,{headers:{'X-Fantasy-Filter':JSON.stringify(filterObj)}})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
@@ -1795,21 +1795,41 @@ function fetchFreeAgents(){
         var p=entry.player||{};
         var stats=p.stats||[];
         var pts=null, avg=null;
-        // Look for matching year + source
-        stats.forEach(function(s){
-          if(s.seasonId!==parseInt(statsYear))return;
-          if(s.statSourceId!==statSourceWanted)return;
-          if(typeof s.appliedTotal==='number' && (pts===null || s.appliedTotal>pts))pts=s.appliedTotal;
-          if(typeof s.appliedAverage==='number' && (avg===null || s.appliedAverage>avg))avg=s.appliedAverage;
-        });
-        // Fallback: any source for that year
-        if(pts===null){
-          stats.forEach(function(s){
-            if(s.seasonId!==parseInt(statsYear))return;
-            if(typeof s.appliedTotal==='number' && (pts===null || s.appliedTotal>pts))pts=s.appliedTotal;
-            if(typeof s.appliedAverage==='number' && (avg===null || s.appliedAverage>avg))avg=s.appliedAverage;
-          });
+
+        if(isCurrent){
+          // Current year: try statSourceId=1 (projection) first, then 0, then any with matching year, then anything
+          var seasons=[parseInt(statsYear), parseInt(statsYear)-1];
+          var srcOrder=[1,0];
+          outer1:
+          for(var si=0; si<seasons.length; si++){
+            for(var so=0; so<srcOrder.length; so++){
+              for(var i=0;i<stats.length;i++){
+                var s=stats[i];
+                if(s.seasonId===seasons[si] && s.statSourceId===srcOrder[so]){
+                  if(typeof s.appliedTotal==='number' && s.appliedTotal>0){pts=s.appliedTotal;avg=(typeof s.appliedAverage==='number')?s.appliedAverage:null;break outer1;}
+                }
+              }
+            }
+          }
+        } else {
+          // Past year: strict statSourceId=0 (actual), seasonId=statsYear
+          for(var i=0;i<stats.length;i++){
+            var s=stats[i];
+            if(s.seasonId===parseInt(statsYear) && s.statSourceId===0){
+              if(typeof s.appliedTotal==='number'){pts=s.appliedTotal;avg=(typeof s.appliedAverage==='number')?s.appliedAverage:null;break;}
+            }
+          }
+          // Fallback: any source for that year
+          if(pts===null){
+            for(var i=0;i<stats.length;i++){
+              var s=stats[i];
+              if(s.seasonId===parseInt(statsYear)){
+                if(typeof s.appliedTotal==='number'){pts=s.appliedTotal;avg=(typeof s.appliedAverage==='number')?s.appliedAverage:null;break;}
+              }
+            }
+          }
         }
+
         var name=p.fullName||'Unknown';
         var eligibleIds=p.eligibleSlots||[];
         var ELIG_MAP={0:'C',1:'1B',2:'2B',3:'3B',4:'SS',5:'OF',8:'OF',9:'OF',10:'OF',14:'SP',15:'RP'};
@@ -1829,7 +1849,7 @@ function fetchFreeAgents(){
       try{localStorage.setItem(LS_FA,JSON.stringify(FA_DATA));}catch(e){}
       renderFA();
       var withPts=FA_DATA.filter(function(p){return p.TotalPoints!==null && p.TotalPoints>0;}).length;
-      showToast('✓ '+FA_DATA.length+' FAs ('+withPts+' with '+statsYear+(isProjection?' proj':' stats')+')','green',2200);
+      showToast('✓ '+FA_DATA.length+' FAs ('+withPts+' with '+statsYear+')','green',2200);
       FA_FETCHING=false;
     })
     .catch(function(err){
@@ -3873,8 +3893,8 @@ setInterval(function(){
 
       <label class="field-label">ESPN Stats Year</label>
       <select class="field-input" id="dvStatsYear" onchange="changeStatsYear(this.value)" style="font-size:16px">
-        <option value="2025">2025 actual</option>
-        <option value="2026">2026 projection</option>
+        <option value="2025">2025 (last season)</option>
+        <option value="2026">2026 (current)</option>
       </select>
 
       <label class="field-label" style="margin-top:.85rem">Filter by Age</label>
