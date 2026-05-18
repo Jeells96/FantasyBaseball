@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.11</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.12</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -3868,8 +3868,11 @@ setInterval(function(){
       </div>
 
       <label class="field-label">ESPN Stats Year</label>
-      <input type="number" class="field-input" id="dvStatsYear" placeholder="e.g. 2025" onchange="changeStatsYear(this.value)" style="font-size:16px" min="2020" max="2030">
-      <div style="font-size:.62rem;color:#6b7280;margin-top:.2rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px">Enter the year of stats to fetch (default 2025)</div>
+      <div style="display:flex;gap:.4rem">
+        <input type="number" class="field-input" id="dvStatsYear" placeholder="e.g. 2025" style="font-size:16px;flex:1" min="2020" max="2030">
+        <button class="set-btn" onclick="changeStatsYear(document.getElementById('dvStatsYear').value)" style="padding:.5rem .85rem;background:rgba(232,200,75,.1);border:1px solid rgba(232,200,75,.3);color:#e8c84b;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px">Apply</button>
+      </div>
+      <div style="font-size:.62rem;color:#6b7280;margin-top:.2rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px">Type year, then tap Apply</div>
 
       <label class="field-label" style="margin-top:.85rem">Filter by Age</label>
       <div style="display:flex;gap:.4rem;margin-bottom:.5rem">
