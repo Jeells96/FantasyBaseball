@@ -3537,27 +3537,23 @@ window.addEventListener('v28-frozenChanged', function(e){
   if(document.getElementById('freezeRostersToggle'))loadFreezeRostersUI();
 });
 
-// V28.5: Attach state to window so module-scoped Firebase listeners can read them
-window.DRAFT_SETTINGS = DRAFT_SETTINGS;
-window.DRAFT_PICKS = DRAFT_PICKS;
-window.NTA_LIST = NTA_LIST;
-window.DEAD_CAP = DEAD_CAP;
-window.TRADES = TRADES;
-window.CONTRACTS_LOCKED = CONTRACTS_LOCKED;
-window.ROSTERS_FROZEN = ROSTERS_FROZEN;
-window.applyDraftTabsVisibility = applyDraftTabsVisibility;
-window.applyContractsLockUI = applyContractsLockUI;
-window.loadContractsLockUI = loadContractsLockUI;
-window.loadFreezeRostersUI = loadFreezeRostersUI;
-window.buildDraftPage = (typeof buildDraftPage!=='undefined') ? buildDraftPage : null;
-window.renderNTA = (typeof renderNTA!=='undefined') ? renderNTA : null;
-window.updateDeadCapDisplay = (typeof updateDeadCapDisplay!=='undefined') ? updateDeadCapDisplay : null;
-window.updateTradesDisplay = (typeof updateTradesDisplay!=='undefined') ? updateTradesDisplay : null;
-window.renderLeague = renderLeague;
-window.updateTeamCells = updateTeamCells;
-window.showToast = showToast;
-Object.defineProperty(window,'currentTeam',{get:function(){return currentTeam;},configurable:true});
-Object.defineProperty(window,'teamBuilt',{get:function(){return teamBuilt;},configurable:true});
+// V28.5: Attach state to window — wrapped in try/catch so any missing ref doesn't break init
+try { window.DRAFT_SETTINGS = (typeof DRAFT_SETTINGS!=='undefined')?DRAFT_SETTINGS:{}; } catch(e){}
+try { window.DRAFT_PICKS = (typeof DRAFT_PICKS!=='undefined')?DRAFT_PICKS:[]; } catch(e){}
+try { window.NTA_LIST = (typeof NTA_LIST!=='undefined')?NTA_LIST:[]; } catch(e){}
+try { window.DEAD_CAP = (typeof DEAD_CAP!=='undefined')?DEAD_CAP:{}; } catch(e){}
+try { window.TRADES = (typeof TRADES!=='undefined')?TRADES:[]; } catch(e){}
+try { window.CONTRACTS_LOCKED = (typeof CONTRACTS_LOCKED!=='undefined')?CONTRACTS_LOCKED:false; } catch(e){}
+try { window.ROSTERS_FROZEN = (typeof ROSTERS_FROZEN!=='undefined')?ROSTERS_FROZEN:false; } catch(e){}
+try { window.applyDraftTabsVisibility = applyDraftTabsVisibility; } catch(e){}
+try { window.applyContractsLockUI = applyContractsLockUI; } catch(e){}
+try { window.loadContractsLockUI = loadContractsLockUI; } catch(e){}
+try { window.loadFreezeRostersUI = loadFreezeRostersUI; } catch(e){}
+try { window.updateDeadCapDisplay = updateDeadCapDisplay; } catch(e){}
+try { window.updateTradesDisplay = updateTradesDisplay; } catch(e){}
+try { window.renderLeague = renderLeague; } catch(e){}
+try { window.updateTeamCells = updateTeamCells; } catch(e){}
+try { window.showToast = showToast; } catch(e){}
 
 loadContracts();
 patchShowTeamForPenalty();
