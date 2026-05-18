@@ -812,7 +812,7 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.3.7</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.3.9</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1696,12 +1696,12 @@ var dbSort={col:'aav',dir:-1};
 function sortDB(col){dbSort=dbSort.col===col?{col:col,dir:dbSort.dir*-1}:{col:col,dir:(col==='name'||col==='pos'||col==='team')?1:-1};renderDB();}
 function renderDB(){var q=(document.getElementById('dbSearch').value||'').toLowerCase();var pos=document.getElementById('dbPos').value;var team=document.getElementById('dbTeam').value;var exp=document.getElementById('dbExp').value;var data=SAL.filter(function(p){if(q&&!p.name.toLowerCase().includes(q))return false;if(pos&&p.pos!==pos)return false;if(team&&p.team!==team)return false;if(exp){var ex=parseInt(p.expires)||0;if(exp==='2031+'){if(ex<2031)return false;}else if(p.expires!==exp)return false;}return true;});var col=dbSort.col,dir=dbSort.dir;data.sort(function(a,b){var av=a[col]||'',bv=b[col]||'';if(col==='aav'){return((av==='ARB'?ARB():parseFloat(av)||0)-(bv==='ARB'?ARB():parseFloat(bv)||0))*dir;}var an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return(an-bn)*dir;return av.toString().localeCompare(bv.toString())*dir;});document.getElementById('dbCnt').textContent=data.length+' contracts';document.querySelectorAll('.dbt th').forEach(function(th){th.classList.remove('srt');var ar=th.querySelector('.sar');if(ar)ar.innerHTML='&#8645;';});var sh=document.querySelector('.dbt th[data-col="'+col+'"]');if(sh){sh.classList.add('srt');var ar=sh.querySelector('.sar');if(ar)ar.innerHTML=dir===1?'&#8593;':'&#8595;';}var tbody=document.getElementById('dbBody');if(!data.length){tbody.innerHTML='<tr><td colspan="8" class="no-res">No contracts found</td></tr>';return;}tbody.innerHTML=data.slice(0,300).map(function(p){var n=p.aav==='ARB'?ARB():parseFloat(p.aav)||0,isA=p.aav==='ARB';return '<tr><td style="color:var(--brt);font-weight:500">'+p.name+(isA?'<span class="arb-tag">ARB</span>':'')+'</td><td><span class="ptag">'+(p.pos||'\u2014')+'</span></td><td style="color:var(--dim)">'+(p.team||'\u2014')+'</td><td>'+(p.age||'\u2014')+'</td><td>'+(p.signed||'\u2014')+'</td><td style="color:'+(parseInt(p.expires)<=2026?'var(--dim)':'var(--txt)')+'">'+( p.expires||'\u2014')+'</td><td>'+(p.years||'\u2014')+'</td><td style="color:'+(isA?'var(--acc)':'var(--brt)')+';font-weight:500">'+(isA?'ARB ($'+ARB().toFixed(2)+'M)':'$'+n.toFixed(2)+'M')+'</td></tr>';}).join('');if(data.length>300)tbody.innerHTML+='<tr><td colspan="8" style="text-align:center;padding:1rem;color:var(--dim);font-size:.7rem">Showing 300 of '+data.length+'</td></tr>';}
 var FA_DATA=[];var FA_SORT={col:'TotalPoints',dir:-1};var FA_FETCHING=false;var LS_FA='dyn26_v3_fa';
-var POS_MAP={1:'SP',2:'C',3:'1B',4:'2B',5:'3B',6:'SS',7:'LF',8:'CF',9:'RF',10:'DH',11:'OF',14:'RP',15:'P'};
+var POS_MAP={1:'SP',2:'C',3:'1B',4:'2B',5:'3B',6:'SS',7:'OF',8:'OF',9:'OF',10:'OF',11:'OF',14:'RP',15:'P'};
 function fetchFreeAgents(){if(FA_FETCHING)return;FA_FETCHING=true;document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">&#8635; Fetching\u2026</td></tr>';var season='2026';var q=loadQueries();var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+season+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(season)]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+season},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+season]},limit:3000}};var filterText=(q.fa&&q.fa.value)?q.fa.value:'';var filterMatch=filterText.match(/\{[\s\S]*"players"[\s\S]*\}/);if(filterMatch){try{filterObj=JSON.parse(filterMatch[0]);}catch(e){}}fetch(url,{headers:{'X-Fantasy-Filter':JSON.stringify(filterObj)}}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){var players=data.players||[];FA_DATA=players.map(function(entry){var p=entry.player||{};var stats=p.stats||[];var totals=stats.map(function(s){return typeof s.appliedTotal==='number'?s.appliedTotal:null;}).filter(function(v){return v!==null;});var pts=totals.length?Math.max.apply(null,totals):null;var name=p.fullName||'Unknown';var eligibleIds=p.eligibleSlots||[];
       // Map ESPN MLB lineupSlot IDs to position abbreviations
       // 0=C, 1=1B, 2=2B, 3=3B, 4=SS, 5=OF, 8=LF, 9=CF, 10=RF, 11=DH, 14=SP, 15=RP
       // Skip: 6 (2B/SS combo), 7 (1B/3B combo), 12 (UTIL), 13 (P generic), 16 (BE), 17 (IL), 19 (IF)
-      var ELIG_MAP={0:'C',1:'1B',2:'2B',3:'3B',4:'SS',5:'OF',8:'LF',9:'CF',10:'RF',11:'DH',14:'SP',15:'RP'};
+      var ELIG_MAP={0:'C',1:'1B',2:'2B',3:'3B',4:'SS',5:'OF',8:'OF',9:'OF',10:'OF',14:'SP',15:'RP'};
       var posList=[];
       eligibleIds.forEach(function(s){var ab=ELIG_MAP[s];if(ab&&posList.indexOf(ab)<0)posList.push(ab);});
       if(!posList.length){var d=POS_MAP[p.defaultPositionId];if(d)posList.push(d);}
@@ -3361,18 +3361,23 @@ function setDraftView(view){
 
 // V28.3.4: Clear stale FA cache so positions reload with fixed POS_MAP
 try{
-  if(!localStorage.getItem('dyn28_pos_map_fix_v5')){
+  if(!localStorage.getItem('dyn28_pos_map_fix_v6')){
     localStorage.removeItem('dyn26_v3_fa');
     localStorage.removeItem('dyn26_v3_fa_time');
     if(typeof FA_DATA!=='undefined')FA_DATA=[];
-    localStorage.setItem('dyn28_pos_map_fix_v5','1');
+    localStorage.setItem('dyn28_pos_map_fix_v6','1');
   }
 }catch(e){}
 
 loadContracts();
 patchShowTeamForPenalty();
 patchUpdateTeamCells_v28();
+if(typeof patchSetCForLock==='function')patchSetCForLock();
+if(typeof patchShowTeamForV283==='function')patchShowTeamForV283();
+if(typeof patchUpdateCellsForV283==='function')patchUpdateCellsForV283();
+if(typeof saveRosterSnapshot==='function')saveRosterSnapshot();
 applyDraftTabsVisibility();
+if(window.startDraftListeners)setTimeout(window.startDraftListeners,1500);
 try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){JSON.parse(cs).forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});}}catch(e){}
 try{var ao=JSON.parse(localStorage.getItem('dyn26_aav_overrides')||'{}');Object.keys(ao).forEach(function(n){AAV_DB[n]=ao[n];if(SAL_MAP[n])SAL_MAP[n].aav=ao[n];SAL.forEach(function(p){if(p.name===n)p.aav=ao[n];});Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n)p.aav=ao[n];});});});}catch(e){}
 // Load saved ARB player info
