@@ -781,15 +781,30 @@ window.startDraftListeners = function(){
     }catch(e){}}
   });
   onSnapshot(doc(db,'league','draftSettings'),function(snap){
-    if(snap.exists()){try{
-      var s=JSON.parse(snap.data().data);
-      if(JSON.stringify(s)===JSON.stringify(window.DRAFT_SETTINGS))return;
-      window.DRAFT_SETTINGS=s;
-      localStorage.setItem('dyn27_draft_settings',JSON.stringify(s));
-      window.dispatchEvent(new CustomEvent("v28-draftSettingsChanged",{detail:s}));
-      var pd=document.getElementById('page-draft');
-      if(pd&&pd.classList.contains('active')&&typeof window.buildDraftPage==="function")window.buildDraftPage();
-    }catch(e){}}
+    console.log('[FB] draftSettings snapshot fired, exists:',snap.exists());
+    if(snap.exists()){
+      try{
+        var s=JSON.parse(snap.data().data);
+        console.log('[FB] draftSettings received:',s);
+        if(JSON.stringify(s)===JSON.stringify(window.DRAFT_SETTINGS)){
+          console.log('[FB] same as local, skipping');
+          return;
+        }
+        console.log('[FB] applying new draftSettings');
+        window.DRAFT_SETTINGS=s;
+        localStorage.setItem('dyn27_draft_settings',JSON.stringify(s));
+        window.dispatchEvent(new CustomEvent("v28-draftSettingsChanged",{detail:s}));
+        if(typeof window.applyDraftTabsVisibility==="function"){
+          console.log('[FB] calling applyDraftTabsVisibility from listener');
+          window.applyDraftTabsVisibility();
+        }
+        if(typeof window.showToast==="function"){
+          window.showToast('↻ Draft '+(s.enabled?'shown':'hidden')+' from sync','green',2000);
+        }
+        var pd=document.getElementById('page-draft');
+        if(pd&&pd.classList.contains('active')&&typeof window.buildDraftPage==="function")window.buildDraftPage();
+      }catch(e){console.error('[FB] draftSettings error:',e);}
+    }
   });
   onSnapshot(doc(db,'league','draftPicks'),function(snap){
     if(snap.exists()){try{
@@ -2443,14 +2458,20 @@ function saveDraftSettings(){
 }
 
 function toggleDraftEnabled(on){
+  console.log('[toggleDraftEnabled] on=',on);
   DRAFT_SETTINGS.enabled=on;
   if(!DRAFT_SETTINGS.order||!DRAFT_SETTINGS.order.length){
     DRAFT_SETTINGS.order=Object.keys(TEAMS_CONFIG);
   }
+  window.DRAFT_SETTINGS = DRAFT_SETTINGS;
   localStorage.setItem('dyn27_draft_settings',JSON.stringify(DRAFT_SETTINGS));
   if(window.saveDraftSettingsCloud){
+    console.log('[toggleDraftEnabled] calling saveDraftSettingsCloud');
     window.saveDraftSettingsCloud(DRAFT_SETTINGS);
     showToast(on?'✓ Draft enabled for everyone':'✓ Draft disabled','green',1500);
+  } else {
+    console.error('[toggleDraftEnabled] saveDraftSettingsCloud is NOT defined!');
+    showToast('⚠ Cloud save unavailable','red',2000);
   }
   applyDraftTabsVisibility();
   document.getElementById('draftSettingsBody').style.display=on?'block':'none';
@@ -2465,7 +2486,10 @@ function applyDraftTabsVisibility(){
   var draftBtn=document.getElementById('nav-draft');
   var ntaBtn=document.getElementById('nav-nta');
   var grid=document.getElementById('navGrid');
-  if(DRAFT_SETTINGS.enabled){
+  // Read from window in case listener updated window.DRAFT_SETTINGS but local var is stale
+  var settings = window.DRAFT_SETTINGS || DRAFT_SETTINGS || {enabled:false};
+  console.log('[applyDraftTabsVisibility] enabled=',settings.enabled);
+  if(settings.enabled){
     if(draftBtn)draftBtn.style.display='';
     if(ntaBtn)ntaBtn.style.display='';
     if(grid)grid.classList.add('nav-grid-6');
