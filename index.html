@@ -812,7 +812,7 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.3.2</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.3.3</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -2608,10 +2608,10 @@ function showDraft(){
 function buildDraftPage(){
   var p=DRAFT_VIEW_PREFS;
   var setChk=function(id,v){var el=document.getElementById(id);if(el)el.checked=!!v;};
-  setChk('dvShowAge',p.showAge);setChk('dvShowAAV',p.showAAV);setChk('dvShowFA',p.showFA);
-  setChk('dvShowPts',p.showPts);setChk('dvShowMLB',p.showMLB);setChk('dvShowSource',p.showSource);
+  setChk('dvHideARB',p.hideARB);
   var setV=function(id,v){var el=document.getElementById(id);if(el)el.value=v||'';};
   setV('dvSortBy',p.sortBy||'pts');setV('dvSortDir',p.sortDir||'desc');
+  setV('dvMinAge',p.minAge||'');setV('dvMaxAge',p.maxAge||'');
   setV('dvMinPts',p.minPts||'');setV('dvMaxAAV',p.maxAAV||'');
   var assigns=getDraftPickAssignments();
   var curIdx=getCurrentPickIndex();
@@ -2620,14 +2620,17 @@ function buildDraftPage(){
   var pickCount=document.getElementById('draftPickCount');
 
   if(curIdx<0){
-    oc.textContent='Draft Complete';
-    meta.textContent=DRAFT_PICKS.length+' picks made';
-  } else {
+    if(oc)oc.textContent='Draft Complete';
+    if(meta)meta.textContent=DRAFT_PICKS.length+' picks made';
+  } else if(assigns.length){
     var cur=assigns[curIdx];
-    oc.textContent=cur.team;
-    meta.textContent='Round '+cur.round+' · Pick '+cur.pickNum;
+    if(oc)oc.textContent=cur.team;
+    if(meta)meta.textContent='Round '+cur.round+' · Pick '+cur.pickNum;
+  } else {
+    if(oc)oc.textContent='Set draft order';
+    if(meta)meta.textContent='Open Settings → Draft Room';
   }
-  pickCount.textContent=DRAFT_PICKS.length+' picks made';
+  if(pickCount)pickCount.textContent=DRAFT_PICKS.length+' picks made';
 
   renderDraftOrderStrip();
   renderDraftPool();
@@ -2635,9 +2638,13 @@ function buildDraftPage(){
 }
 
 var DRAFT_VIEW_PREFS = JSON.parse(localStorage.getItem('dyn28_draft_view_prefs')||'null') || {
-  showAge:true, showAAV:true, showFA:true, showPts:true, showMLB:false, showSource:true,
-  sortBy:'pts', sortDir:'desc', minPts:'', maxAAV:''
+  sortBy:'pts', sortDir:'desc',
+  minAge:'', maxAge:'', minPts:'', maxAAV:'',
+  hideARB:false
 };
+if(typeof DRAFT_VIEW_PREFS.minAge==='undefined')DRAFT_VIEW_PREFS.minAge='';
+if(typeof DRAFT_VIEW_PREFS.maxAge==='undefined')DRAFT_VIEW_PREFS.maxAge='';
+if(typeof DRAFT_VIEW_PREFS.hideARB==='undefined')DRAFT_VIEW_PREFS.hideARB=false;
 
 function saveDraftViewPrefs(){
   localStorage.setItem('dyn28_draft_view_prefs',JSON.stringify(DRAFT_VIEW_PREFS));
