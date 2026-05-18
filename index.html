@@ -644,6 +644,13 @@ input,select,textarea,input[type="text"],input[type="number"],input[type="email"
 .dql-btn:active{opacity:.7}
 .dql-btn.dql-active{background:rgba(232,200,75,.1);border-color:rgba(232,200,75,.3);color:#e8c84b}
 
+
+/* V28.4: Simple view bigger position badge */
+.spcard .slot{font-size:.85rem!important;padding:.4rem .55rem!important;min-width:42px!important;text-align:center!important;line-height:1!important;font-weight:700!important;border-radius:8px!important;height:34px;display:-webkit-inline-flex!important;display:inline-flex!important;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center}
+.spcard .spcard-slot{min-width:48px}
+
+/* V28.4: ARB visual distinction in projection table */
+.arb-marker{display:inline-block;background:rgba(75,143,232,.15);color:#4b8fe8;border:1px solid rgba(75,143,232,.3);font-family:"Barlow Condensed",sans-serif;font-size:.5rem;font-weight:700;letter-spacing:.5px;padding:0 .25rem;border-radius:3px;margin-left:.2rem;vertical-align:middle}
 </style>
 <!-- Firebase SDK -->
 <script type="module">
@@ -947,12 +954,12 @@ window.startContractsListener = function(callback) {
       <select class="fa-sel" id="faPos" onchange="renderFA()">
         <option value="">All Positions</option>
         <option>C</option><option>1B</option><option>2B</option><option>3B</option>
-        <option>SS</option><option>OF</option><option>SP</option><option>RP</option><option>DH</option>
+        <option>SS</option><option>OF</option><option>SP</option><option>RP</option>
       </select>
       <select class="fa-sel" id="faStatus" onchange="renderFA()">
-        <option value="">FA &amp; Waivers</option>
-        <option value="FREEAGENT">Free Agents</option>
-        <option value="WAIVERS">Waivers</option>
+        <option value="">FA &amp; ARB</option>
+        <option value="FA">FA Only</option>
+        <option value="ARB">ARB Only</option>
       </select>
       <input type="number" class="fa-search" id="faMaxSal" placeholder="Max AAV ($M)" oninput="renderFA()" min="0" step="0.5" style="width:130px">
       <button class="fa-fetch-btn" onclick="fetchFreeAgents()">&#8635; Refresh</button>
@@ -1322,7 +1329,7 @@ function showFA(){
   }
 }
 function _origShowSettings(){showPage('settings');setNav('nav-settings');buildTeamQueryCards();updateQueryPreviews();updateSalDbStatus();updateSeasonUI();}
-function showSettings(){requirePin(function(){_origShowSettings();setTimeout(function(){loadPenaltyFields();loadDraftSettings();loadContractsLockUI();},0);});}
+function showSettings(){requirePin(function(){_origShowSettings();setTimeout(function(){loadPenaltyFields();loadDraftSettings();loadContractsLockUI();loadFreezeRostersUI();},0);});}
 
 function showTeam(tn){currentTeam=tn;showPage('team');setNav(null);buildTeamTable(tn);updateTeamCells(tn);setTimeout(applyTableFont,0);}
 function updateSeasonUI(){
@@ -1431,7 +1438,7 @@ function buildTeamTable(tn){
 function onC(tn,i){if(isCarried(tn,i))return;var inp=document.getElementById('ci-'+tn+'-'+i);if(!inp||inp.tagName!=='INPUT')return;setC(tn,i,inp.value);updateTeamCells(tn);renderLeague();}
 function updateTeamCells(tn){
   var players=ROSTER[tn]||[];var totals=teamTotals(tn);var caps=YRS.map(function(_,yi){return capY(yi);});
-  players.forEach(function(p,i){playerSals(tn,p,i).forEach(function(s,yi){var cell=document.getElementById('y-'+tn+'-'+i+'-'+yi);if(!cell)return;if(s===null){cell.className='yval muted';cell.style.textAlign='center';cell.style.color='#252a35';cell.innerHTML='&mdash;';}else{cell.className='yval'+(yi===0?' cur':'');cell.style.textAlign='center';cell.style.color=yi===0?'#f0f2f6':'#8b95a3';cell.innerHTML=fs(s);}});});
+  players.forEach(function(p,i){var isArbP=isArbPlayer(p);playerSals(tn,p,i).forEach(function(s,yi){var cell=document.getElementById('y-'+tn+'-'+i+'-'+yi);if(!cell)return;if(s===null){cell.className='yval muted';cell.style.textAlign='center';cell.style.color='#252a35';cell.innerHTML='&mdash;';}else{cell.className='yval'+(yi===0?' cur':'');cell.style.textAlign='center';cell.style.color=isArbP?'#4b8fe8':(yi===0?'#f0f2f6':'#8b95a3');cell.style.fontStyle=isArbP?'italic':'';cell.innerHTML=fs(s)+(isArbP?'<span class="arb-marker">ARB</span>':'');}});});
   totals.forEach(function(t,yi){var over=t>caps[yi];var tt=document.getElementById('tt-'+tn+'-'+yi);if(tt){tt.style.color=t>0?(over?'#e84b4b':'#f0f2f6'):'#252a35';tt.style.fontWeight='400';tt.style.textAlign='center';tt.style.fontSize='.30rem';tt.innerHTML=t>0?fsN(t):'&mdash;';}var tp=document.getElementById('tp-'+tn+'-'+yi);if(tp){var pct=caps[yi]>0?(t/caps[yi]*100):0;tp.style.color=over?'#e84b4b':'#6b7280';tp.style.fontSize='.30rem';tp.style.textAlign='center';tp.textContent=t>0?pct.toFixed(1)+'%':'&mdash;';}});
   var sal=totals[0],cap=getBaseCap(),over=sal>cap,space=cap-sal,pct=(sal/cap)*100;var bc=over?'var(--red)':pct>90?'#f97316':'var(--grn)';
   var ts=document.getElementById('teamStats');if(ts)ts.innerHTML='<div class="stat-blk"><div class="stat-lbl">'+CURRENT_SEASON+' Salary</div><div class="stat-val" style="color:'+(over?'var(--red)':'var(--brt)')+'">'+fs(sal)+'</div></div><div class="stat-blk"><div class="stat-lbl">Cap Space</div><div class="stat-val" style="color:'+(over?'var(--red)':'var(--grn)')+'">'+(over?'-':'+')+''+fs(Math.abs(space))+'</div></div><div class="stat-blk"><div class="stat-lbl">Cap %</div><div class="stat-val" style="color:'+(over?'var(--red)':'var(--brt)')+'">'+pct.toFixed(1)+'%</div></div>';
@@ -1718,7 +1725,7 @@ function fetchFreeAgents(){if(FA_FETCHING)return;FA_FETCHING=true;document.getEl
       if(window._fa_dbg<3){console.log('[FA pos debug]',name,'defaultPositionId:',p.defaultPositionId,'eligibleSlots:',JSON.stringify(p.eligibleSlots),'->',posStr);window._fa_dbg++;}
       return{Player:name,Position:posStr,Positions:posList,Availability:entry.status||'FREEAGENT',TotalPoints:pts,AAV:AAV_DB[name]||null};}).filter(function(p){return p.Player!=='Unknown';});try{localStorage.setItem(LS_FA,JSON.stringify(FA_DATA));}catch(e){}renderFA();showToast('\u2713 '+FA_DATA.length+' free agents loaded','green',2500);}).catch(function(err){document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading" style="color:var(--red)">Failed: '+err.message+'</td></tr>';showToast('Failed to load free agents','red',3000);}).finally(function(){FA_FETCHING=false;});}
 function sortFA(col){FA_SORT=FA_SORT.col===col?{col:col,dir:FA_SORT.dir*-1}:{col:col,dir:(col==='TotalPoints'||col==='AAV')?-1:1};renderFA();}
-function renderFA(){var q=(document.getElementById('faSearch').value||'').toLowerCase();var pos=document.getElementById('faPos').value;var status=document.getElementById('faStatus').value;var maxSalEl=document.getElementById('faMaxSal');var maxSal=maxSalEl&&maxSalEl.value?parseFloat(maxSalEl.value):null;var data=FA_DATA.filter(function(p){if(q&&!p.Player.toLowerCase().includes(q))return false;if(pos){if(pos==='OF'){if(!['OF','LF','CF','RF'].includes(p.Position))return false;}else if(p.Position!==pos)return false;}if(status){
+function renderFA(){var q=(document.getElementById('faSearch').value||'').toLowerCase();var pos=document.getElementById('faPos').value;var status=document.getElementById('faStatus').value;var maxSalEl=document.getElementById('faMaxSal');var maxSal=maxSalEl&&maxSalEl.value?parseFloat(maxSalEl.value):null;var data=FA_DATA.filter(function(p){if(q&&!p.Player.toLowerCase().includes(q))return false;if(pos){if(pos==='OF'){if(p.Position.indexOf('OF')<0)return false;}else if(p.Position.indexOf(pos)<0)return false;}if(status){
       var aavRaw=p.AAV!==undefined&&p.AAV!==null?p.AAV:AAV_DB[p.Player];
       var isArbP=(!aavRaw||aavRaw==='ARB'||aavRaw==='?'||isNaN(parseFloat(aavRaw)));
       if(status==='ARB'&&!isArbP)return false;
@@ -3401,6 +3408,48 @@ function resetDraftFilters(){
   var sd=document.getElementById('dvSortDir');if(sd)sd.value='desc';
   renderDraftPool();
   showToast('✓ Filters reset','green',1500);
+}
+
+
+
+// V28.4: Freeze Rosters
+var ROSTERS_FROZEN = localStorage.getItem('dyn28_rosters_frozen')==='true';
+
+function toggleFreezeRosters(on){
+  ROSTERS_FROZEN=on;
+  localStorage.setItem('dyn28_rosters_frozen',String(on));
+  if(window.saveRostersFrozenCloud)window.saveRostersFrozenCloud(on);
+  var slider=document.querySelector('#freezeRostersToggle + .toggle-slider');
+  if(slider){
+    if(on){slider.style.background='#e8c84b';slider.style.borderColor='#e8c84b';}
+    else{slider.style.background='#252a35';slider.style.borderColor='#1e2433';}
+  }
+  showToast(on?'✓ Rosters frozen — ESPN sync paused':'✓ Rosters unfrozen','green',1800);
+}
+
+function loadFreezeRostersUI(){
+  var t=document.getElementById('freezeRostersToggle');
+  if(t){
+    t.checked=ROSTERS_FROZEN;
+    var slider=document.querySelector('#freezeRostersToggle + .toggle-slider');
+    if(slider){
+      if(ROSTERS_FROZEN){slider.style.background='#e8c84b';slider.style.borderColor='#e8c84b';}
+      else{slider.style.background='#252a35';slider.style.borderColor='#1e2433';}
+    }
+  }
+}
+
+var _origRefreshRosters_v284=null;
+function patchRefreshRostersForFreeze(){
+  if(_origRefreshRosters_v284)return;
+  _origRefreshRosters_v284=refreshRosters;
+  refreshRosters=function(silent){
+    if(ROSTERS_FROZEN){
+      if(!silent)showToast('❄ Rosters frozen — unfreeze in Settings','yellow',2500);
+      return;
+    }
+    return _origRefreshRosters_v284(silent);
+  };
 }
 
 
