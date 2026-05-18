@@ -722,8 +722,15 @@ window.saveContractsLockedCloud = async function(locked){
   try{await setDoc(doc(db,'league','contractsLocked'),{data:String(locked),updated:new Date().toISOString()});}catch(e){console.warn(e);}
 };
 window.saveDraftSettingsCloud = async function(s){
-  if(!window._db) return;
-  try{await setDoc(doc(db,'league','draftSettings'),{data:JSON.stringify(s),updated:new Date().toISOString()});}catch(e){console.warn(e);}
+  if(!window._db) { console.error('[save] _db not ready'); return; }
+  try{
+    console.log('[save] writing draftSettings to Firebase:',s);
+    await setDoc(doc(db,'league','draftSettings'),{data:JSON.stringify(s),updated:new Date().toISOString()});
+    console.log('[save] write completed');
+  }catch(e){
+    console.error('[save] write FAILED:',e);
+    if(typeof window.showToast==='function')window.showToast('⚠ Save failed: '+e.message,'red',3000);
+  }
 };
 window.saveDraftPicksCloud = async function(p){
   if(!window._db) return;
@@ -734,8 +741,15 @@ window.saveNTACloud = async function(n){
   try{await setDoc(doc(db,'league','ntaList'),{data:JSON.stringify(n),updated:new Date().toISOString()});}catch(e){console.warn(e);}
 };
 window.startDraftListeners = function(){
-  if(!window._db || window._draftListenersStarted) return;
+  console.log('[startDraftListeners] called. _db=',!!window._db,' started=',!!window._draftListenersStarted);
+  if(window._draftListenersStarted) return;
+  if(!window._db) {
+    console.warn('[startDraftListeners] _db not ready, retrying in 500ms');
+    setTimeout(window.startDraftListeners, 500);
+    return;
+  }
   window._draftListenersStarted = true;
+  console.log('[startDraftListeners] registering listeners NOW');
   onSnapshot(doc(db,'league','deadCap'),function(snap){
     if(snap.exists()){try{
       var d=JSON.parse(snap.data().data);
@@ -842,6 +856,9 @@ window.startContractsListener = function(callback) {
     }
   });
 };
+
+// V28.5.3: Auto-start listeners as soon as module finishes loading
+if(window.startDraftListeners){console.log('[module] calling startDraftListeners immediately');setTimeout(window.startDraftListeners,100);}
 </script>
 </head>
 <body>
