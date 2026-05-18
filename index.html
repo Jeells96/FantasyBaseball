@@ -812,7 +812,7 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.3.4</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.3.5</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1385,7 +1385,7 @@ function renderLeague(){
     return '<tr onclick="showTeam(\''+r.tn+'\')">'+'<td><span class="team-link">'+r.tn+'</span></td>'+'<td>'+r.n+'</td>'+'<td class="'+(over?'ov':'')+'">'+fs(r.sal)+'</td>'+'<td><div class="cbw"><div class="cbar"><div class="cbar-f" style="width:'+bp+'%;background:'+c+'"></div></div><span class="'+(over?'ov':'ok')+'" style="min-width:42px;text-align:right;font-size:.74rem">'+pct.toFixed(1)+'%</span></div></td>'+'<td class="'+(over?'ov':'ok')+'">'+pct.toFixed(1)+'%</td>'+'<td class="'+(over?'ov':'ok')+'">'+(over?'':'+')+''+fs(cap-r.sal)+'</td></tr>';
   }).join('');
 }
-function slotCls(slot){var s=(slot||'').trim().replace(/\s+/g,'');if(s==='C')return 'C';if(s==='1B'||s==='2B'||s==='3B')return 's'+s;return s;}
+function slotCls(slot){var raw=(slot||'').trim().replace(/\s+/g,'');var s=raw.split('/')[0];if(s==='C')return 'C';if(s==='1B'||s==='2B'||s==='3B')return 's'+s;return s;}
 function isArbPlayer(p){return(!p.aav||p.aav==='ARB'||p.aav==='?'||isNaN(parseFloat(p.aav)));}
 function buildTeamTable(tn){
   document.getElementById('teamTitle').textContent=tn;var players=ROSTER[tn]||[];
@@ -3337,11 +3337,11 @@ function setDraftView(view){
 
 // V28.3.4: Clear stale FA cache so positions reload with fixed POS_MAP
 try{
-  if(!localStorage.getItem('dyn28_pos_map_fix_v2')){
+  if(!localStorage.getItem('dyn28_pos_map_fix_v3')){
     localStorage.removeItem('dyn26_v3_fa');
     localStorage.removeItem('dyn26_v3_fa_time');
     if(typeof FA_DATA!=='undefined')FA_DATA=[];
-    localStorage.setItem('dyn28_pos_map_fix_v2','1');
+    localStorage.setItem('dyn28_pos_map_fix_v3','1');
   }
 }catch(e){}
 
