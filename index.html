@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.7</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.8</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1766,30 +1766,40 @@ function fetchFreeAgents(){
   if(FA_FETCHING)return;
   FA_FETCHING=true;
   document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">&#8635; Fetching&hellip;</td></tr>';
-  var statsYear=(typeof DRAFT_VIEW_PREFS!=='undefined' && DRAFT_VIEW_PREFS.statsYear)?DRAFT_VIEW_PREFS.statsYear:'2025';
+  var statsYear=(typeof DRAFT_VIEW_PREFS!=='undefined' && DRAFT_VIEW_PREFS.statsYear)?DRAFT_VIEW_PREFS.statsYear:String(CURRENT_SEASON-1);
   var leagueSeason=String(CURRENT_SEASON);
+  var priorYear=String(parseInt(leagueSeason)-1);
   var q=loadQueries();
   var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+leagueSeason+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');
-  var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(statsYear)]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+statsYear},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+statsYear]},limit:3000}};
+  // Request stats for both current and prior year — ESPN includes them all in the response
+  var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(leagueSeason),parseInt(priorYear)]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+priorYear},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+priorYear,'00'+leagueSeason]},limit:3000}};
   var filterText=(q.fa&&q.fa.value)?q.fa.value:'';
   var filterMatch=filterText.match(/\{[\s\S]*"players"[\s\S]*\}/);
   if(filterMatch){try{filterObj=JSON.parse(filterMatch[0]);}catch(e){}}
-  console.log('[FA] fetching league URL:',url,'statsYear:',statsYear);
+  console.log('[FA] URL:',url,'requesting years:',[leagueSeason,priorYear],'displaying:',statsYear);
 
   fetch(url,{headers:{'X-Fantasy-Filter':JSON.stringify(filterObj)}})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(data){
       var players=data.players||[];
-      // Build initial FA records using whatever stats the league URL returned
-      var faList = players.map(function(entry){
+      console.log('[FA] received',players.length,'players from ESPN');
+      // Inspect first player's stats array structure
+      if(players[0] && players[0].player && players[0].player.stats){
+        console.log('[FA] sample stats array for',players[0].player.fullName,':',JSON.stringify(players[0].player.stats.map(function(s){return {seasonId:s.seasonId,statSourceId:s.statSourceId,statSplitTypeId:s.statSplitTypeId,scoringPeriodId:s.scoringPeriodId,total:s.appliedTotal,avg:s.appliedAverage};})));
+      }
+
+      FA_DATA = players.map(function(entry){
         var p=entry.player||{};
         var stats=p.stats||[];
-        var yearStats=stats.filter(function(s){return s.seasonId===parseInt(statsYear) && s.statSourceId===0;});
-        if(!yearStats.length)yearStats=stats.filter(function(s){return s.seasonId===parseInt(statsYear);});
+        // Find stats matching the chosen statsYear (any source, prefer actual=0 over projection=1)
+        var yearStats=stats.filter(function(s){return s.seasonId===parseInt(statsYear);});
         var pts=null, avg=null;
-        yearStats.forEach(function(s){
-          if(typeof s.appliedTotal==='number' && (pts===null || s.appliedTotal>pts))pts=s.appliedTotal;
-          if(typeof s.appliedAverage==='number' && (avg===null || s.appliedAverage>avg))avg=s.appliedAverage;
+        // Prefer statSourceId===0 (actual stats)
+        var actualStats=yearStats.filter(function(s){return s.statSourceId===0;});
+        var statsToUse=actualStats.length?actualStats:yearStats;
+        statsToUse.forEach(function(s){
+          if(typeof s.appliedTotal==='number' && s.appliedTotal>0 && (pts===null || s.appliedTotal>pts))pts=s.appliedTotal;
+          if(typeof s.appliedAverage==='number' && s.appliedAverage>0 && (avg===null || s.appliedAverage>avg))avg=s.appliedAverage;
         });
         var name=p.fullName||'Unknown';
         var eligibleIds=p.eligibleSlots||[];
@@ -1799,75 +1809,19 @@ function fetchFreeAgents(){
         if(!posList.length){var d=POS_MAP[p.defaultPositionId];if(d)posList.push(d);}
         var posStr=posList.length?posList.join('/'):(p.defaultPositionId?String(p.defaultPositionId):'?');
         return {
-          Player:name,
-          PlayerId:p.id,
-          Position:posStr,
-          Positions:posList,
+          Player:name, PlayerId:p.id,
+          Position:posStr, Positions:posList,
           Availability:entry.status||'FREEAGENT',
-          TotalPoints:pts,
-          AvgPoints:avg,
+          TotalPoints:pts, AvgPoints:avg,
           AAV:AAV_DB[name]||null
         };
       }).filter(function(p){return p.Player!=='Unknown';});
 
-      // If statsYear == leagueSeason, in-season stats are in the league response — done
-      // For ANY other year (including 2025 when in 2026 league), fetch historical stats
-      if(parseInt(statsYear) === parseInt(leagueSeason)){
-        FA_DATA = faList;
-        try{localStorage.setItem(LS_FA,JSON.stringify(FA_DATA));}catch(e){}
-        renderFA();
-        showToast('✓ '+FA_DATA.length+' free agents loaded','green',1800);
-        FA_FETCHING=false;
-        return;
-      }
-
-      // Historical year - need a second fetch
-      var statsUrl='https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+statsYear+'/players?scoringPeriodId=0&view=players_wl';
-      console.log('[FA] fetching historical stats from:',statsUrl);
-
-      // Build a filter for historical players
-      var histFilter={filterStatsForExternalIds:{value:[parseInt(statsYear)]},filterStatsForSourceIds:{value:[0,1]},limit:5000};
-
-      fetch(statsUrl,{headers:{'X-Fantasy-Filter':JSON.stringify(histFilter)}})
-        .then(function(r){
-          if(!r.ok){console.warn('[FA] historical fetch failed:',r.status);return null;}
-          return r.json();
-        })
-        .then(function(histData){
-          if(histData && Array.isArray(histData)){
-            // histData is array of player objects
-            var byId={};
-            histData.forEach(function(hp){if(hp&&hp.id)byId[hp.id]=hp;});
-            console.log('[FA] historical players loaded:',histData.length,'for year',statsYear);
-            // Merge stats into faList
-            faList.forEach(function(fa){
-              var hp=byId[fa.PlayerId];
-              if(!hp || !hp.stats)return;
-              var ys=hp.stats.filter(function(s){return s.seasonId===parseInt(statsYear) && s.statSourceId===0;});
-              if(!ys.length)ys=hp.stats.filter(function(s){return s.seasonId===parseInt(statsYear);});
-              var pts=null, avg=null;
-              ys.forEach(function(s){
-                if(typeof s.appliedTotal==='number' && (pts===null || s.appliedTotal>pts))pts=s.appliedTotal;
-                if(typeof s.appliedAverage==='number' && (avg===null || s.appliedAverage>avg))avg=s.appliedAverage;
-              });
-              if(pts!==null)fa.TotalPoints=pts;
-              if(avg!==null)fa.AvgPoints=avg;
-            });
-          }
-          FA_DATA = faList;
-          try{localStorage.setItem(LS_FA,JSON.stringify(FA_DATA));}catch(e){}
-          renderFA();
-          showToast('✓ '+FA_DATA.length+' FAs loaded with '+statsYear+' stats','green',2200);
-          FA_FETCHING=false;
-        })
-        .catch(function(e){
-          console.error('[FA] historical fetch error:',e);
-          FA_DATA = faList; // use whatever we have
-          try{localStorage.setItem(LS_FA,JSON.stringify(FA_DATA));}catch(e){}
-          renderFA();
-          showToast('⚠ Historical stats unavailable for '+statsYear,'yellow',2500);
-          FA_FETCHING=false;
-        });
+      try{localStorage.setItem(LS_FA,JSON.stringify(FA_DATA));}catch(e){}
+      renderFA();
+      var withPts=FA_DATA.filter(function(p){return p.TotalPoints!==null;}).length;
+      showToast('✓ '+FA_DATA.length+' FAs ('+withPts+' with '+statsYear+' stats)','green',2200);
+      FA_FETCHING=false;
     })
     .catch(function(err){
       console.error('[FA] fetch error:',err);
@@ -3912,8 +3866,6 @@ setInterval(function(){
       <select class="field-input" id="dvStatsYear" onchange="changeStatsYear(this.value)" style="font-size:16px">
         <option value="2025">2025 (last season)</option>
         <option value="2026">2026 (current)</option>
-        <option value="2024">2024</option>
-        <option value="2023">2023</option>
       </select>
 
       <label class="field-label" style="margin-top:.85rem">Filter by Age</label>
