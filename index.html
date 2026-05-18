@@ -812,7 +812,7 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.3.6</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.3.7</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -2504,21 +2504,30 @@ function getDraftPool(){
   var pickedSet={};
   DRAFT_PICKS.forEach(function(p){if(p.player)pickedSet[p.player]=true;});
 
-  // Add Must Drop players league-wide
+  // Add Must Drop and Unsigned players league-wide
   Object.keys(ROSTER||{}).forEach(function(tn){
     (ROSTER[tn]||[]).forEach(function(p,i){
-      var cval=getC(tn,i);var cNum=parseInt(cval)||0;
-      var _entry=getEntry(tn,i);var _cleared=_entry&&_entry.cleared;
+      if(pickedSet[p.name])return;
+      var cval=getC(tn,i);
+      var cNum=parseInt(cval)||0;
+      var _entry=getEntry(tn,i);
+      var _cleared=_entry&&_entry.cleared;
       var needsDrop=_entry&&!_cleared&&(cNum===0);
-      if(needsDrop && !pickedSet[p.name]){
-        var aav=parseFloat(p.aav)||0;
-        var pts=p.pts||0;
-        pool.push({
-          name:p.name, pos:p.slot, team:tn,
-          aav:aav, pts:pts, age:p.age,
-          source:'drop'
-        });
-      }
+      var isArb=isArbPlayer(p);
+      var unsigned=(cval===''&&!isArb);
+      if(!needsDrop && !unsigned) return;
+      var aavRaw=p.aav;
+      var aav=(!aavRaw||aavRaw==='ARB'||aavRaw==='?'||isNaN(parseFloat(aavRaw)))?ARB():parseFloat(aavRaw);
+      var pts=p.pts||0;
+      var salE=SAL_MAP[p.name]||{};
+      pool.push({
+        name:p.name, pos:p.slot, team:tn,
+        aav:aav, pts:pts,
+        age:p.age||salE.age||'?',
+        fa:p.fa||salE.expires||'?',
+        source: needsDrop ? 'drop' : 'unsigned',
+        mlbTeam:salE.team||''
+      });
     });
   });
 
@@ -2527,10 +2536,14 @@ function getDraftPool(){
     if(pickedSet[p.Player])return;
     var aavRaw=p.AAV!==undefined&&p.AAV!==null?p.AAV:AAV_DB[p.Player];
     var isArb=(!aavRaw||aavRaw==='ARB'||aavRaw==='?'||isNaN(parseFloat(aavRaw)));
+    var salE=SAL_MAP[p.Player]||{};
     pool.push({
       name:p.Player, pos:p.Position,
       aav:isArb?ARB():parseFloat(aavRaw)||0,
       pts:p.TotalPoints||0, status:p.Availability,
+      age:salE.age||'?',
+      fa:salE.expires||'?',
+      mlbTeam:salE.team||'',
       source:'fa'
     });
   });
@@ -3348,11 +3361,11 @@ function setDraftView(view){
 
 // V28.3.4: Clear stale FA cache so positions reload with fixed POS_MAP
 try{
-  if(!localStorage.getItem('dyn28_pos_map_fix_v4')){
+  if(!localStorage.getItem('dyn28_pos_map_fix_v5')){
     localStorage.removeItem('dyn26_v3_fa');
     localStorage.removeItem('dyn26_v3_fa_time');
     if(typeof FA_DATA!=='undefined')FA_DATA=[];
-    localStorage.setItem('dyn28_pos_map_fix_v4','1');
+    localStorage.setItem('dyn28_pos_map_fix_v5','1');
   }
 }catch(e){}
 
