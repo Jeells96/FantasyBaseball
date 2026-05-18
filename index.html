@@ -1730,7 +1730,7 @@ function sortDB(col){dbSort=dbSort.col===col?{col:col,dir:dbSort.dir*-1}:{col:co
 function renderDB(){var q=(document.getElementById('dbSearch').value||'').toLowerCase();var pos=document.getElementById('dbPos').value;var team=document.getElementById('dbTeam').value;var exp=document.getElementById('dbExp').value;var data=SAL.filter(function(p){if(q&&!p.name.toLowerCase().includes(q))return false;if(pos&&p.pos!==pos)return false;if(team&&p.team!==team)return false;if(exp){var ex=parseInt(p.expires)||0;if(exp==='2031+'){if(ex<2031)return false;}else if(p.expires!==exp)return false;}return true;});var col=dbSort.col,dir=dbSort.dir;data.sort(function(a,b){var av=a[col]||'',bv=b[col]||'';if(col==='aav'){return((av==='ARB'?ARB():parseFloat(av)||0)-(bv==='ARB'?ARB():parseFloat(bv)||0))*dir;}var an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return(an-bn)*dir;return av.toString().localeCompare(bv.toString())*dir;});document.getElementById('dbCnt').textContent=data.length+' contracts';document.querySelectorAll('.dbt th').forEach(function(th){th.classList.remove('srt');var ar=th.querySelector('.sar');if(ar)ar.innerHTML='&#8645;';});var sh=document.querySelector('.dbt th[data-col="'+col+'"]');if(sh){sh.classList.add('srt');var ar=sh.querySelector('.sar');if(ar)ar.innerHTML=dir===1?'&#8593;':'&#8595;';}var tbody=document.getElementById('dbBody');if(!data.length){tbody.innerHTML='<tr><td colspan="8" class="no-res">No contracts found</td></tr>';return;}tbody.innerHTML=data.slice(0,300).map(function(p){var n=p.aav==='ARB'?ARB():parseFloat(p.aav)||0,isA=p.aav==='ARB';return '<tr><td style="color:var(--brt);font-weight:500">'+p.name+(isA?'<span class="arb-tag">ARB</span>':'')+'</td><td><span class="ptag">'+(p.pos||'\u2014')+'</span></td><td style="color:var(--dim)">'+(p.team||'\u2014')+'</td><td>'+(p.age||'\u2014')+'</td><td>'+(p.signed||'\u2014')+'</td><td style="color:'+(parseInt(p.expires)<=2026?'var(--dim)':'var(--txt)')+'">'+( p.expires||'\u2014')+'</td><td>'+(p.years||'\u2014')+'</td><td style="color:'+(isA?'var(--acc)':'var(--brt)')+';font-weight:500">'+(isA?'ARB ($'+ARB().toFixed(2)+'M)':'$'+n.toFixed(2)+'M')+'</td></tr>';}).join('');if(data.length>300)tbody.innerHTML+='<tr><td colspan="8" style="text-align:center;padding:1rem;color:var(--dim);font-size:.7rem">Showing 300 of '+data.length+'</td></tr>';}
 var FA_DATA=[];var FA_SORT={col:'TotalPoints',dir:-1};var FA_FETCHING=false;var LS_FA='dyn26_v3_fa';
 var POS_MAP={1:'SP',2:'C',3:'1B',4:'2B',5:'3B',6:'SS',7:'OF',8:'OF',9:'OF',10:'OF',11:'OF',14:'RP',15:'P'};
-function fetchFreeAgents(){if(FA_FETCHING)return;FA_FETCHING=true;document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">&#8635; Fetching\u2026</td></tr>';var statsYear=(typeof DRAFT_VIEW_PREFS!=='undefined' && DRAFT_VIEW_PREFS.statsYear)?DRAFT_VIEW_PREFS.statsYear:'2025';var leagueSeason=String(CURRENT_SEASON);var q=loadQueries();var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+leagueSeason+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(statsYear)]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+statsYear},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+statsYear]},limit:3000}};var filterText=(q.fa&&q.fa.value)?q.fa.value:'';var filterMatch=filterText.match(/\{[\s\S]*"players"[\s\S]*\}/);if(filterMatch){try{filterObj=JSON.parse(filterMatch[0]);}catch(e){}}fetch(url,{headers:{'X-Fantasy-Filter':JSON.stringify(filterObj)}}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){var players=data.players||[];FA_DATA=players.map(function(entry){var p=entry.player||{};var stats=p.stats||[];var yearStats=stats.filter(function(s){return s.seasonId===parseInt(statsYear);});var totals=yearStats.map(function(s){return typeof s.appliedTotal==='number'?s.appliedTotal:null;}).filter(function(v){return v!==null;});var pts=totals.length?Math.max.apply(null,totals):null;var name=p.fullName||'Unknown';var eligibleIds=p.eligibleSlots||[];
+function fetchFreeAgents(){if(FA_FETCHING)return;FA_FETCHING=true;document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">&#8635; Fetching\u2026</td></tr>';var statsYear=(typeof DRAFT_VIEW_PREFS!=='undefined' && DRAFT_VIEW_PREFS.statsYear)?DRAFT_VIEW_PREFS.statsYear:'2025';var leagueSeason=String(CURRENT_SEASON);var q=loadQueries();var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+statsYear+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(statsYear)]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+statsYear},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+statsYear]},limit:3000}};var filterText=(q.fa&&q.fa.value)?q.fa.value:'';var filterMatch=filterText.match(/\{[\s\S]*"players"[\s\S]*\}/);if(filterMatch){try{filterObj=JSON.parse(filterMatch[0]);}catch(e){}}fetch(url,{headers:{'X-Fantasy-Filter':JSON.stringify(filterObj)}}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){var players=data.players||[];FA_DATA=players.map(function(entry){var p=entry.player||{};var stats=p.stats||[];var yearStats=stats.filter(function(s){return s.seasonId===parseInt(statsYear);});var totals=yearStats.map(function(s){return typeof s.appliedTotal==='number'?s.appliedTotal:null;}).filter(function(v){return v!==null;});var pts=totals.length?Math.max.apply(null,totals):null;var name=p.fullName||'Unknown';var eligibleIds=p.eligibleSlots||[];
       // Map ESPN MLB lineupSlot IDs to position abbreviations
       // 0=C, 1=1B, 2=2B, 3=3B, 4=SS, 5=OF, 8=LF, 9=CF, 10=RF, 11=DH, 14=SP, 15=RP
       // Skip: 6 (2B/SS combo), 7 (1B/3B combo), 12 (UTIL), 13 (P generic), 16 (BE), 17 (IL), 19 (IF)
@@ -1739,7 +1739,7 @@ function fetchFreeAgents(){if(FA_FETCHING)return;FA_FETCHING=true;document.getEl
       eligibleIds.forEach(function(s){var ab=ELIG_MAP[s];if(ab&&posList.indexOf(ab)<0)posList.push(ab);});
       if(!posList.length){var d=POS_MAP[p.defaultPositionId];if(d)posList.push(d);}
       var posStr=posList.length?posList.join('/'):(p.defaultPositionId?String(p.defaultPositionId):'?');
-      if(window._fa_dbg===undefined)window._fa_dbg=0;
+      if(window._fa_dbg===undefined){window._fa_dbg=0;console.log('[FA] fetching stats year:',statsYear,'URL:',url);}
       if(window._fa_dbg<3){console.log('[FA pos debug]',name,'defaultPositionId:',p.defaultPositionId,'eligibleSlots:',JSON.stringify(p.eligibleSlots),'->',posStr);window._fa_dbg++;}
       return{Player:name,Position:posStr,Positions:posList,Availability:entry.status||'FREEAGENT',TotalPoints:pts,AAV:AAV_DB[name]||null};}).filter(function(p){return p.Player!=='Unknown';});try{localStorage.setItem(LS_FA,JSON.stringify(FA_DATA));}catch(e){}renderFA();showToast('\u2713 '+FA_DATA.length+' free agents loaded','green',2500);}).catch(function(err){document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading" style="color:var(--red)">Failed: '+err.message+'</td></tr>';showToast('Failed to load free agents','red',3000);}).finally(function(){FA_FETCHING=false;});}
 function sortFA(col){FA_SORT=FA_SORT.col===col?{col:col,dir:FA_SORT.dir*-1}:{col:col,dir:(col==='TotalPoints'||col==='AAV')?-1:1};renderFA();}
@@ -3571,6 +3571,58 @@ try{var ai=JSON.parse(localStorage.getItem('dyn26_arb_info')||'{}');Object.keys(
 var hadCache=loadCachedRoster();
 renderLeague();updateLastUpdated();updateSeasonUI();
 if(hadCache){setTimeout(function(){refreshRosters(true);},1000);}else{refreshRosters(false);}
+
+// V28.5.1: Polling fallback for cross-device sync
+// Every 2s, check if localStorage has newer values than in-memory state
+setInterval(function(){
+  try {
+    // Draft settings
+    var stored = JSON.parse(localStorage.getItem('dyn27_draft_settings')||'null');
+    if (stored && JSON.stringify(stored) !== JSON.stringify(DRAFT_SETTINGS)) {
+      DRAFT_SETTINGS = stored;
+      applyDraftTabsVisibility();
+      var pd = document.getElementById('page-draft');
+      if (pd && pd.classList.contains('active') && typeof buildDraftPage === 'function') buildDraftPage();
+    }
+    // Draft picks
+    var storedPicks = JSON.parse(localStorage.getItem('dyn27_draft_picks')||'[]');
+    if (JSON.stringify(storedPicks) !== JSON.stringify(DRAFT_PICKS)) {
+      DRAFT_PICKS = storedPicks;
+      var pd2 = document.getElementById('page-draft');
+      if (pd2 && pd2.classList.contains('active') && typeof buildDraftPage === 'function') buildDraftPage();
+    }
+    // Contracts locked
+    var storedLocked = localStorage.getItem('dyn28_contracts_locked') === 'true';
+    if (storedLocked !== CONTRACTS_LOCKED) {
+      CONTRACTS_LOCKED = storedLocked;
+      if (typeof loadContractsLockUI === 'function' && document.getElementById('contractsLockedToggle')) loadContractsLockUI();
+      if (typeof applyContractsLockUI === 'function') applyContractsLockUI();
+    }
+    // Rosters frozen
+    var storedFrozen = localStorage.getItem('dyn28_rosters_frozen') === 'true';
+    if (storedFrozen !== ROSTERS_FROZEN) {
+      ROSTERS_FROZEN = storedFrozen;
+      if (typeof loadFreezeRostersUI === 'function' && document.getElementById('freezeRostersToggle')) loadFreezeRostersUI();
+    }
+    // Dead cap
+    var storedDC = JSON.parse(localStorage.getItem('dyn28_dead_cap')||'{}');
+    if (JSON.stringify(storedDC) !== JSON.stringify(DEAD_CAP)) {
+      DEAD_CAP = storedDC;
+      if (typeof currentTeam !== 'undefined' && currentTeam && typeof updateDeadCapDisplay === 'function') updateDeadCapDisplay(currentTeam);
+      renderLeague();
+    }
+    // Trades
+    var storedTrades = JSON.parse(localStorage.getItem('dyn28_trades')||'[]');
+    if (JSON.stringify(storedTrades) !== JSON.stringify(TRADES)) {
+      TRADES = storedTrades;
+      if (typeof currentTeam !== 'undefined' && currentTeam && typeof updateTradesDisplay === 'function') updateTradesDisplay(currentTeam);
+      renderLeague();
+      if (typeof currentTeam !== 'undefined' && currentTeam && typeof teamBuilt !== 'undefined' && teamBuilt[currentTeam]) updateTeamCells(currentTeam);
+    }
+  } catch(e) {}
+}, 2000);
+
+
 
 </script>
 
