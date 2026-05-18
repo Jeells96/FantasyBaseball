@@ -1000,6 +1000,18 @@ window.startContractsListener = function(callback) {
     </div>
 
     <div class="set-section">
+      <div class="set-section-title">Freeze Rosters</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+        <span style="font-family:'Inter',sans-serif;font-size:.85rem;color:#f0f2f6;font-weight:500">Freeze ESPN Roster Sync</span>
+        <label class="toggle-switch" style="position:relative;display:inline-block;width:46px;height:26px">
+          <input type="checkbox" id="freezeRostersToggle" onchange="toggleFreezeRosters(this.checked)" style="opacity:0;width:0;height:0">
+          <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#252a35;border:1px solid #1e2433;border-radius:26px;transition:.2s"></span>
+        </label>
+      </div>
+      <p style="font-size:.7rem;color:#6b7280;line-height:1.5">When frozen, rosters stop syncing from ESPN. Useful during draft so picks don’t get wiped by mid-draft ESPN updates.</p>
+    </div>
+
+    <div class="set-section">
       <div class="set-section-title">Draft Room</div>
       <div style="display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center;margin-bottom:.75rem">
         <span style="font-family:'Inter',sans-serif;font-size:.85rem;color:#f0f2f6;font-weight:500">Show Draft Tabs</span>
@@ -3453,6 +3465,31 @@ function patchRefreshRostersForFreeze(){
 }
 
 
+
+function changeStatsYear(year){
+  DRAFT_VIEW_PREFS.statsYear = year;
+  saveDraftViewPrefs();
+  // Clear FA cache and refetch with new year
+  try{localStorage.removeItem('dyn26_v3_fa');localStorage.removeItem('dyn26_v3_fa_time');}catch(e){}
+  FA_DATA = [];
+  showToast('↻ Loading '+year+' ESPN stats…','yellow',2000);
+  if(typeof fetchFreeAgents==='function'){
+    fetchFreeAgents();
+    var pollCount=0;
+    var poll=setInterval(function(){
+      pollCount++;
+      if(FA_DATA && FA_DATA.length){
+        clearInterval(poll);
+        if(document.getElementById('page-draft').classList.contains('active'))buildDraftPage();
+        showToast('✓ '+year+' stats loaded ('+FA_DATA.length+' players)','green',2000);
+        return;
+      }
+      if(pollCount>60){clearInterval(poll);}
+    },500);
+  }
+}
+
+
 loadContracts();
 patchShowTeamForPenalty();
 patchUpdateTeamCells_v28();
@@ -3611,7 +3648,7 @@ if(hadCache){setTimeout(function(){refreshRosters(true);},1000);}else{refreshRos
       </div>
 
       <label class="field-label">ESPN Stats Year</label>
-      <select class="field-input" id="dvStatsYear" onchange="setDraftViewPref('statsYear',this.value);if(typeof fetchFreeAgents===&quot;function&quot;){localStorage.removeItem(&quot;dyn26_v3_fa&quot;);FA_DATA=[];fetchFreeAgents();}" style="font-size:16px">
+      <select class="field-input" id="dvStatsYear" onchange="changeStatsYear(this.value)" style="font-size:16px">
         <option value="2025">2025 (last season)</option>
         <option value="2026">2026 (current)</option>
         <option value="2024">2024</option>
