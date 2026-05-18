@@ -709,7 +709,7 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.1</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -2450,6 +2450,13 @@ function showDraft(){
 }
 
 function buildDraftPage(){
+  var p=DRAFT_VIEW_PREFS;
+  var setChk=function(id,v){var el=document.getElementById(id);if(el)el.checked=!!v;};
+  setChk('dvShowAge',p.showAge);setChk('dvShowAAV',p.showAAV);setChk('dvShowFA',p.showFA);
+  setChk('dvShowPts',p.showPts);setChk('dvShowMLB',p.showMLB);setChk('dvShowSource',p.showSource);
+  var setV=function(id,v){var el=document.getElementById(id);if(el)el.value=v||'';};
+  setV('dvSortBy',p.sortBy||'pts');setV('dvSortDir',p.sortDir||'desc');
+  setV('dvMinPts',p.minPts||'');setV('dvMaxAAV',p.maxAAV||'');
   var assigns=getDraftPickAssignments();
   var curIdx=getCurrentPickIndex();
   var oc=document.getElementById('draftOnClock');
@@ -2470,6 +2477,27 @@ function buildDraftPage(){
   renderDraftHistory();
 }
 
+var DRAFT_VIEW_PREFS = JSON.parse(localStorage.getItem('dyn28_draft_view_prefs')||'null') || {
+  showAge:true, showAAV:true, showFA:true, showPts:true, showMLB:false, showSource:true,
+  sortBy:'pts', sortDir:'desc', minPts:'', maxAAV:''
+};
+
+function saveDraftViewPrefs(){
+  localStorage.setItem('dyn28_draft_view_prefs',JSON.stringify(DRAFT_VIEW_PREFS));
+}
+
+function toggleDraftViewMenu(){
+  var m=document.getElementById('draftViewMenu');
+  if(!m)return;
+  m.style.display = m.style.display==='block' ? 'none' : 'block';
+}
+
+function setDraftViewPref(key,val){
+  DRAFT_VIEW_PREFS[key]=val;
+  saveDraftViewPrefs();
+  renderDraftPool();
+}
+
 function renderDraftPool(){
   var el=document.getElementById('draftPool');
   if(!el)return;
@@ -2478,33 +2506,91 @@ function renderDraftPool(){
   var pool=getDraftPool().filter(function(p){
     if(q&&!p.name.toLowerCase().includes(q))return false;
     if(pos){if(pos==='OF'){if(!['OF','LF','CF','RF'].includes(p.pos))return false;}else if(p.pos!==pos)return false;}
+    if(DRAFT_VIEW_PREFS.minPts!==''&&!isNaN(parseFloat(DRAFT_VIEW_PREFS.minPts))){
+      if((p.pts||0)<parseFloat(DRAFT_VIEW_PREFS.minPts))return false;
+    }
+    if(DRAFT_VIEW_PREFS.maxAAV!==''&&!isNaN(parseFloat(DRAFT_VIEW_PREFS.maxAAV))){
+      if((p.aav||0)>parseFloat(DRAFT_VIEW_PREFS.maxAAV))return false;
+    }
     return true;
   });
-  pool.sort(function(a,b){return (b.pts||0)-(a.pts||0);});
+
+  var sortBy=DRAFT_VIEW_PREFS.sortBy||'pts';
+  var dir=DRAFT_VIEW_PREFS.sortDir==='asc'?1:-1;
+  pool.sort(function(a,b){
+    var av,bv;
+    if(sortBy==='pts'){av=a.pts||0;bv=b.pts||0;}
+    else if(sortBy==='aav'){av=a.aav||0;bv=b.aav||0;}
+    else if(sortBy==='age'){av=parseInt(a.age)||0;bv=parseInt(b.age)||0;}
+    else if(sortBy==='name'){return (a.name>b.name?1:-1)*dir;}
+    else if(sortBy==='pos'){return ((a.pos||'')>(b.pos||'')?1:-1)*dir;}
+    else {av=a.pts||0;bv=b.pts||0;}
+    return (av-bv)*dir;
+  });
 
   if(!pool.length){
     el.innerHTML='<div class="empty-state"><span class="empty-state-icon">✓</span>No available players</div>';
     return;
   }
 
-  el.innerHTML=pool.slice(0,200).map(function(p){
+  var prefs=DRAFT_VIEW_PREFS;
+  el.innerHTML=pool.slice(0,300).map(function(p){
     var sk=slotCls(p.pos);
-    var sourceTag = p.source==='drop'
-      ? '<span class="spcard-tag drop" style="margin-left:.3rem">DROP · '+(p.team||'')+'</span>'
-      : '';
-    return '<div class="draft-player-card" onclick="makePick(\''+p.name.replace(/\'/g,"\\\\'")+'\')">'+
+    var sourceTag='';
+    if(prefs.showSource){
+      if(p.source==='drop') sourceTag='<span class="spcard-tag drop" style="margin-left:.3rem;font-size:.5rem">DROP·'+(p.team||'')+'</span>';
+      else if(p.source==='unsigned') sourceTag='<span class="spcard-tag" style="margin-left:.3rem;font-size:.5rem;background:rgba(148,163,184,.15);color:#94a3b8;border:1px solid rgba(148,163,184,.25)">UNSIGNED·'+(p.team||'')+'</span>';
+    }
+    var metaParts=[];
+    if(prefs.showAge && p.age && p.age!='?') metaParts.push('Age '+p.age);
+    if(prefs.showMLB && p.mlbTeam) metaParts.push(p.mlbTeam);
+    if(prefs.showAAV) metaParts.push('$'+p.aav.toFixed(1)+'M');
+    if(prefs.showFA && p.fa && p.fa!='?') metaParts.push('FA '+p.fa);
+    var meta=metaParts.join(' · ');
+    var safeName=p.name.replace(/'/g,"\\'");
+    var rightCol=prefs.showPts ? '<div class="cr-right"><div class="cr-aav" style="color:#e8c84b">'+(p.pts?p.pts.toFixed(1):'—')+'</div><div class="cr-detail">ESPN Pts</div></div>' : '';
+    return '<div class="draft-player-card" onclick="openDraftConfirm(\''+safeName+'\')">'+
       '<div class="cr-slot-wrap"><span class="slot '+sk+'">'+p.pos+'</span></div>'+
       '<div class="cr-info">'+
       '<div class="cr-name">'+p.name+sourceTag+'</div>'+
-      '<div class="cr-team">'+(p.age?'Age '+p.age+' · ':'')+'$'+p.aav.toFixed(1)+'M AAV</div>'+
+      (meta?'<div class="cr-team">'+meta+'</div>':'')+
       '</div>'+
-      '<div class="cr-right">'+
-      '<div class="cr-aav" style="color:#e8c84b">'+(p.pts?p.pts.toFixed(1):'—')+'</div>'+
-      '<div class="cr-detail">ESPN Pts</div>'+
-      '</div>'+
+      rightCol+
       '</div>';
   }).join('');
-  if(pool.length>200)el.innerHTML+='<div style="text-align:center;padding:.5rem;color:#6b7280;font-size:.7rem">+'+(pool.length-200)+' more — refine search</div>';
+  if(pool.length>300)el.innerHTML+='<div style="text-align:center;padding:.5rem;color:#6b7280;font-size:.7rem">+'+(pool.length-300)+' more — refine search</div>';
+}
+
+var _draftConfirmName=null;
+function openDraftConfirm(playerName){
+  _draftConfirmName=playerName;
+  var pool=getDraftPool();
+  var p=null;
+  for(var k=0;k<pool.length;k++){if(pool[k].name===playerName){p=pool[k];break;}}
+  if(!p){makePick(playerName);return;}
+  var assigns=getDraftPickAssignments();
+  var curIdx=getCurrentPickIndex();
+  if(curIdx<0){showToast('Draft is complete','yellow',2000);return;}
+  var cur=assigns[curIdx];
+  document.getElementById('dcfName').textContent=p.name;
+  document.getElementById('dcfPos').innerHTML='<span class="slot '+slotCls(p.pos)+'">'+p.pos+'</span>';
+  document.getElementById('dcfAge').textContent=p.age||'—';
+  document.getElementById('dcfAAV').textContent='$'+p.aav.toFixed(1)+'M';
+  document.getElementById('dcfPts').textContent=p.pts?p.pts.toFixed(1):'—';
+  document.getElementById('dcfFA').textContent=p.fa||'—';
+  document.getElementById('dcfMLB').textContent=p.mlbTeam||'—';
+  document.getElementById('dcfSource').textContent=p.source==='drop'?'Must Drop · '+(p.team||''):p.source==='unsigned'?'Unsigned · '+(p.team||''):'Free Agent';
+  document.getElementById('dcfTeamPick').textContent=cur.team;
+  document.getElementById('dcfRoundPick').textContent='Round '+cur.round+' · Pick '+cur.pickNum;
+  openModal('draftConfirmModal');
+}
+
+function confirmDraftPick(){
+  if(_draftConfirmName){
+    closeModal('draftConfirmModal');
+    makePick(_draftConfirmName);
+    _draftConfirmName=null;
+  }
 }
 
 function renderDraftHistory(){
@@ -2766,12 +2852,41 @@ if(hadCache){setTimeout(function(){refreshRosters(true);},1000);}else{refreshRos
     </div>
 
     <div class="draft-search">
-      <input type="text" class="search-input" id="draftSearch" placeholder="Search available players…" oninput="renderDraftPool()" style="font-size:16px">
+      <input type="text" class="search-input" id="draftSearch" placeholder="Search players…" oninput="renderDraftPool()" style="font-size:16px">
       <select class="fa-sel" id="draftPos" onchange="renderDraftPool()">
         <option value="">All Pos</option>
         <option>C</option><option>1B</option><option>2B</option><option>3B</option>
         <option>SS</option><option>OF</option><option>SP</option><option>RP</option>
       </select>
+      <button class="hdr-btn" onclick="toggleDraftViewMenu()" style="white-space:nowrap;padding:.4rem .65rem">⚙ View</button>
+    </div>
+    <div id="draftViewMenu" style="display:none;background:#111318;border:1px solid #252a35;border-radius:10px;padding:.85rem 1rem;margin:0 1rem .5rem">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:.5rem">My View (only you)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem .8rem;margin-bottom:.6rem">
+        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#e2e8f0"><input type="checkbox" id="dvShowAge" onchange="setDraftViewPref('showAge',this.checked)"> Age</label>
+        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#e2e8f0"><input type="checkbox" id="dvShowAAV" onchange="setDraftViewPref('showAAV',this.checked)"> AAV</label>
+        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#e2e8f0"><input type="checkbox" id="dvShowFA" onchange="setDraftViewPref('showFA',this.checked)"> FA Year</label>
+        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#e2e8f0"><input type="checkbox" id="dvShowPts" onchange="setDraftViewPref('showPts',this.checked)"> ESPN Pts</label>
+        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#e2e8f0"><input type="checkbox" id="dvShowMLB" onchange="setDraftViewPref('showMLB',this.checked)"> MLB Team</label>
+        <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:#e2e8f0"><input type="checkbox" id="dvShowSource" onchange="setDraftViewPref('showSource',this.checked)"> Source Tag</label>
+      </div>
+      <div style="display:flex;gap:.4rem;margin-bottom:.5rem">
+        <select class="field-input" id="dvSortBy" onchange="setDraftViewPref('sortBy',this.value)" style="font-size:16px;flex:1">
+          <option value="pts">Sort: ESPN Pts</option>
+          <option value="aav">Sort: AAV</option>
+          <option value="age">Sort: Age</option>
+          <option value="name">Sort: Name</option>
+          <option value="pos">Sort: Position</option>
+        </select>
+        <select class="field-input" id="dvSortDir" onchange="setDraftViewPref('sortDir',this.value)" style="font-size:16px;width:130px">
+          <option value="desc">Highest first</option>
+          <option value="asc">Lowest first</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:.4rem">
+        <input type="number" class="field-input" id="dvMinPts" placeholder="Min Pts" oninput="setDraftViewPref('minPts',this.value)" style="font-size:16px;flex:1">
+        <input type="number" class="field-input" id="dvMaxAAV" placeholder="Max AAV $M" oninput="setDraftViewPref('maxAAV',this.value)" style="font-size:16px;flex:1">
+      </div>
     </div>
 
     <div class="draft-section-hdr">Available Players (tap to pick)</div>
@@ -2788,6 +2903,54 @@ if(hadCache){setTimeout(function(){refreshRosters(true);},1000);}else{refreshRos
     <div class="pg-title">Needs To Add</div>
     <div class="pg-sub">Drafted players to add in ESPN. Tap done after adding.</div>
     <div id="ntaList"></div>
+  </div>
+</div>
+
+
+<!-- V28.1: DRAFT PICK CONFIRMATION -->
+<div class="modal-overlay" id="draftConfirmModal" onclick="closeModalOutside(event,'draftConfirmModal')">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header" style="text-align:center;padding-bottom:.6rem">
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:2px" id="dcfName">—</h2>
+      <p style="font-size:.7rem;color:var(--dim);margin-top:.2rem" id="dcfSource">—</p>
+    </div>
+    <div class="modal-body" style="padding:.5rem 1.25rem 1rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem">
+        <div style="background:#181c24;border:1px solid #252a35;border-radius:8px;padding:.55rem .65rem">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;color:#6b7280;margin-bottom:.15rem">Position</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.9rem;color:#f0f2f6" id="dcfPos">—</div>
+        </div>
+        <div style="background:#181c24;border:1px solid #252a35;border-radius:8px;padding:.55rem .65rem">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;color:#6b7280;margin-bottom:.15rem">Age</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.9rem;color:#f0f2f6" id="dcfAge">—</div>
+        </div>
+        <div style="background:#181c24;border:1px solid #252a35;border-radius:8px;padding:.55rem .65rem">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;color:#6b7280;margin-bottom:.15rem">AAV</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.9rem;color:#f0f2f6" id="dcfAAV">—</div>
+        </div>
+        <div style="background:#181c24;border:1px solid #252a35;border-radius:8px;padding:.55rem .65rem">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;color:#6b7280;margin-bottom:.15rem">ESPN Pts</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.9rem;color:#e8c84b" id="dcfPts">—</div>
+        </div>
+        <div style="background:#181c24;border:1px solid #252a35;border-radius:8px;padding:.55rem .65rem">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;color:#6b7280;margin-bottom:.15rem">FA Year</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.9rem;color:#f0f2f6" id="dcfFA">—</div>
+        </div>
+        <div style="background:#181c24;border:1px solid #252a35;border-radius:8px;padding:.55rem .65rem">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;color:#6b7280;margin-bottom:.15rem">MLB Team</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.9rem;color:#f0f2f6" id="dcfMLB">—</div>
+        </div>
+      </div>
+      <div style="background:rgba(232,200,75,.08);border:1px solid rgba(232,200,75,.3);border-radius:10px;padding:.65rem .85rem;text-align:center">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:.6rem;letter-spacing:1.5px;text-transform:uppercase;color:#e8c84b;margin-bottom:.2rem">Picking For</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;color:#f0f2f6" id="dcfTeamPick">—</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:.7rem;letter-spacing:1px;color:#94a3b8;margin-top:.1rem" id="dcfRoundPick">—</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('draftConfirmModal')">Cancel</button>
+      <button class="btn-primary" onclick="confirmDraftPick()">Confirm Pick</button>
+    </div>
   </div>
 </div>
 
