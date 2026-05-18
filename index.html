@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.16</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.17</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1769,36 +1769,27 @@ function fetchFreeAgents(){
 
   var statsYear=(typeof DRAFT_VIEW_PREFS!=='undefined' && DRAFT_VIEW_PREFS.statsYear)?String(DRAFT_VIEW_PREFS.statsYear):'2025';
   var Y = parseInt(statsYear);
-  var leagueSeason = String(CURRENT_SEASON); // 2026
-  var priorYear = String(parseInt(leagueSeason) - 1); // 2025
+  var leagueSeason = String(CURRENT_SEASON);
+  var priorYear = String(parseInt(leagueSeason) - 1);
 
   var q=loadQueries();
   var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+leagueSeason+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');
 
-  // === FILTER BLOCK ===
-  // For 2026 (current/leagueSeason): use the 28.5.8 filter — both years, both sources, sort by prior year
-  // For 2025 (prior/anything else): use the 28.5.9 filter — only that year, only source 0
-  var filterObj;
-  if(Y === parseInt(leagueSeason)){
-    // 28.5.8 logic
-    filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(leagueSeason),parseInt(priorYear)]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+priorYear},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+priorYear,'00'+leagueSeason]},limit:3000}};
-  } else {
-    // 28.5.9 logic
-    filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(leagueSeason),parseInt(priorYear)]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+Y},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+Y]},limit:3000}};
-  }
+  // Always use the 28.5.8 filter — works reliably
+  var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[parseInt(leagueSeason),parseInt(priorYear)]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+Y},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+Y]},limit:3000}};
 
   var filterText=(q.fa&&q.fa.value)?q.fa.value:'';
   var filterMatch=filterText.match(/\{[\s\S]*"players"[\s\S]*\}/);
   if(filterMatch){try{filterObj=JSON.parse(filterMatch[0]);}catch(e){}}
 
-  console.log('[FA] year:',Y,'mode:',(Y===parseInt(leagueSeason))?'28.5.8 (current)':'28.5.9 (past)');
+  console.log('[FA] requesting year:',Y);
 
   fetch(url,{headers:{'X-Fantasy-Filter':JSON.stringify(filterObj)}})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(data){
       var players=data.players||[];
       if(players[0]){
-        console.log('[FA] sample stats:',JSON.stringify((players[0].player.stats||[]).map(function(s){return {y:s.seasonId,src:s.statSourceId,total:s.appliedTotal};})));
+        console.log('[FA] sample stats for',players[0].player.fullName,':',JSON.stringify((players[0].player.stats||[]).map(function(s){return {y:s.seasonId,src:s.statSourceId,total:s.appliedTotal,avg:s.appliedAverage};})));
       }
 
       FA_DATA = players.map(function(entry){
@@ -1806,27 +1797,24 @@ function fetchFreeAgents(){
         var stats=p.stats||[];
         var pts=null, avg=null;
 
-        if(Y === parseInt(leagueSeason)){
-          // === 28.5.8 EXTRACTION: filter by statsYear, prefer source 0 ===
-          var yearStats=stats.filter(function(s){return s.seasonId===Y;});
-          var actualStats=yearStats.filter(function(s){return s.statSourceId===0;});
-          var statsToUse=actualStats.length?actualStats:yearStats;
-          statsToUse.forEach(function(s){
+        // Extract pts for the requested year Y
+        // Priority: seasonId===Y AND statSourceId===0 (actual)
+        //        -> seasonId===Y AND statSourceId===1 (projection)
+        //        -> any seasonId===Y
+        //        -> any actual stat (source 0)
+        var tiers = [
+          stats.filter(function(s){return s.seasonId===Y && s.statSourceId===0;}),
+          stats.filter(function(s){return s.seasonId===Y && s.statSourceId===1;}),
+          stats.filter(function(s){return s.seasonId===Y;}),
+          stats.filter(function(s){return s.statSourceId===0;})
+        ];
+        for(var t=0;t<tiers.length;t++){
+          if(!tiers[t].length)continue;
+          tiers[t].forEach(function(s){
             if(typeof s.appliedTotal==='number' && (pts===null || s.appliedTotal>pts))pts=s.appliedTotal;
             if(typeof s.appliedAverage==='number' && (avg===null || s.appliedAverage>avg))avg=s.appliedAverage;
           });
-        } else {
-          // === FLEXIBLE EXTRACTION: try seasonId=Y first; if none, accept any seasonId since ESPN labels things weirdly ===
-          // First try strict source 0 with seasonId=Y
-          var yearStats=stats.filter(function(s){return s.seasonId===Y && s.statSourceId===0;});
-          // If nothing matched, accept any source with seasonId=Y
-          if(!yearStats.length){yearStats=stats.filter(function(s){return s.seasonId===Y;});}
-          // If still nothing AND we asked for prior year, accept any stat that has source 0 (actuals)
-          if(!yearStats.length){yearStats=stats.filter(function(s){return s.statSourceId===0;});}
-          yearStats.forEach(function(s){
-            if(typeof s.appliedTotal==='number' && (pts===null || s.appliedTotal>pts))pts=s.appliedTotal;
-            if(typeof s.appliedAverage==='number' && (avg===null || s.appliedAverage>avg))avg=s.appliedAverage;
-          });
+          if(pts!==null)break;
         }
 
         var name=p.fullName||'Unknown';
