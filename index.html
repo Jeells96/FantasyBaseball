@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.12</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.13</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1774,7 +1774,7 @@ function fetchFreeAgents(){
   var q=loadQueries();
   var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/2026/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');
 
-  var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[Y]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+Y},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+Y]},limit:3000}};
+  var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[Y]},filterStatsForSourceIds:{value:[0,1]},limit:3000}};
 
   var filterText=(q.fa&&q.fa.value)?q.fa.value:'';
   var filterMatch=filterText.match(/\{[\s\S]*"players"[\s\S]*\}/);
