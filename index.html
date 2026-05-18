@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.6</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.7</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1810,10 +1810,9 @@ function fetchFreeAgents(){
         };
       }).filter(function(p){return p.Player!=='Unknown';});
 
-      // If statsYear is the current/recent year, we're done
-      // Otherwise, fetch stats from the per-season players endpoint and merge
-      if(parseInt(statsYear) >= parseInt(leagueSeason) - 1){
-        // Current data is sufficient
+      // If statsYear == leagueSeason, in-season stats are in the league response — done
+      // For ANY other year (including 2025 when in 2026 league), fetch historical stats
+      if(parseInt(statsYear) === parseInt(leagueSeason)){
         FA_DATA = faList;
         try{localStorage.setItem(LS_FA,JSON.stringify(FA_DATA));}catch(e){}
         renderFA();
