@@ -812,7 +812,7 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.3.1</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.3.2</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -2578,22 +2578,30 @@ function getCurrentPickIndex(){
 
 function showDraft(){
   showPage('draft');setNav('nav-draft');
+  // Ensure draft order is initialized
+  if(!DRAFT_SETTINGS.order||!DRAFT_SETTINGS.order.length){
+    DRAFT_SETTINGS.order=Object.keys(TEAMS_CONFIG);
+    localStorage.setItem('dyn27_draft_settings',JSON.stringify(DRAFT_SETTINGS));
+    if(window.saveDraftSettingsCloud)window.saveDraftSettingsCloud(DRAFT_SETTINGS);
+  }
+  // Load FA from cache if available
   if(!FA_DATA||!FA_DATA.length){
     var cached=localStorage.getItem('dyn26_v3_fa');
     if(cached){try{FA_DATA=JSON.parse(cached);}catch(e){}}
   }
   buildDraftPage();
   if(window.startDraftListeners)window.startDraftListeners();
+  // If still no FA, fetch and poll
   if(!FA_DATA||!FA_DATA.length){
     if(!FA_FETCHING){
       fetchFreeAgents();
-      var pollCount=0;
-      var poll=setInterval(function(){
-        pollCount++;
-        if(FA_DATA&&FA_DATA.length){clearInterval(poll);buildDraftPage();return;}
-        if(pollCount>30){clearInterval(poll);}
-      },1000);
     }
+    var pollCount=0;
+    var poll=setInterval(function(){
+      pollCount++;
+      if(FA_DATA&&FA_DATA.length){clearInterval(poll);buildDraftPage();return;}
+      if(pollCount>60){clearInterval(poll);}
+    },500);
   }
 }
 
@@ -3280,8 +3288,15 @@ function patchUpdateCellsForV283(){
 function renderDraftOrderStrip(){
   var el=document.getElementById('draftOrderStrip');
   if(!el)return;
+  // Init order if missing
+  if(!DRAFT_SETTINGS.order||!DRAFT_SETTINGS.order.length){
+    DRAFT_SETTINGS.order=Object.keys(TEAMS_CONFIG);
+  }
   var assigns=getDraftPickAssignments();
-  if(!assigns.length){el.innerHTML='';return;}
+  if(!assigns.length){
+    el.innerHTML='<div style="color:#6b7280;font-family:\'Barlow Condensed\',sans-serif;font-size:.7rem;letter-spacing:1px;padding:.5rem">Set draft order in Settings</div>';
+    return;
+  }
   var madePicks={};
   DRAFT_PICKS.forEach(function(p){madePicks[p.pickNum]=true;});
   var curIdx=getCurrentPickIndex();
