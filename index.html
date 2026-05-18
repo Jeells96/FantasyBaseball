@@ -619,6 +619,31 @@ input,select,textarea,input[type="text"],input[type="number"],input[type="email"
 .trade-year-lbl{font-family:"Barlow Condensed",sans-serif;font-size:.7rem;letter-spacing:1px;color:#6b7280;width:50px}
 .trade-year-input{font-family:"DM Mono",monospace;font-size:16px!important;background:#181c24;border:1px solid #252a35;border-radius:6px;color:#f0f2f6;padding:.4rem .55rem;flex:1;outline:none;-webkit-appearance:none}
 
+
+/* V28.3.1: Bigger position badge in draft */
+.draft-player-card .slot{font-size:.9rem!important;padding:.45rem .6rem!important;min-width:44px!important;text-align:center!important;line-height:1!important;font-weight:700!important;border-radius:8px!important;display:-webkit-inline-flex!important;display:inline-flex!important;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;height:36px}
+.draft-player-card .cr-slot-wrap{min-width:52px}
+
+/* V28.3.1: Horizontal draft order strip */
+.draft-order-strip{display:-webkit-flex;display:flex;gap:.35rem;padding:.5rem 1rem;overflow-x:auto;-webkit-overflow-scrolling:touch;background:#0e1117;border-top:1px solid #252a35;border-bottom:1px solid #252a35;scrollbar-width:none;margin:0 -1rem .5rem}
+.draft-order-strip::-webkit-scrollbar{display:none}
+.dos-cell{flex-shrink:0;font-family:"Barlow Condensed",sans-serif;font-size:.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:.35rem .55rem;border-radius:7px;background:#181c24;color:#6b7280;border:1px solid #252a35;white-space:nowrap;text-align:center;line-height:1.2}
+.dos-cell .dos-team{color:#94a3b8;font-size:.7rem;font-weight:600;display:block}
+.dos-cell .dos-pick{display:block;color:#6b7280;font-size:.5rem;margin-top:.1rem}
+.dos-cell.dos-current{background:rgba(232,200,75,.12);border-color:#e8c84b}
+.dos-cell.dos-current .dos-team{color:#e8c84b}
+.dos-cell.dos-current .dos-pick{color:#e8c84b}
+.dos-cell.dos-done{opacity:.4}
+.dos-cell.dos-done .dos-team{color:#4be87a}
+.dos-cell.dos-skip{background:rgba(232,75,75,.08);border-color:rgba(232,75,75,.25)}
+.dos-cell.dos-skip .dos-team{color:#e84b4b;text-decoration:line-through}
+
+/* V28.3.1: Quick links */
+.draft-quicklinks{display:-webkit-flex;display:flex;gap:.35rem;padding:.4rem 1rem .5rem;-webkit-align-items:center;align-items:center}
+.dql-btn{font-family:"Barlow Condensed",sans-serif;font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:.4rem .65rem;border-radius:7px;background:#181c24;color:#94a3b8;border:1px solid #252a35;cursor:pointer;-webkit-appearance:none;-webkit-tap-highlight-color:transparent}
+.dql-btn:active{opacity:.7}
+.dql-btn.dql-active{background:rgba(232,200,75,.1);border-color:rgba(232,200,75,.3);color:#e8c84b}
+
 </style>
 <!-- Firebase SDK -->
 <script type="module">
@@ -787,7 +812,7 @@ window.startContractsListener = function(callback) {
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.3</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.3.1</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -2596,6 +2621,7 @@ function buildDraftPage(){
   }
   pickCount.textContent=DRAFT_PICKS.length+' picks made';
 
+  renderDraftOrderStrip();
   renderDraftPool();
   renderDraftHistory();
 }
@@ -3249,6 +3275,43 @@ function patchUpdateCellsForV283(){
 }
 
 
+
+// V28.3.1: Horizontal draft order strip
+function renderDraftOrderStrip(){
+  var el=document.getElementById('draftOrderStrip');
+  if(!el)return;
+  var assigns=getDraftPickAssignments();
+  if(!assigns.length){el.innerHTML='';return;}
+  var madePicks={};
+  DRAFT_PICKS.forEach(function(p){madePicks[p.pickNum]=true;});
+  var curIdx=getCurrentPickIndex();
+  el.innerHTML=assigns.map(function(a,idx){
+    var cls='dos-cell';
+    if(idx===curIdx)cls+=' dos-current';
+    else if(a.skipped)cls+=' dos-skip';
+    else if(madePicks[a.pickNum])cls+=' dos-done';
+    var shortTeam=a.team.length>8?a.team.substr(0,7)+'…':a.team;
+    return '<div class="'+cls+'" id="dos-'+a.pickNum+'">'+
+      '<span class="dos-team">'+shortTeam+'</span>'+
+      '<span class="dos-pick">R'+a.round+'.'+(((a.pickNum-1)%DRAFT_SETTINGS.order.length)+1)+'</span>'+
+      '</div>';
+  }).join('');
+  // Auto-scroll current into view
+  setTimeout(function(){
+    var cur=el.querySelector('.dos-current');
+    if(cur)cur.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
+  },50);
+}
+
+function setDraftView(view){
+  document.getElementById('dqlPool').classList.toggle('dql-active',view==='pool');
+  document.getElementById('dqlHistory').classList.toggle('dql-active',view==='history');
+  document.getElementById('draftPoolSection').style.display = view==='pool' ? '' : 'none';
+  document.getElementById('draftHistorySection').style.display = view==='history' ? '' : 'none';
+  if(view==='history')renderDraftHistory();
+}
+
+
 loadContracts();
 patchShowTeamForPenalty();
 patchUpdateTeamCells_v28();
@@ -3360,15 +3423,18 @@ if(hadCache){setTimeout(function(){refreshRosters(true);},1000);}else{refreshRos
     <div class="pg-title">Draft Room</div>
     <div class="pg-sub" id="draftSub">Live draft</div>
 
-    <div class="draft-status" id="draftStatus">
+    <div class="draft-status" id="draftStatus" style="padding:.55rem 1rem;margin-bottom:.25rem">
       <div class="draft-onclock-lbl">On The Clock</div>
-      <div class="draft-onclock-team" id="draftOnClock">—</div>
+      <div class="draft-onclock-team" id="draftOnClock" style="font-size:1.3rem;margin-bottom:0">—</div>
       <div class="draft-onclock-meta" id="draftRoundMeta">—</div>
     </div>
 
-    <div style="display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;padding:0 1rem .75rem;-webkit-align-items:center;align-items:center">
-      <button class="draft-undo-btn" onclick="undoLastPick()">↶ Undo Last Pick</button>
-      <span style="font-family:'Barlow Condensed',sans-serif;font-size:.65rem;letter-spacing:.5px;color:#6b7280" id="draftPickCount">0 picks made</span>
+    <div class="draft-order-strip" id="draftOrderStrip"></div>
+
+    <div class="draft-quicklinks">
+      <button class="dql-btn dql-active" id="dqlPool" onclick="setDraftView('pool')">Available</button>
+      <button class="dql-btn" id="dqlHistory" onclick="setDraftView('history')">Pick History</button>
+      <button class="draft-undo-btn" onclick="undoLastPick()" style="margin-left:auto">↶ Undo</button>
     </div>
 
     <div class="draft-search">
@@ -3409,11 +3475,14 @@ if(hadCache){setTimeout(function(){refreshRosters(true);},1000);}else{refreshRos
       </div>
     </div>
 
-    <div class="draft-section-hdr">Available Players (tap to pick)</div>
-    <div class="draft-pick-list" id="draftPool"></div>
-
-    <div class="draft-section-hdr">Pick History</div>
-    <div id="draftHistory"></div>
+    <div id="draftPoolSection">
+      <div class="draft-section-hdr">Available Players (tap to pick)</div>
+      <div class="draft-pick-list" id="draftPool"></div>
+    </div>
+    <div id="draftHistorySection" style="display:none">
+      <div class="draft-section-hdr">Pick History</div>
+      <div id="draftHistory"></div>
+    </div>
   </div>
 </div>
 
