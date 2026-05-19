@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.23</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.24</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1764,6 +1764,20 @@ var FA_DATA=[];var FA_SORT={col:'TotalPoints',dir:-1};var FA_FETCHING=false;var 
 var POS_MAP={1:'SP',2:'C',3:'1B',4:'2B',5:'3B',6:'SS',7:'OF',8:'OF',9:'OF',10:'OF',11:'OF',14:'RP',15:'P'};
 function fetchFreeAgents(){
   if(FA_FETCHING)return;
+  // Respect roster freeze - load cached data only
+  if(typeof ROSTERS_FROZEN!=='undefined' && ROSTERS_FROZEN){
+    try{
+      var cached=localStorage.getItem(LS_FA);
+      if(cached){
+        FA_DATA=JSON.parse(cached);
+        renderFA();
+        showToast('❄ Frozen — loaded '+FA_DATA.length+' cached FAs','yellow',2000);
+        return;
+      }
+    }catch(e){}
+    showToast('❄ Rosters frozen — unfreeze in Settings','yellow',2500);
+    return;
+  }
   FA_FETCHING=true;
   document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">&#8635; Fetching&hellip;</td></tr>';
 
@@ -2684,9 +2698,18 @@ function getDraftPool(){
       var aav=(!aavRaw||aavRaw==='ARB'||aavRaw==='?'||isNaN(parseFloat(aavRaw)))?ARB():parseFloat(aavRaw);
       var pts=p.pts||0;
       var salE=SAL_MAP[p.name]||{};
+      // Look up FA stats by name for stat line
+      var faEntry=(FA_DATA||[]).find(function(f){return f.Player===p.name;});
+      var statLine = faEntry ? faEntry.StatLine : null;
+      var isPitcher = faEntry ? faEntry.IsPitcher : (p.slot==='SP' || p.slot==='RP');
+      var faPts = faEntry ? (faEntry.TotalPoints||0) : 0;
+      var faAvg = faEntry ? faEntry.AvgPoints : null;
       pool.push({
         name:p.name, pos:p.slot, team:tn,
-        aav:aav, pts:pts,
+        aav:aav, pts:pts || faPts,
+        avg: faAvg,
+        statLine: statLine,
+        isPitcher: isPitcher,
         age:p.age||salE.age||'?',
         fa:p.fa||salE.expires||'?',
         source: needsDrop ? 'drop' : 'unsigned',
@@ -2862,7 +2885,18 @@ function renderDraftPool(){
   var pos=document.getElementById('draftPos').value;
   var pool=getDraftPool().filter(function(p){
     if(q&&!p.name.toLowerCase().includes(q))return false;
-    if(pos){if(pos==='OF'){if(p.pos.indexOf('OF')<0)return false;}else if(p.pos.indexOf(pos)<0)return false;}
+    if(pos){
+      if(pos==='BATTERS'){
+        // Exclude SP/RP
+        if(p.pos.indexOf('SP')>=0 || p.pos.indexOf('RP')>=0)return false;
+      } else if(pos==='PITCHERS'){
+        if(p.pos.indexOf('SP')<0 && p.pos.indexOf('RP')<0)return false;
+      } else if(pos==='OF'){
+        if(p.pos.indexOf('OF')<0)return false;
+      } else {
+        if(p.pos.indexOf(pos)<0)return false;
+      }
+    }
     var prefs=DRAFT_VIEW_PREFS;
     if(prefs.minAge!==''&&!isNaN(parseFloat(prefs.minAge))){
       var a=parseInt(p.age);if(isNaN(a)||a<parseFloat(prefs.minAge))return false;
@@ -3897,6 +3931,8 @@ setInterval(function(){
       <input type="text" class="search-input" id="draftSearch" placeholder="Search players…" oninput="renderDraftPool()" style="font-size:16px">
       <select class="fa-sel" id="draftPos" onchange="renderDraftPool()">
         <option value="">All Pos</option>
+        <option value="BATTERS">Batters</option>
+        <option value="PITCHERS">Pitchers</option>
         <option>C</option><option>1B</option><option>2B</option><option>3B</option>
         <option>SS</option><option>OF</option><option>SP</option><option>RP</option>
       </select>
