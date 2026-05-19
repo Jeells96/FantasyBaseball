@@ -883,7 +883,7 @@ window._loadPdfJs = function(){
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.36</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.37</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -3981,6 +3981,7 @@ function importSalaryPDF(input){
     reader.onload = function(e){
       var bytes = new Uint8Array(e.target.result);
       pdfjsLib.getDocument({data: bytes}).promise.then(function(pdf){
+        window._pdfLineLog = [];
         if(statusEl){statusEl.textContent='PDF: '+pdf.numPages+' pages, extracting text\u2026';}
         var allLines = [];
         var pageQueue = [];
@@ -3989,21 +3990,36 @@ function importSalaryPDF(input){
         function extractPage(pn){
           return pdf.getPage(pn).then(function(page){
             return page.getTextContent().then(function(tc){
-              // Group items by y-coord into lines
-              var byY = {};
+              // V28.5.37: Tolerance-based y-grouping (Math.round snaps subpixel-different spans apart)
+              var spans = [];
               tc.items.forEach(function(it){
                 if(!it.str || !it.str.trim()) return;
-                var y = Math.round(it.transform[5]);
-                if(!byY[y]) byY[y] = [];
-                byY[y].push({x: it.transform[4], str: it.str});
+                spans.push({x: it.transform[4], y: it.transform[5], str: it.str});
               });
-              // Sort y-keys descending (top to bottom on page = high y to low y)
-              var yKeys = Object.keys(byY).map(Number).sort(function(a,b){return b-a;});
-              yKeys.forEach(function(y){
-                var lineItems = byY[y].sort(function(a,b){return a.x-b.x;});
-                // Join with single space; the regex handles multi-space
-                var line = lineItems.map(function(it){return it.str;}).join(' ').replace(/\s+/g,' ').trim();
-                if(line) allLines.push(line);
+              // Sort top-to-bottom by descending y
+              spans.sort(function(a,b){return b.y - a.y;});
+              var groups = [];
+              var curGroup = null;
+              var Y_TOLERANCE = 3.0;
+              spans.forEach(function(sp){
+                if(!curGroup || Math.abs(sp.y - curGroup.anchor) > Y_TOLERANCE){
+                  curGroup = {anchor: sp.y, items: [sp]};
+                  groups.push(curGroup);
+                } else {
+                  curGroup.items.push(sp);
+                }
+              });
+              groups.forEach(function(g){
+                var sorted = g.items.sort(function(a,b){return a.x - b.x;});
+                var line = sorted.map(function(it){return it.str;}).join(' ').replace(/\s+/g,' ').trim();
+                if(line){
+                  allLines.push(line);
+                  // Log first 30 lines from page 19 (first data page) for debugging
+                  if(pn === 19 && window._pdfLineLog && window._pdfLineLog.length < 30){
+                    window._pdfLineLog.push(line);
+                    console.log('[PDF line]', line);
+                  }
+                }
               });
               if(statusEl){statusEl.textContent='Extracted page '+pn+' of '+pdf.numPages;}
             });
@@ -4085,13 +4101,13 @@ function parseSalaryPaste(){
 
   // Regex for single-line format: name pos team1 team2 age start end yrs $total $aav
   // Spotrac single-line shape: "Juan Soto    RF   NYM   NYM   26   2025   2039   15   $765,000,000   $51,000,000"
-  var SINGLE_LINE = /^(.+?)\s+([A-Z0-9/]{1,4})\s+([A-Z]{2,4})(?:\s+([A-Z]{2,4}))?\s+(\d{1,2})\s+(\d{4})\s+(\d{4})\s+(\d{1,2})\s+\$([\d,]+)(?:\s+\$([\d,]+))?\s*$/;
+  var SINGLE_LINE = /^(.+?)\s+([A-Z0-9/]{1,4})\s+([A-Z]{2,4})(?:\s+([A-Z]{2,4}))?\s+(\d{1,2})\s+(\d{4})\s+(\d{4})\s+(\d{1,2})\s+\$\s*([\d,]+(?:\.\d+)?)(?:\s+\$\s*([\d,]+(?:\.\d+)?))?\s*$/;
 
   // Two-line format (50% landscape):
   // Line A: "TEAM1 TEAM2 AGE START END YRS $TOTAL $AAV"
   // Line B: "Name Name Pos"
   // The Line A "numbers row" — starts with team codes
-  var NUMERIC_LINE = /^([A-Z]{2,4})\s+([A-Z]{2,4})\s+(\d{1,2})\s+(\d{4})\s+(\d{4})\s+(\d{1,2})\s+\$([\d,]+)\s+\$([\d,]+)\s*$/;
+  var NUMERIC_LINE = /^([A-Z]{2,4})\s+([A-Z]{2,4})\s+(\d{1,2})\s+(\d{4})\s+(\d{4})\s+(\d{1,2})\s+\$\s*([\d,]+(?:\.\d+)?)\s+\$\s*([\d,]+(?:\.\d+)?)\s*$/;
   // Name+pos line: "Name Words 3B" — must end with valid position token
   var NAME_POS_RX = new RegExp('^(.+?)\\s+(' + VALID_POS.join('|') + ')\\s*$');
 
