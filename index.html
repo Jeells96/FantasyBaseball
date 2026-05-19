@@ -860,12 +860,30 @@ window.startContractsListener = function(callback) {
 // V28.5.3: Auto-start listeners as soon as module finishes loading
 if(window.startDraftListeners){console.log('[module] calling startDraftListeners immediately');setTimeout(window.startDraftListeners,100);}
 </script>
+<script>
+// V28.5.35: Lazy-load PDF.js when needed (avoids loading on every page view)
+window._loadPdfJs = function(){
+  return new Promise(function(resolve, reject){
+    if(window.pdfjsLib){return resolve(window.pdfjsLib);}
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = function(){
+      if(window.pdfjsLib){
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        resolve(window.pdfjsLib);
+      } else { reject(new Error('PDF.js loaded but pdfjsLib missing')); }
+    };
+    s.onerror = function(){ reject(new Error('PDF.js failed to load from CDN')); };
+    document.head.appendChild(s);
+  });
+};
+</script>
 </head>
 <body>
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.34</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.35</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1131,13 +1149,25 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
     <div class="set-section">
       <div class="set-section-title">Salary Database</div>
+      <div style="background:#0a0e16;border:1px solid #252a35;border-radius:6px;padding:.7rem;margin-bottom:.7rem;font-size:.7rem;color:#cbd5e1;line-height:1.6">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1.5px;color:#e8c84b;font-size:.7rem;margin-bottom:.4rem">HOW TO IMPORT FROM SPOTRAC</div>
+        <ol style="margin:0;padding-left:1.2rem">
+          <li>Go to <strong style="color:#e8c84b">spotrac.com/mlb/contracts/_/limit/1000</strong></li>
+          <li>Share &rarr; Print</li>
+          <li>Set <strong>Scale to 50%</strong></li>
+          <li>Share from preview &rarr; <strong>Save to Files</strong> (as PDF)</li>
+          <li>Tap Import PDF below and pick the file</li>
+        </ol>
+      </div>
       <div class="set-actions">
-        <button class="set-btn accent" onclick="try{openSalaryPaste();}catch(err){alert('Open failed: '+err.message);}">&#8595; Paste from Spotrac</button>
-        <button class="set-btn" onclick="document.getElementById('salImport').click()">&#8679; Excel</button>
+        <button class="set-btn accent" onclick="document.getElementById('salPdfImport').click()">&#8679; Import PDF</button>
+        <button class="set-btn" onclick="document.getElementById('salImport').click()">Excel</button>
+        <button id="salUndoBtn2" class="set-btn" onclick="undoSalaryImport()" style="display:none;background:rgba(232,75,75,.1);border:1px solid rgba(232,75,75,.3);color:#e84b4b">&#8630; Undo</button>
         <button class="set-btn" onclick="resetSalaries()">Reset</button>
       </div>
-      <div style="font-size:.7rem;color:var(--dim)" id="salDbStatus"></div>
+      <div style="font-size:.7rem;color:var(--dim);margin-top:.5rem;min-height:1rem" id="salDbStatus"></div>
       <input type="file" class="hidden-file" id="salImport" accept=".xlsx,.xls" onchange="importSalaryDB(this)">
+      <input type="file" class="hidden-file" id="salPdfImport" accept=".pdf,application/pdf" onchange="importSalaryPDF(this)">
     </div>
 
     <div class="set-section">
@@ -3938,6 +3968,107 @@ function quickAddSalary(){
   showToast('\u2713 Added '+name+' @ $'+aav+'M','green',1800);
   updateSalDbStatus();
 }
+function importSalaryPDF(input){
+  var file = input.files && input.files[0];
+  if(!file){return;}
+  input.value = ''; // reset so same file can be picked again
+  var statusEl = document.getElementById('salDbStatus');
+  if(statusEl){statusEl.style.color='#94a3b8';statusEl.textContent='Loading PDF\u2026';}
+  showToast('Reading PDF\u2026','yellow',2500);
+
+  window._loadPdfJs().then(function(pdfjsLib){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var bytes = new Uint8Array(e.target.result);
+      pdfjsLib.getDocument({data: bytes}).promise.then(function(pdf){
+        if(statusEl){statusEl.textContent='PDF: '+pdf.numPages+' pages, extracting text\u2026';}
+        var allLines = [];
+        var pageQueue = [];
+        for(var p=1; p<=pdf.numPages; p++){pageQueue.push(p);}
+
+        function extractPage(pn){
+          return pdf.getPage(pn).then(function(page){
+            return page.getTextContent().then(function(tc){
+              // Group items by y-coord into lines
+              var byY = {};
+              tc.items.forEach(function(it){
+                if(!it.str || !it.str.trim()) return;
+                var y = Math.round(it.transform[5]);
+                if(!byY[y]) byY[y] = [];
+                byY[y].push({x: it.transform[4], str: it.str});
+              });
+              // Sort y-keys descending (top to bottom on page = high y to low y)
+              var yKeys = Object.keys(byY).map(Number).sort(function(a,b){return b-a;});
+              yKeys.forEach(function(y){
+                var lineItems = byY[y].sort(function(a,b){return a.x-b.x;});
+                // Join with single space; the regex handles multi-space
+                var line = lineItems.map(function(it){return it.str;}).join(' ').replace(/\s+/g,' ').trim();
+                if(line) allLines.push(line);
+              });
+              if(statusEl){statusEl.textContent='Extracted page '+pn+' of '+pdf.numPages;}
+            });
+          });
+        }
+
+        // Process pages sequentially to keep memory low
+        var chain = Promise.resolve();
+        pageQueue.forEach(function(pn){
+          chain = chain.then(function(){return extractPage(pn);});
+        });
+
+        chain.then(function(){
+          if(statusEl){statusEl.textContent='Parsing '+allLines.length+' lines\u2026';}
+          // Drop into textarea (creating it if missing) and call parser
+          var ta = document.getElementById('salPasteText');
+          if(!ta){
+            // Create offscreen textarea
+            ta = document.createElement('textarea');
+            ta.id = 'salPasteText';
+            ta.style.display = 'none';
+            document.body.appendChild(ta);
+          }
+          ta.value = allLines.join('\n');
+          // Make sure status target exists
+          var ps = document.getElementById('salPasteStatus');
+          if(!ps){
+            ps = document.createElement('div');
+            ps.id = 'salPasteStatus';
+            ps.style.display = 'none';
+            document.body.appendChild(ps);
+          }
+          parseSalaryPaste();
+          // Mirror status to main settings status
+          if(statusEl && ps){
+            statusEl.style.color = ps.style.color || '#94a3b8';
+            statusEl.textContent = ps.textContent;
+          }
+          // Show the secondary Undo button in settings if import succeeded
+          var undo2 = document.getElementById('salUndoBtn2');
+          if(undo2 && localStorage.getItem('dyn26_v4_sal_backup') !== null){
+            undo2.style.display = 'inline-block';
+          }
+        }).catch(function(err){
+          console.error('[PDF] page extraction failed', err);
+          if(statusEl){statusEl.style.color='#e84b4b';statusEl.textContent='PDF parse error: '+err.message;}
+          showToast('PDF error: '+err.message,'red',3500);
+        });
+      }).catch(function(err){
+        console.error('[PDF] document open failed', err);
+        if(statusEl){statusEl.style.color='#e84b4b';statusEl.textContent='Cannot open PDF: '+err.message;}
+        showToast('PDF open failed','red',3000);
+      });
+    };
+    reader.onerror = function(){
+      if(statusEl){statusEl.style.color='#e84b4b';statusEl.textContent='File read failed';}
+    };
+    reader.readAsArrayBuffer(file);
+  }).catch(function(err){
+    console.error('[PDF] loader failed', err);
+    if(statusEl){statusEl.style.color='#e84b4b';statusEl.textContent='Cannot load PDF.js: '+err.message;}
+    showToast('Network error loading PDF.js','red',3000);
+  });
+}
+
 function parseSalaryPaste(){
   var txt = document.getElementById('salPasteText').value || '';
   var status = document.getElementById('salPasteStatus');
@@ -4104,6 +4235,8 @@ function undoSalaryImport(){
     localStorage.removeItem('dyn26_v4_sal_backup');
     var undoBtn = document.getElementById('salUndoBtn');
     if(undoBtn) undoBtn.style.display = 'none';
+    var undoBtn2 = document.getElementById('salUndoBtn2');
+    if(undoBtn2) undoBtn2.style.display = 'none';
     var status = document.getElementById('salPasteStatus');
     if(status){
       status.style.color = '#94a3b8';
