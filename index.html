@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.18</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.20</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1767,28 +1767,32 @@ function fetchFreeAgents(){
   FA_FETCHING=true;
   document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">&#8635; Fetching&hellip;</td></tr>';
 
-  var statsYear=(typeof DRAFT_VIEW_PREFS!=='undefined' && DRAFT_VIEW_PREFS.statsYear)?String(DRAFT_VIEW_PREFS.statsYear):'2025';
-  var Y = parseInt(statsYear);
+  // statsYear can be e.g. "2025", "2026", or "2026p" for 2026 projection
+  var rawStatsYear=(typeof DRAFT_VIEW_PREFS!=='undefined' && DRAFT_VIEW_PREFS.statsYear)?String(DRAFT_VIEW_PREFS.statsYear):'2025';
+  var isProj = /p$/i.test(rawStatsYear);
+  var Y = parseInt(rawStatsYear);
+  var wantedSource = isProj ? 1 : 0; // 0 = actual, 1 = projection
 
   var q=loadQueries();
-  // URL uses the chosen year directly — ESPN serves each year as its own context
-  var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+Y+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');
+  var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+CURRENT_SEASON+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');
 
-  var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[Y]},filterStatsForSourceIds:{value:[0,1]},sortAppliedStatTotal:{sortAsc:false,sortPriority:1,value:'00'+Y},filterStatsForTopScoringPeriodIDs:{value:2,additionalValue:['00'+Y]},limit:3000}};
+  // Always request both years and both sources — extract the right one client-side
+  var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[Y,Y-1,Y+1]},filterStatsForSourceIds:{value:[0,1]},limit:3000}};
 
   var filterText=(q.fa&&q.fa.value)?q.fa.value:'';
   var filterMatch=filterText.match(/\{[\s\S]*"players"[\s\S]*\}/);
   if(filterMatch){try{filterObj=JSON.parse(filterMatch[0]);}catch(e){}}
 
-  console.log('[FA] URL:',url);
+  console.log('[FA] looking for seasonId='+Y+' statSourceId='+wantedSource+' (isProj='+isProj+')');
 
   fetch(url,{headers:{'X-Fantasy-Filter':JSON.stringify(filterObj)}})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(data){
       var players=data.players||[];
-      console.log('[FA] received',players.length,'players');
-      if(players[0]){
-        console.log('[FA] sample stats for',players[0].player.fullName,':',JSON.stringify((players[0].player.stats||[]).map(function(s){return {y:s.seasonId,src:s.statSourceId,total:s.appliedTotal,avg:s.appliedAverage};})));
+      // Log Devers specifically so we can verify
+      var devers = players.find(function(e){return e.player && e.player.fullName === 'Rafael Devers';});
+      if(devers){
+        console.log('[FA] Devers stats:',JSON.stringify((devers.player.stats||[]).map(function(s){return {y:s.seasonId,src:s.statSourceId,total:s.appliedTotal,avg:s.appliedAverage};})));
       }
 
       FA_DATA = players.map(function(entry){
@@ -1796,13 +1800,17 @@ function fetchFreeAgents(){
         var stats=p.stats||[];
         var pts=null, avg=null;
 
-        // Just take the highest applied total from any stat entry — the URL already scoped to year Y
-        stats.forEach(function(s){
-          if(typeof s.appliedTotal==='number' && (pts===null || s.appliedTotal>pts)){
-            pts=s.appliedTotal;
-            avg=(typeof s.appliedAverage==='number')?s.appliedAverage:null;
+        // STRICT match: seasonId === Y AND statSourceId === wantedSource
+        for(var k=0;k<stats.length;k++){
+          var s=stats[k];
+          if(s.seasonId===Y && s.statSourceId===wantedSource){
+            if(typeof s.appliedTotal==='number'){
+              pts=s.appliedTotal;
+              avg=(typeof s.appliedAverage==='number')?s.appliedAverage:null;
+              break;
+            }
           }
-        });
+        }
 
         var name=p.fullName||'Unknown';
         var eligibleIds=p.eligibleSlots||[];
@@ -1822,8 +1830,9 @@ function fetchFreeAgents(){
 
       try{localStorage.setItem(LS_FA,JSON.stringify(FA_DATA));}catch(e){}
       renderFA();
-      var withPts=FA_DATA.filter(function(p){return p.TotalPoints!==null && p.TotalPoints>0;}).length;
-      showToast('✓ '+FA_DATA.length+' FAs ('+withPts+' with '+Y+' stats)','green',2200);
+      var withPts=FA_DATA.filter(function(p){return p.TotalPoints!==null;}).length;
+      var label = Y + (isProj ? ' proj' : ' actual');
+      showToast('✓ '+FA_DATA.length+' FAs ('+withPts+' with '+label+')','green',2200);
       FA_FETCHING=false;
     })
     .catch(function(err){
@@ -3866,12 +3875,12 @@ setInterval(function(){
         </select>
       </div>
 
-      <label class="field-label">ESPN Stats Year</label>
-      <div style="display:flex;gap:.4rem">
-        <input type="number" class="field-input" id="dvStatsYear" placeholder="e.g. 2025" style="font-size:16px;flex:1" min="2020" max="2030">
-        <button class="set-btn" onclick="changeStatsYear(document.getElementById('dvStatsYear').value)" style="padding:.5rem .85rem;background:rgba(232,200,75,.1);border:1px solid rgba(232,200,75,.3);color:#e8c84b;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px">Apply</button>
-      </div>
-      <div style="font-size:.62rem;color:#6b7280;margin-top:.2rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px">Type year, then tap Apply</div>
+      <label class="field-label">ESPN Stats</label>
+      <select class="field-input" id="dvStatsYear" onchange="changeStatsYear(this.value)" style="font-size:16px">
+        <option value="2025">2025 Actual</option>
+        <option value="2026">2026 Actual (in season)</option>
+        <option value="2026p">2026 Projection</option>
+      </select>
 
       <label class="field-label" style="margin-top:.85rem">Filter by Age</label>
       <div style="display:flex;gap:.4rem;margin-bottom:.5rem">
