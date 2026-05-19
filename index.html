@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.27</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.28</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -2781,7 +2781,7 @@ function getDraftPool(){
       avg:p.AvgPoints||null,
       statLine:p.StatLine||null,
       isPitcher:p.IsPitcher||false,
-      isArb: isArb,
+      isArb: false,
       status:p.Availability,
       age:salE.age||'?',
       fa:salE.expires||'?',
