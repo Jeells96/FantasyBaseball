@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.33</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.34</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1132,7 +1132,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
     <div class="set-section">
       <div class="set-section-title">Salary Database</div>
       <div class="set-actions">
-        <button class="set-btn accent" onclick="openSalaryPaste()">&#8595; Paste from Spotrac</button>
+        <button class="set-btn accent" onclick="try{openSalaryPaste();}catch(err){alert('Open failed: '+err.message);}">&#8595; Paste from Spotrac</button>
         <button class="set-btn" onclick="document.getElementById('salImport').click()">&#8679; Excel</button>
         <button class="set-btn" onclick="resetSalaries()">Reset</button>
       </div>
@@ -3884,19 +3884,26 @@ setInterval(function(){
 
 // V28.5.31: Salary paste from Spotrac
 function openSalaryPaste(){
-  document.getElementById('salPasteText').value='';
-  var status=document.getElementById('salPasteStatus');
-  status.textContent='';
-  status.style.color='#94a3b8';
-  // Show Undo button if backup exists
-  var undoBtn=document.getElementById('salUndoBtn');
-  if(undoBtn){
-    try{
-      var hasBackup = localStorage.getItem('dyn26_v4_sal_backup') !== null;
-      undoBtn.style.display = hasBackup ? 'inline-block' : 'none';
-    }catch(e){undoBtn.style.display='none';}
+  console.log('[salaryPaste] openSalaryPaste called');
+  try {
+    var modal = document.getElementById('salaryPasteModal');
+    if(!modal){alert('Modal element not found in DOM');return;}
+    var ta = document.getElementById('salPasteText');
+    if(ta) ta.value = '';
+    var status = document.getElementById('salPasteStatus');
+    if(status){status.textContent=''; status.style.color='#94a3b8';}
+    var undoBtn = document.getElementById('salUndoBtn');
+    if(undoBtn){
+      try{
+        var hasBackup = localStorage.getItem('dyn26_v4_sal_backup') !== null;
+        undoBtn.style.display = hasBackup ? 'inline-block' : 'none';
+      }catch(e){undoBtn.style.display='none';}
+    }
+    modal.classList.add('open');
+    console.log('[salaryPaste] modal opened, classes:', modal.className);
+  } catch(err){
+    alert('openSalaryPaste error: ' + err.message);
   }
-  document.getElementById('salaryPasteModal').classList.add('open');
 }
 function closeSalaryPasteModal(){
   document.getElementById('salaryPasteModal').classList.remove('open');
