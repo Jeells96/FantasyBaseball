@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.30</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.31</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1132,8 +1132,9 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
     <div class="set-section">
       <div class="set-section-title">Salary Database</div>
       <div class="set-actions">
-        <button class="set-btn accent" onclick="document.getElementById('salImport').click()">&#8679; Import Salary Excel</button>
-        <button class="set-btn" onclick="resetSalaries()">Reset to Default</button>
+        <button class="set-btn accent" onclick="openSalaryPaste()">&#8595; Paste from Spotrac</button>
+        <button class="set-btn" onclick="document.getElementById('salImport').click()">&#8679; Excel</button>
+        <button class="set-btn" onclick="resetSalaries()">Reset</button>
       </div>
       <div style="font-size:.7rem;color:var(--dim)" id="salDbStatus"></div>
       <input type="file" class="hidden-file" id="salImport" accept=".xlsx,.xls" onchange="importSalaryDB(this)">
@@ -3034,7 +3035,7 @@ function renderDraftPool(){
     return '<div class="draft-player-card" onclick="openDraftConfirm(\''+safeName+'\')">'+
       '<div class="cr-slot-wrap"><span class="slot '+sk+'">'+p.pos+'</span></div>'+
       '<div class="cr-info">'+
-      '<div class="cr-name">'+p.name+sourceTag+'</div>'+
+      '<div class="cr-name" style="'+(p.isArb?'color:#4b8fe8;font-style:italic':'')+'">'+p.name+sourceTag+'</div>'+
       (meta?'<div class="cr-team">'+meta+'</div>':'')+
       statHtml+
       '</div>'+
@@ -3878,6 +3879,131 @@ setInterval(function(){
 
 
 
+
+// V28.5.31: Salary paste from Spotrac
+function openSalaryPaste(){
+  document.getElementById('salPasteText').value='';
+  document.getElementById('salPasteStatus').textContent='';
+  document.getElementById('salaryPasteModal').style.display='flex';
+}
+function closeSalaryPasteModal(){
+  document.getElementById('salaryPasteModal').style.display='none';
+}
+function parseSalaryPaste(){
+  var txt = document.getElementById('salPasteText').value || '';
+  var status = document.getElementById('salPasteStatus');
+  if(!txt.trim()){status.textContent='Paste data first.';return;}
+  
+  // Split into lines, drop blanks
+  var lines = txt.split(/\r?\n/).map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+  
+  // Determine separator by testing first non-header line
+  function splitRow(row){
+    // Try tab first (Excel/spreadsheet paste)
+    if(row.indexOf('\t')>=0) return row.split('\t').map(function(c){return c.trim();});
+    // Try double-space (web table paste)
+    if(/  +/.test(row)) return row.split(/  +/).map(function(c){return c.trim();});
+    // Comma
+    if(row.indexOf(',')>=0) return row.split(',').map(function(c){return c.trim();});
+    // Single space
+    return row.split(/\s+/).map(function(c){return c.trim();});
+  }
+  
+  var newSal = [];
+  var skipped = 0;
+  
+  for(var i=0;i<lines.length;i++){
+    var cols = splitRow(lines[i]);
+    if(cols.length<3){skipped++;continue;}
+    
+    // Skip header rows (no digits, or contains "Player"/"Name")
+    var first = cols[0]||'';
+    if(/^(player|name|rank|#)$/i.test(first)){skipped++;continue;}
+    if(!/[a-z]/i.test(first)){skipped++;continue;}
+    
+    // Heuristic column extraction
+    // Spotrac typical: Player, Pos, Team, Age, Signed, Years, Expires (YYYY), Length, Value, AAV
+    // We need: name, pos, team, age, signed, expires, years, aav
+    var name = first.replace(/\*+$/,'').trim();
+    if(!name || name.length<2){skipped++;continue;}
+    
+    var pos='', team='', age='', signed='', expires='', years='', aav='';
+    
+    // Find AAV: a $-prefixed number, usually the LAST $-value or labeled
+    var dollarMatches=[];
+    cols.forEach(function(c,idx){
+      var m = c.match(/\$?\s*([\d,]+(?:\.\d+)?)\s*([MK])?/i);
+      if(m && (c.indexOf('$')>=0 || (m[2] && /[MK]/i.test(m[2])))){
+        var val = parseFloat(m[1].replace(/,/g,''));
+        if(m[2] && m[2].toUpperCase()==='K')val=val/1000;
+        if(!isNaN(val))dollarMatches.push({idx:idx,val:val});
+      }
+    });
+    // AAV is typically the smallest of the trailing money columns (total value > AAV)
+    if(dollarMatches.length){
+      // Take the LAST one as AAV (Spotrac puts AAV last)
+      aav = dollarMatches[dollarMatches.length-1].val.toFixed(2);
+    }
+    
+    // Find a 4-digit year for expires
+    cols.forEach(function(c){
+      var m = c.match(/^(20[2-4]\d)$/);
+      if(m && !expires)expires = m[1];
+    });
+    
+    // Find years (small integer 1-15)
+    cols.forEach(function(c,idx){
+      if(idx===0)return;
+      var m = c.match(/^([1-9]|1[0-5])$/);
+      if(m && !years){years = m[1];}
+    });
+    
+    // Find age (integer 17-50)
+    cols.forEach(function(c,idx){
+      if(idx===0)return;
+      var m = c.match(/^([1-4]\d|50)$/);
+      if(m && !age){
+        var n = parseInt(m[1]);
+        if(n>=17 && n<=50)age = m[1];
+      }
+    });
+    
+    // Find position (one of common positions)
+    var POS_LIST = ['C','1B','2B','3B','SS','OF','LF','CF','RF','SP','RP','P','DH','SP/RP'];
+    cols.forEach(function(c){
+      if(!pos && POS_LIST.indexOf(c.toUpperCase())>=0)pos = c.toUpperCase();
+    });
+    
+    // Find team abbrev (3-letter all-caps)
+    cols.forEach(function(c){
+      if(!team && /^[A-Z]{2,3}$/.test(c) && c!==pos)team = c;
+    });
+    
+    if(!aav || parseFloat(aav)<=0){skipped++;continue;}
+    
+    newSal.push({
+      name:name, pos:pos, team:team, signed:signed,
+      expires:expires, years:years, aav:aav, age:age
+    });
+  }
+  
+  if(newSal.length < 5){
+    status.style.color='#e84b4b';
+    status.textContent = 'Only parsed '+newSal.length+' rows ('+skipped+' skipped). Check format.';
+    return;
+  }
+  
+  try{localStorage.setItem('dyn26_v4_sal',JSON.stringify(newSal));}catch(ex){}
+  // Rebuild lookups
+  AAV_DB = {}; SAL_MAP = {};
+  newSal.forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});
+  status.style.color='#22c55e';
+  status.textContent = '✓ Parsed '+newSal.length+' contracts ('+skipped+' skipped)';
+  showToast('✓ Salary DB updated with '+newSal.length+' contracts','green',2500);
+  updateSalDbStatus();
+  setTimeout(closeSalaryPasteModal, 1200);
+}
+
 </script>
 
 
@@ -4406,5 +4532,29 @@ setInterval(function(){
   </div>
 </div>
 
+
+<!-- V28.5.31: Salary paste modal -->
+<div id="salaryPasteModal" class="modal" style="display:none">
+  <div class="modal-content" style="max-width:680px">
+    <div class="modal-header">
+      <span>Paste Spotrac Salary Data</span>
+      <button class="modal-close" onclick="closeSalaryPasteModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:1rem">
+      <div style="font-size:.75rem;color:#94a3b8;margin-bottom:.5rem;line-height:1.4">
+        Go to <strong>spotrac.com/mlb/contracts</strong>, select the player table (Cmd/Ctrl+A then Cmd/Ctrl+C), and paste it below. The parser handles tab-separated, comma-separated, and space-separated columns.
+      </div>
+      <div style="font-size:.7rem;color:#6b7280;margin-bottom:.6rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px">
+        EXPECTED COLUMNS: Player &middot; Pos &middot; Team &middot; Age &middot; Signed &middot; Years &middot; Expires &middot; AAV
+      </div>
+      <textarea id="salPasteText" placeholder="Paste rows here..." style="width:100%;min-height:240px;background:#0a0e16;color:#e2e8f0;border:1px solid #252a35;border-radius:6px;padding:.7rem;font-family:'DM Mono',monospace;font-size:.7rem;line-height:1.4;resize:vertical"></textarea>
+      <div id="salPasteStatus" style="font-size:.7rem;color:#94a3b8;margin-top:.5rem;min-height:1rem"></div>
+      <div style="display:flex;gap:.5rem;margin-top:.7rem">
+        <button class="set-btn accent" onclick="parseSalaryPaste()" style="flex:1">Parse &amp; Save</button>
+        <button class="set-btn" onclick="closeSalaryPasteModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
