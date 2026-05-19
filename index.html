@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.31</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.33</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1274,6 +1274,8 @@ var SKIP_SHEETS=new Set(['app','salaries','all teams','auto team','query1','shee
 var AAV_DB={};
 var SAL_MAP={};
 SAL.forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});
+// V28.5.33: Load salary-change highlights from previous import (session-scoped)
+try{ window.SAL_CHANGES = JSON.parse(sessionStorage.getItem('dyn28_sal_changes')||'{}'); }catch(e){ window.SAL_CHANGES = {}; }
 var ROSTER={};
 var rosterLoadTime=null;
 function flattenRoster(r){if(!r)return{};var flat={};Object.keys(r).forEach(function(tn){var v=r[tn];flat[tn]=Array.isArray(v)?v:(v&&v.players?v.players:[]);});return flat;}
@@ -1760,7 +1762,7 @@ var tsel=document.getElementById('dbTeam');
 salTeams.forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t;tsel.appendChild(o);});
 var dbSort={col:'aav',dir:-1};
 function sortDB(col){dbSort=dbSort.col===col?{col:col,dir:dbSort.dir*-1}:{col:col,dir:(col==='name'||col==='pos'||col==='team')?1:-1};renderDB();}
-function renderDB(){var q=(document.getElementById('dbSearch').value||'').toLowerCase();var pos=document.getElementById('dbPos').value;var team=document.getElementById('dbTeam').value;var exp=document.getElementById('dbExp').value;var data=SAL.filter(function(p){if(q&&!p.name.toLowerCase().includes(q))return false;if(pos&&p.pos!==pos)return false;if(team&&p.team!==team)return false;if(exp){var ex=parseInt(p.expires)||0;if(exp==='2031+'){if(ex<2031)return false;}else if(p.expires!==exp)return false;}return true;});var col=dbSort.col,dir=dbSort.dir;data.sort(function(a,b){var av=a[col]||'',bv=b[col]||'';if(col==='aav'){return((av==='ARB'?ARB():parseFloat(av)||0)-(bv==='ARB'?ARB():parseFloat(bv)||0))*dir;}var an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return(an-bn)*dir;return av.toString().localeCompare(bv.toString())*dir;});document.getElementById('dbCnt').textContent=data.length+' contracts';document.querySelectorAll('.dbt th').forEach(function(th){th.classList.remove('srt');var ar=th.querySelector('.sar');if(ar)ar.innerHTML='&#8645;';});var sh=document.querySelector('.dbt th[data-col="'+col+'"]');if(sh){sh.classList.add('srt');var ar=sh.querySelector('.sar');if(ar)ar.innerHTML=dir===1?'&#8593;':'&#8595;';}var tbody=document.getElementById('dbBody');if(!data.length){tbody.innerHTML='<tr><td colspan="8" class="no-res">No contracts found</td></tr>';return;}tbody.innerHTML=data.slice(0,300).map(function(p){var n=p.aav==='ARB'?ARB():parseFloat(p.aav)||0,isA=p.aav==='ARB';return '<tr><td style="color:var(--brt);font-weight:500">'+p.name+(isA?'<span class="arb-tag">ARB</span>':'')+'</td><td><span class="ptag">'+(p.pos||'\u2014')+'</span></td><td style="color:var(--dim)">'+(p.team||'\u2014')+'</td><td>'+(p.age||'\u2014')+'</td><td>'+(p.signed||'\u2014')+'</td><td style="color:'+(parseInt(p.expires)<=2026?'var(--dim)':'var(--txt)')+'">'+( p.expires||'\u2014')+'</td><td>'+(p.years||'\u2014')+'</td><td style="color:'+(isA?'var(--acc)':'var(--brt)')+';font-weight:500">'+(isA?'ARB ($'+ARB().toFixed(2)+'M)':'$'+n.toFixed(2)+'M')+'</td></tr>';}).join('');if(data.length>300)tbody.innerHTML+='<tr><td colspan="8" style="text-align:center;padding:1rem;color:var(--dim);font-size:.7rem">Showing 300 of '+data.length+'</td></tr>';}
+function renderDB(){var q=(document.getElementById('dbSearch').value||'').toLowerCase();var pos=document.getElementById('dbPos').value;var team=document.getElementById('dbTeam').value;var exp=document.getElementById('dbExp').value;var data=SAL.filter(function(p){if(q&&!p.name.toLowerCase().includes(q))return false;if(pos&&p.pos!==pos)return false;if(team&&p.team!==team)return false;if(exp){var ex=parseInt(p.expires)||0;if(exp==='2031+'){if(ex<2031)return false;}else if(p.expires!==exp)return false;}return true;});var col=dbSort.col,dir=dbSort.dir;data.sort(function(a,b){var av=a[col]||'',bv=b[col]||'';if(col==='aav'){return((av==='ARB'?ARB():parseFloat(av)||0)-(bv==='ARB'?ARB():parseFloat(bv)||0))*dir;}var an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return(an-bn)*dir;return av.toString().localeCompare(bv.toString())*dir;});document.getElementById('dbCnt').textContent=data.length+' contracts';document.querySelectorAll('.dbt th').forEach(function(th){th.classList.remove('srt');var ar=th.querySelector('.sar');if(ar)ar.innerHTML='&#8645;';});var sh=document.querySelector('.dbt th[data-col="'+col+'"]');if(sh){sh.classList.add('srt');var ar=sh.querySelector('.sar');if(ar)ar.innerHTML=dir===1?'&#8593;':'&#8595;';}var tbody=document.getElementById('dbBody');if(!data.length){tbody.innerHTML='<tr><td colspan="8" class="no-res">No contracts found</td></tr>';return;}tbody.innerHTML=data.slice(0,300).map(function(p){var n=p.aav==='ARB'?ARB():parseFloat(p.aav)||0,isA=p.aav==='ARB';var chg=(window.SAL_CHANGES||{})[p.name];var chgBadge=chg==='NEW'?' <span title="New since last import" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-left:6px;vertical-align:middle"></span>':chg==='CHANGED'?' <span title="Changed since last import" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#e8c84b;margin-left:6px;vertical-align:middle"></span>':'';return '<tr style="'+(chg?'background:rgba(232,200,75,.04)':'')+'"><td style="color:var(--brt);font-weight:500">'+p.name+chgBadge+(isA?'<span class="arb-tag">ARB</span>':'')+'</td><td><span class="ptag">'+(p.pos||'\u2014')+'</span></td><td style="color:var(--dim)">'+(p.team||'\u2014')+'</td><td>'+(p.age||'\u2014')+'</td><td>'+(p.signed||'\u2014')+'</td><td style="color:'+(parseInt(p.expires)<=2026?'var(--dim)':'var(--txt)')+'">'+( p.expires||'\u2014')+'</td><td>'+(p.years||'\u2014')+'</td><td style="color:'+(isA?'var(--acc)':'var(--brt)')+';font-weight:500">'+(isA?'ARB ($'+ARB().toFixed(2)+'M)':'$'+n.toFixed(2)+'M')+'</td></tr>';}).join('');if(data.length>300)tbody.innerHTML+='<tr><td colspan="8" style="text-align:center;padding:1rem;color:var(--dim);font-size:.7rem">Showing 300 of '+data.length+'</td></tr>';}
 var FA_DATA=[];var FA_SORT={col:'TotalPoints',dir:-1};var FA_FETCHING=false;var LS_FA='dyn26_v3_fa';
 var POS_MAP={1:'SP',2:'C',3:'1B',4:'2B',5:'3B',6:'SS',7:'OF',8:'OF',9:'OF',10:'OF',11:'OF',14:'RP',15:'P'};
 function fetchFreeAgents(){
@@ -3883,125 +3885,228 @@ setInterval(function(){
 // V28.5.31: Salary paste from Spotrac
 function openSalaryPaste(){
   document.getElementById('salPasteText').value='';
-  document.getElementById('salPasteStatus').textContent='';
-  document.getElementById('salaryPasteModal').style.display='flex';
+  var status=document.getElementById('salPasteStatus');
+  status.textContent='';
+  status.style.color='#94a3b8';
+  // Show Undo button if backup exists
+  var undoBtn=document.getElementById('salUndoBtn');
+  if(undoBtn){
+    try{
+      var hasBackup = localStorage.getItem('dyn26_v4_sal_backup') !== null;
+      undoBtn.style.display = hasBackup ? 'inline-block' : 'none';
+    }catch(e){undoBtn.style.display='none';}
+  }
+  document.getElementById('salaryPasteModal').classList.add('open');
 }
 function closeSalaryPasteModal(){
-  document.getElementById('salaryPasteModal').style.display='none';
+  document.getElementById('salaryPasteModal').classList.remove('open');
+}
+function quickAddSalary(){
+  var name = (document.getElementById('quickAddName').value||'').trim();
+  var aav = (document.getElementById('quickAddAAV').value||'').trim();
+  if(!name){showToast('Need a name','red',1500);return;}
+  if(!aav || isNaN(parseFloat(aav))){showToast('Need AAV','red',1500);return;}
+  var pos = (document.getElementById('quickAddPos').value||'').trim().toUpperCase();
+  var team = (document.getElementById('quickAddTeam').value||'').trim().toUpperCase();
+  var expires = (document.getElementById('quickAddExpires').value||'').trim();
+  // Load existing
+  var sal=[];
+  try{sal=JSON.parse(localStorage.getItem('dyn26_v4_sal')||'null')||[];}catch(e){}
+  if(!sal.length){sal = (typeof SAL!=='undefined')?SAL.slice():[];}
+  // Remove existing entry if same name
+  sal = sal.filter(function(p){return p.name!==name;});
+  // Add new
+  var entry = {name:name,pos:pos,team:team,aav:parseFloat(aav).toFixed(2),expires:expires,signed:'',years:'',age:''};
+  sal.push(entry);
+  try{localStorage.setItem('dyn26_v4_sal',JSON.stringify(sal));}catch(e){}
+  // Rebuild lookups
+  AAV_DB[name]=entry.aav;
+  SAL_MAP[name]=entry;
+  // Clear fields
+  document.getElementById('quickAddName').value='';
+  document.getElementById('quickAddAAV').value='';
+  document.getElementById('quickAddPos').value='';
+  document.getElementById('quickAddTeam').value='';
+  document.getElementById('quickAddExpires').value='';
+  showToast('\u2713 Added '+name+' @ $'+aav+'M','green',1800);
+  updateSalDbStatus();
 }
 function parseSalaryPaste(){
   var txt = document.getElementById('salPasteText').value || '';
   var status = document.getElementById('salPasteStatus');
-  if(!txt.trim()){status.textContent='Paste data first.';return;}
-  
-  // Split into lines, drop blanks
-  var lines = txt.split(/\r?\n/).map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
-  
-  // Determine separator by testing first non-header line
-  function splitRow(row){
-    // Try tab first (Excel/spreadsheet paste)
-    if(row.indexOf('\t')>=0) return row.split('\t').map(function(c){return c.trim();});
-    // Try double-space (web table paste)
-    if(/  +/.test(row)) return row.split(/  +/).map(function(c){return c.trim();});
-    // Comma
-    if(row.indexOf(',')>=0) return row.split(',').map(function(c){return c.trim();});
-    // Single space
-    return row.split(/\s+/).map(function(c){return c.trim();});
-  }
-  
-  var newSal = [];
+  if(!txt.trim()){status.style.color='#e84b4b';status.textContent='Paste data first.';return;}
+
+  // Valid positions to validate the trailing token on a "name + pos" line
+  var VALID_POS = ['C','1B','2B','3B','SS','OF','LF','CF','RF','DH','SP','RP','P','INF'];
+
+  // Clean lines
+  var rawLines = txt.split(/\r?\n/).map(function(l){return l.replace(/\u000c/g,' ').trim();}).filter(function(l){return l.length>0;});
+
+  var rows = [];
   var skipped = 0;
-  
-  for(var i=0;i<lines.length;i++){
-    var cols = splitRow(lines[i]);
-    if(cols.length<3){skipped++;continue;}
-    
-    // Skip header rows (no digits, or contains "Player"/"Name")
-    var first = cols[0]||'';
-    if(/^(player|name|rank|#)$/i.test(first)){skipped++;continue;}
-    if(!/[a-z]/i.test(first)){skipped++;continue;}
-    
-    // Heuristic column extraction
-    // Spotrac typical: Player, Pos, Team, Age, Signed, Years, Expires (YYYY), Length, Value, AAV
-    // We need: name, pos, team, age, signed, expires, years, aav
-    var name = first.replace(/\*+$/,'').trim();
-    if(!name || name.length<2){skipped++;continue;}
-    
-    var pos='', team='', age='', signed='', expires='', years='', aav='';
-    
-    // Find AAV: a $-prefixed number, usually the LAST $-value or labeled
-    var dollarMatches=[];
-    cols.forEach(function(c,idx){
-      var m = c.match(/\$?\s*([\d,]+(?:\.\d+)?)\s*([MK])?/i);
-      if(m && (c.indexOf('$')>=0 || (m[2] && /[MK]/i.test(m[2])))){
-        var val = parseFloat(m[1].replace(/,/g,''));
-        if(m[2] && m[2].toUpperCase()==='K')val=val/1000;
-        if(!isNaN(val))dollarMatches.push({idx:idx,val:val});
-      }
-    });
-    // AAV is typically the smallest of the trailing money columns (total value > AAV)
-    if(dollarMatches.length){
-      // Take the LAST one as AAV (Spotrac puts AAV last)
-      aav = dollarMatches[dollarMatches.length-1].val.toFixed(2);
+
+  // Regex for single-line format: name pos team1 team2 age start end yrs $total $aav
+  // Spotrac single-line shape: "Juan Soto    RF   NYM   NYM   26   2025   2039   15   $765,000,000   $51,000,000"
+  var SINGLE_LINE = /^(.+?)\s+([A-Z0-9/]{1,4})\s+([A-Z]{2,4})(?:\s+([A-Z]{2,4}))?\s+(\d{1,2})\s+(\d{4})\s+(\d{4})\s+(\d{1,2})\s+\$([\d,]+)(?:\s+\$([\d,]+))?\s*$/;
+
+  // Two-line format (50% landscape):
+  // Line A: "TEAM1 TEAM2 AGE START END YRS $TOTAL $AAV"
+  // Line B: "Name Name Pos"
+  // The Line A "numbers row" — starts with team codes
+  var NUMERIC_LINE = /^([A-Z]{2,4})\s+([A-Z]{2,4})\s+(\d{1,2})\s+(\d{4})\s+(\d{4})\s+(\d{1,2})\s+\$([\d,]+)\s+\$([\d,]+)\s*$/;
+  // Name+pos line: "Name Words 3B" — must end with valid position token
+  var NAME_POS_RX = new RegExp('^(.+?)\\s+(' + VALID_POS.join('|') + ')\\s*$');
+
+  function pushRow(name, pos, team, age, signed, expires, years, totalRaw, aavRaw){
+    name = (name || '').trim();
+    if(!name || name.length < 2) return false;
+    // Drop UI junk
+    if(/^(player|name|rank|#|pos|position|team|age|start|end|yrs|years|value|aav|copied)$/i.test(name)) return false;
+    var aavNum = parseFloat((aavRaw || totalRaw || '0').replace(/,/g,''));
+    if(!isFinite(aavNum) || aavNum <= 0) return false;
+    // If only total present and years > 0, derive AAV
+    if(!aavRaw && totalRaw && parseInt(years) > 0){
+      aavNum = parseFloat(totalRaw.replace(/,/g,'')) / parseInt(years);
     }
-    
-    // Find a 4-digit year for expires
-    cols.forEach(function(c){
-      var m = c.match(/^(20[2-4]\d)$/);
-      if(m && !expires)expires = m[1];
+    // Store as $M with 3 decimals trimmed
+    var aavMillions = (aavNum / 1000000);
+    var aavStr = (Math.round(aavMillions * 1000) / 1000).toString();
+    rows.push({
+      name: name,
+      pos: (pos || '').toUpperCase(),
+      team: (team || '').toUpperCase(),
+      signed: signed || '',
+      expires: expires || '',
+      years: years || '',
+      aav: aavStr,
+      age: age || ''
     });
-    
-    // Find years (small integer 1-15)
-    cols.forEach(function(c,idx){
-      if(idx===0)return;
-      var m = c.match(/^([1-9]|1[0-5])$/);
-      if(m && !years){years = m[1];}
-    });
-    
-    // Find age (integer 17-50)
-    cols.forEach(function(c,idx){
-      if(idx===0)return;
-      var m = c.match(/^([1-4]\d|50)$/);
-      if(m && !age){
-        var n = parseInt(m[1]);
-        if(n>=17 && n<=50)age = m[1];
-      }
-    });
-    
-    // Find position (one of common positions)
-    var POS_LIST = ['C','1B','2B','3B','SS','OF','LF','CF','RF','SP','RP','P','DH','SP/RP'];
-    cols.forEach(function(c){
-      if(!pos && POS_LIST.indexOf(c.toUpperCase())>=0)pos = c.toUpperCase();
-    });
-    
-    // Find team abbrev (3-letter all-caps)
-    cols.forEach(function(c){
-      if(!team && /^[A-Z]{2,3}$/.test(c) && c!==pos)team = c;
-    });
-    
-    if(!aav || parseFloat(aav)<=0){skipped++;continue;}
-    
-    newSal.push({
-      name:name, pos:pos, team:team, signed:signed,
-      expires:expires, years:years, aav:aav, age:age
-    });
+    return true;
   }
-  
-  if(newSal.length < 5){
-    status.style.color='#e84b4b';
-    status.textContent = 'Only parsed '+newSal.length+' rows ('+skipped+' skipped). Check format.';
+
+  // First pass: scan for single-line matches
+  // Second pass for un-matched lines: pair numeric-line with next name+pos line
+  var consumed = new Array(rawLines.length).fill(false);
+
+  // Single-line pass
+  for(var i = 0; i < rawLines.length; i++){
+    var m = rawLines[i].match(SINGLE_LINE);
+    if(!m) continue;
+    var name = m[1].replace(/\*+$/,'').replace(/\u2192/g,'').trim();
+    // Drop trailing nav junk if name contains it
+    if(/spotrac|copyright|league|football|basketball/i.test(name)) continue;
+    if(pushRow(name, m[2], m[3], m[5], m[6], m[7], m[8], m[9], m[10])){
+      consumed[i] = true;
+    }
+  }
+
+  // Two-line pass — look for NUMERIC_LINE followed (within next 3 lines) by NAME_POS_RX
+  for(var i = 0; i < rawLines.length; i++){
+    if(consumed[i]) continue;
+    var num = rawLines[i].match(NUMERIC_LINE);
+    if(!num) continue;
+    // Find next non-consumed name+pos line within 3 lines
+    var nameLine = null, nameIdx = -1;
+    for(var j = i + 1; j <= Math.min(i + 3, rawLines.length - 1); j++){
+      if(consumed[j]) continue;
+      var npm = rawLines[j].match(NAME_POS_RX);
+      if(npm){ nameLine = npm; nameIdx = j; break; }
+    }
+    if(!nameLine) continue;
+    var nm = nameLine[1].replace(/\*+$/,'').replace(/\u2192/g,'').trim();
+    if(/spotrac|copyright|league|football|basketball|trending|^top$/i.test(nm)) continue;
+    // num groups: team1, team2, age, start, end, yrs, total, aav
+    if(pushRow(nm, nameLine[2], num[1], num[3], num[4], num[5], num[6], num[7], num[8])){
+      consumed[i] = true;
+      consumed[nameIdx] = true;
+    }
+  }
+
+  if(rows.length < 50){
+    status.style.color = '#e84b4b';
+    status.textContent = 'Only parsed ' + rows.length + ' rows. Aborted — paste full PDF text. (' + rawLines.length + ' lines seen)';
     return;
   }
-  
-  try{localStorage.setItem('dyn26_v4_sal',JSON.stringify(newSal));}catch(ex){}
-  // Rebuild lookups
+
+  // Backup current salary DB before overwrite (for Undo)
+  try{
+    var current = localStorage.getItem('dyn26_v4_sal');
+    localStorage.setItem('dyn26_v4_sal_backup', current === null ? 'NONE' : current);
+  }catch(e){}
+
+  // Write new salary DB
+  try{localStorage.setItem('dyn26_v4_sal', JSON.stringify(rows));}catch(ex){
+    status.style.color = '#e84b4b';
+    status.textContent = 'Save failed: ' + ex.message;
+    return;
+  }
+
+  // Detect changes vs. previous SAL_MAP for highlighting
+  window.SAL_CHANGES = {};
+  var prevSnapshot = {};
+  try{ Object.keys(SAL_MAP).forEach(function(k){ prevSnapshot[k] = SAL_MAP[k]; }); }catch(e){}
+  rows.forEach(function(p){
+    var prev = prevSnapshot[p.name];
+    if(!prev){ window.SAL_CHANGES[p.name] = 'NEW'; return; }
+    if(String(prev.aav) !== String(p.aav) || String(prev.expires) !== String(p.expires) || String(prev.years) !== String(p.years) || String(prev.team) !== String(p.team)){
+      window.SAL_CHANGES[p.name] = 'CHANGED';
+    }
+  });
+  try{ sessionStorage.setItem('dyn28_sal_changes', JSON.stringify(window.SAL_CHANGES)); }catch(e){}
+  console.log('[salary] changes detected:', Object.keys(window.SAL_CHANGES).length);
+
+  // Rebuild lookups AND replace the global SAL array used by renderDB
   AAV_DB = {}; SAL_MAP = {};
-  newSal.forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});
-  status.style.color='#22c55e';
-  status.textContent = '✓ Parsed '+newSal.length+' contracts ('+skipped+' skipped)';
-  showToast('✓ Salary DB updated with '+newSal.length+' contracts','green',2500);
+  rows.forEach(function(p){ AAV_DB[p.name] = p.aav; SAL_MAP[p.name] = p; });
+  // Update global SAL array so the Salaries DB page sees new data
+  try{ SAL.length = 0; rows.forEach(function(p){ SAL.push(p); }); }catch(e){ console.warn('SAL replace failed:', e); }
+  // Re-render DB page if currently open
+  try{ if(document.getElementById('page-salaries-db') && document.getElementById('page-salaries-db').classList.contains('active') && typeof renderDB === 'function') renderDB(); }catch(e){}
+
+  status.style.color = '#22c55e';
+  status.textContent = '✓ Parsed ' + rows.length + ' contracts. Tap Undo if anything looks wrong.';
+  showToast('✓ Salary DB: ' + rows.length + ' contracts loaded', 'green', 2800);
   updateSalDbStatus();
-  setTimeout(closeSalaryPasteModal, 1200);
+
+  // Show Undo button
+  var undoBtn = document.getElementById('salUndoBtn');
+  if(undoBtn) undoBtn.style.display = 'inline-block';
+}
+
+function undoSalaryImport(){
+  try{
+    var backup = localStorage.getItem('dyn26_v4_sal_backup');
+    if(backup === null){
+      showToast('Nothing to undo', 'yellow', 1800);
+      return;
+    }
+    if(backup === 'NONE'){
+      localStorage.removeItem('dyn26_v4_sal');
+      // SAL stays as-is (built-in default already loaded)
+    } else {
+      localStorage.setItem('dyn26_v4_sal', backup);
+      var restored = JSON.parse(backup);
+      AAV_DB = {}; SAL_MAP = {};
+      restored.forEach(function(p){ AAV_DB[p.name] = p.aav; SAL_MAP[p.name] = p; });
+      try{ SAL.length = 0; restored.forEach(function(p){ SAL.push(p); }); }catch(e){}
+    }
+    // Clear change highlights
+    window.SAL_CHANGES = {};
+    try{ sessionStorage.removeItem('dyn28_sal_changes'); }catch(e){}
+    try{ if(document.getElementById('page-salaries-db') && document.getElementById('page-salaries-db').classList.contains('active') && typeof renderDB === 'function') renderDB(); }catch(e){}
+    localStorage.removeItem('dyn26_v4_sal_backup');
+    var undoBtn = document.getElementById('salUndoBtn');
+    if(undoBtn) undoBtn.style.display = 'none';
+    var status = document.getElementById('salPasteStatus');
+    if(status){
+      status.style.color = '#94a3b8';
+      status.textContent = 'Undone. Previous salary DB restored.';
+    }
+    showToast('↶ Salary DB restored', 'green', 2200);
+    updateSalDbStatus();
+  }catch(e){
+    showToast('Undo failed: ' + e.message, 'red', 2500);
+  }
 }
 
 </script>
@@ -4534,24 +4639,45 @@ function parseSalaryPaste(){
 
 
 <!-- V28.5.31: Salary paste modal -->
-<div id="salaryPasteModal" class="modal" style="display:none">
-  <div class="modal-content" style="max-width:680px">
+<div class="modal-overlay" id="salaryPasteModal" onclick="closeModalOutside(event,'salaryPasteModal')">
+  <div class="modal-box" style="max-width:680px">
     <div class="modal-header">
-      <span>Paste Spotrac Salary Data</span>
-      <button class="modal-close" onclick="closeSalaryPasteModal()">&times;</button>
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px">Import Salary Data</h2>
+      <p style="font-size:.7rem;color:var(--dim);margin-top:.2rem">From Spotrac via print &rarr; copy &rarr; paste</p>
     </div>
-    <div class="modal-body" style="padding:1rem">
-      <div style="font-size:.75rem;color:#94a3b8;margin-bottom:.5rem;line-height:1.4">
-        Go to <strong>spotrac.com/mlb/contracts</strong>, select the player table (Cmd/Ctrl+A then Cmd/Ctrl+C), and paste it below. The parser handles tab-separated, comma-separated, and space-separated columns.
+    <div class="modal-body">
+      <div style="background:#0a0e16;border:1px solid #252a35;border-radius:6px;padding:.7rem;margin-bottom:.7rem;font-size:.72rem;color:#cbd5e1;line-height:1.6">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1.5px;color:#e8c84b;font-size:.7rem;margin-bottom:.4rem">HOW TO IMPORT FROM SPOTRAC</div>
+        <ol style="margin:0;padding-left:1.2rem;color:#cbd5e1">
+          <li>Go to <strong style="color:#e8c84b">spotrac.com/mlb/contracts/_/limit/1000</strong></li>
+          <li>Tap <strong>Share</strong> &rarr; <strong>Print</strong></li>
+          <li>In the print preview, set <strong>Scale to 50%</strong></li>
+          <li>Tap <strong>Share</strong> from the preview &rarr; <strong>Copy</strong></li>
+          <li>Come back here and <strong>paste</strong> into the box below</li>
+          <li>Tap <strong>Parse &amp; Save</strong></li>
+        </ol>
       </div>
-      <div style="font-size:.7rem;color:#6b7280;margin-bottom:.6rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px">
-        EXPECTED COLUMNS: Player &middot; Pos &middot; Team &middot; Age &middot; Signed &middot; Years &middot; Expires &middot; AAV
-      </div>
-      <textarea id="salPasteText" placeholder="Paste rows here..." style="width:100%;min-height:240px;background:#0a0e16;color:#e2e8f0;border:1px solid #252a35;border-radius:6px;padding:.7rem;font-family:'DM Mono',monospace;font-size:.7rem;line-height:1.4;resize:vertical"></textarea>
+      <div style="font-size:.68rem;color:#94a3b8;margin-bottom:.5rem;line-height:1.4">Changes from your previous import will be highlighted with a yellow dot in the salary database for one session.</div>
+      <textarea id="salPasteText" placeholder="Paste here..." style="width:100%;min-height:220px;background:#0a0e16;color:#e2e8f0;border:1px solid #252a35;border-radius:6px;padding:.7rem;font-family:'DM Mono',monospace;font-size:.7rem;line-height:1.4;resize:vertical;-webkit-appearance:none"></textarea>
       <div id="salPasteStatus" style="font-size:.7rem;color:#94a3b8;margin-top:.5rem;min-height:1rem"></div>
-      <div style="display:flex;gap:.5rem;margin-top:.7rem">
-        <button class="set-btn accent" onclick="parseSalaryPaste()" style="flex:1">Parse &amp; Save</button>
+      <div style="display:flex;gap:.5rem;margin-top:.7rem;flex-wrap:wrap">
+        <button class="set-btn accent" onclick="parseSalaryPaste()" style="flex:1;min-width:140px">Parse &amp; Save</button>
+        <button id="salUndoBtn" class="set-btn" onclick="undoSalaryImport()" style="display:none;background:rgba(232,75,75,.1);border:1px solid rgba(232,75,75,.3);color:#e84b4b">&#8630; Undo Last Import</button>
         <button class="set-btn" onclick="closeSalaryPasteModal()">Cancel</button>
+      </div>
+
+      <div style="border-top:1px solid #252a35;padding-top:.9rem;margin-top:1rem">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1.5px;color:#94a3b8;font-size:.7rem;margin-bottom:.5rem">QUICK ADD ONE PLAYER</div>
+        <div style="display:grid;grid-template-columns:1fr 80px;gap:.4rem;margin-bottom:.4rem">
+          <input id="quickAddName" type="text" placeholder="Player Name" style="background:#0a0e16;color:#e2e8f0;border:1px solid #252a35;border-radius:6px;padding:.6rem;font-size:16px">
+          <input id="quickAddAAV" type="number" step="0.1" inputmode="decimal" placeholder="AAV $M" style="background:#0a0e16;color:#e2e8f0;border:1px solid #252a35;border-radius:6px;padding:.6rem;font-size:16px">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:.4rem;margin-bottom:.5rem">
+          <input id="quickAddPos" type="text" placeholder="Pos (1B/OF/SP)" style="background:#0a0e16;color:#e2e8f0;border:1px solid #252a35;border-radius:6px;padding:.6rem;font-size:16px">
+          <input id="quickAddTeam" type="text" placeholder="Team (LAD)" style="background:#0a0e16;color:#e2e8f0;border:1px solid #252a35;border-radius:6px;padding:.6rem;font-size:16px;text-transform:uppercase">
+          <input id="quickAddExpires" type="number" placeholder="FA Yr" style="background:#0a0e16;color:#e2e8f0;border:1px solid #252a35;border-radius:6px;padding:.6rem;font-size:16px">
+        </div>
+        <button class="set-btn accent" onclick="quickAddSalary()" style="width:100%">+ Add Player</button>
       </div>
     </div>
   </div>
