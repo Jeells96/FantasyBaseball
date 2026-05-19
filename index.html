@@ -2263,16 +2263,26 @@ function buildContractsTab(){
       var isArb=isArbPlayer(p);
       var sal0=playerSals(tn,p,i)[0];
       var salStr=sal0!==null?'$'+sal0.toFixed(1)+'M':'—';
-      var item={name:p.name,slot:p.slot,team:tn,aav:p.aav,fa:p.fa,cNum:cNum,salStr:salStr,i:i,isArb:isArb};
+      // V28.5.27: lookup ESPN stats (FA pool first, then rostered-player cache)
+      var faEntry=(FA_DATA||[]).find(function(f){return f.Player===p.name;});
+      var rosterStat = (typeof ROSTERED_PLAYER_STATS!=='undefined') ? ROSTERED_PLAYER_STATS[p.name] : null;
+      var statLine = (faEntry && faEntry.StatLine) || (rosterStat && rosterStat.statLine) || null;
+      var isPitcher = faEntry ? faEntry.IsPitcher : (rosterStat ? rosterStat.isPitcher : (p.slot==='SP'||p.slot==='RP'));
+      var pts = faEntry ? (faEntry.TotalPoints||0) : (rosterStat ? (rosterStat.pts||0) : 0);
+      var avg = faEntry ? faEntry.AvgPoints : (rosterStat ? rosterStat.avg : null);
+      var item={name:p.name,slot:p.slot,team:tn,aav:p.aav,fa:p.fa,cNum:cNum,salStr:salStr,i:i,isArb:isArb,statLine:statLine,isPitcher:isPitcher,pts:pts,avg:avg};
       if(needsDrop) mustDrop.push(item);
       else if(cval===''&&!isArb) unsigned.push(item);
       else if(cNum===1&&!needsDrop) expiring.push(item);
       if(isArb) arbPlayers.push(item);
     });
   });
-  expiring.sort(function(a,b){return (parseFloat(b.aav)||0)-(parseFloat(a.aav)||0);});
-  mustDrop.sort(function(a,b){return (parseFloat(b.aav)||0)-(parseFloat(a.aav)||0);});
-  arbPlayers.sort(function(a,b){return a.team.localeCompare(b.team)||a.name.localeCompare(b.name);});
+  // V28.5.27: default sort by ESPN pts descending
+  var byPts = function(a,b){return (b.pts||0)-(a.pts||0);};
+  expiring.sort(byPts);
+  mustDrop.sort(byPts);
+  unsigned.sort(byPts);
+  arbPlayers.sort(byPts);
 
   document.getElementById('expiring-count').textContent=expiring.length;
   document.getElementById('drop-count').textContent=mustDrop.length;
@@ -2291,7 +2301,7 @@ function buildContractsTab(){
       var slotDisp=(p.slot==='Bench'||p.slot==='BN')?'BN':p.slot;
       var detail=p.cNum>0?p.cNum+' yr left':'FA after '+CURRENT_SEASON;
       if(p.isArb) detail='ARB'+(p.fa&&p.fa!='?'?' · FA '+p.fa:'');
-      // Build stat line
+      // V28.5.27: Build stat line
       var statBits=[];
       if(p.statLine){
         if(p.isPitcher){
@@ -2308,7 +2318,7 @@ function buildContractsTab(){
           if(typeof p.statLine.K==='number') statBits.push(p.statLine.K+'K');
         }
       }
-      var statHtml = statBits.length ? '<div class="cr-stat-line" style="font-family:DM Mono,monospace;font-size:.6rem;color:#94a3b8;margin-top:.15rem;letter-spacing:.5px">'+statBits.join(' · ')+'</div>' : '';
+      var statHtml = statBits.length ? '<div style="font-family:DM Mono,monospace;font-size:.6rem;color:#94a3b8;margin-top:.15rem;letter-spacing:.5px">'+statBits.join(' · ')+'</div>' : '';
       var rightHtml;
       if(p.pts && p.pts>0){
         rightHtml = '<div class="cr-aav" style="color:#e8c84b">'+p.pts.toFixed(1)+'</div><div class="cr-detail">'+(p.avg?p.avg.toFixed(1)+' /gm':'ESPN pts')+'</div>';
@@ -2749,6 +2759,7 @@ function getDraftPool(){
         avg: faAvg,
         statLine: statLine,
         isPitcher: isPitcher,
+        isArb: true,
         age:p.age||salE.age||'?',
         fa:p.fa||salE.expires||'?',
         source: needsDrop ? 'drop' : 'unsigned',
@@ -2770,6 +2781,7 @@ function getDraftPool(){
       avg:p.AvgPoints||null,
       statLine:p.StatLine||null,
       isPitcher:p.IsPitcher||false,
+      isArb: isArb,
       status:p.Availability,
       age:salE.age||'?',
       fa:salE.expires||'?',
@@ -2860,6 +2872,13 @@ function showDraft(){
 }
 
 function buildDraftPage(){
+  // V28.5.27: If no rostered-player stats cache, trigger refresh to build it
+  try{
+    if(typeof ROSTERED_PLAYER_STATS!=='undefined' && Object.keys(ROSTERED_PLAYER_STATS).length===0 && !ROSTERS_FROZEN && typeof refreshRosters==='function'){
+      console.log('[draft] No rostered player stats cache, triggering refresh');
+      setTimeout(function(){refreshRosters(true);},100);
+    }
+  }catch(e){console.warn(e);}
   var p=DRAFT_VIEW_PREFS;
   var setChk=function(id,v){var el=document.getElementById(id);if(el)el.checked=!!v;};
   setChk('dvHideARB',p.hideARB);setChk('dvOnlyARB',p.onlyARB);
@@ -2950,8 +2969,7 @@ function renderDraftPool(){
     if(prefs.maxAAV!==''&&!isNaN(parseFloat(prefs.maxAAV))){
       if((p.aav||0)>parseFloat(prefs.maxAAV))return false;
     }
-    var arbVal=ARB();
-    var isArbPlayer=(p.aav<=arbVal+0.01);
+    var isArbPlayer = !!p.isArb;
     if(prefs.hideARB && isArbPlayer)return false;
     if(prefs.onlyARB && !isArbPlayer)return false;
     return true;
