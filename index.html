@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.26</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.27</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -2291,15 +2291,40 @@ function buildContractsTab(){
       var slotDisp=(p.slot==='Bench'||p.slot==='BN')?'BN':p.slot;
       var detail=p.cNum>0?p.cNum+' yr left':'FA after '+CURRENT_SEASON;
       if(p.isArb) detail='ARB'+(p.fa&&p.fa!='?'?' · FA '+p.fa:'');
-      return '<div class="contract-row" onclick="showTeam(\''+p.team.replace(/\\\\\\'/g,'')+'\')">'+
+      // Build stat line
+      var statBits=[];
+      if(p.statLine){
+        if(p.isPitcher){
+          if(typeof p.statLine.W==='number') statBits.push(p.statLine.W+'W');
+          if(typeof p.statLine.SV==='number' && p.statLine.SV>0) statBits.push(p.statLine.SV+'SV');
+          if(typeof p.statLine.K==='number') statBits.push(p.statLine.K+'K');
+          if(typeof p.statLine.ERA==='number') statBits.push(p.statLine.ERA.toFixed(2)+' ERA');
+        } else {
+          if(typeof p.statLine.HR==='number') statBits.push(p.statLine.HR+'HR');
+          if(typeof p.statLine.R==='number') statBits.push(p.statLine.R+'R');
+          if(typeof p.statLine.RBI==='number') statBits.push(p.statLine.RBI+'RBI');
+          if(typeof p.statLine.SB==='number' && p.statLine.SB>0) statBits.push(p.statLine.SB+'SB');
+          if(typeof p.statLine.AVG==='number') statBits.push('.'+Math.round(p.statLine.AVG*1000));
+          if(typeof p.statLine.K==='number') statBits.push(p.statLine.K+'K');
+        }
+      }
+      var statHtml = statBits.length ? '<div class="cr-stat-line" style="font-family:DM Mono,monospace;font-size:.6rem;color:#94a3b8;margin-top:.15rem;letter-spacing:.5px">'+statBits.join(' · ')+'</div>' : '';
+      var rightHtml;
+      if(p.pts && p.pts>0){
+        rightHtml = '<div class="cr-aav" style="color:#e8c84b">'+p.pts.toFixed(1)+'</div><div class="cr-detail">'+(p.avg?p.avg.toFixed(1)+' /gm':'ESPN pts')+'</div>';
+      } else {
+        rightHtml = '<div class="cr-aav" style="color:'+accentColor+'">'+p.salStr+'</div><div class="cr-detail">'+detail+'</div>';
+      }
+      var teamLine = p.team+' · '+p.salStr+' · '+detail;
+      return '<div class="contract-row" onclick="showTeam(\''+p.team.replace(/\\'/g,'')+'\')">'+
         '<div class="cr-slot-wrap"><span class="slot '+sk+'">'+slotDisp+'</span></div>'+
         '<div class="cr-info">'+
         '<div class="cr-name">'+p.name+'</div>'+
-        '<div class="cr-team">'+p.team+'</div>'+
+        '<div class="cr-team">'+teamLine+'</div>'+
+        statHtml+
         '</div>'+
         '<div class="cr-right">'+
-        '<div class="cr-aav" style="color:'+accentColor+'">'+p.salStr+'</div>'+
-        '<div class="cr-detail">'+detail+'</div>'+
+        rightHtml+
         '</div>'+
         '</div>';
     }).join('');
