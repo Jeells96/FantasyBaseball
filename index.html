@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.25</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.26</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -2837,7 +2837,7 @@ function showDraft(){
 function buildDraftPage(){
   var p=DRAFT_VIEW_PREFS;
   var setChk=function(id,v){var el=document.getElementById(id);if(el)el.checked=!!v;};
-  setChk('dvHideARB',p.hideARB);
+  setChk('dvHideARB',p.hideARB);setChk('dvOnlyARB',p.onlyARB);
   var setV=function(id,v){var el=document.getElementById(id);if(el)el.value=v||'';};
   setV('dvSortBy',p.sortBy||'pts');setV('dvSortDir',p.sortDir||'desc');
   setV('dvMinAge',p.minAge||'');setV('dvMaxAge',p.maxAge||'');
@@ -2869,8 +2869,9 @@ function buildDraftPage(){
 var DRAFT_VIEW_PREFS = JSON.parse(localStorage.getItem('dyn28_draft_view_prefs')||'null') || {
   sortBy:'pts', sortDir:'desc',
   minAge:'', maxAge:'', minPts:'', maxAAV:'',
-  hideARB:false, statsYear:'2025'
+  hideARB:false, onlyARB:false, statsYear:'2025'
 };
+if(typeof DRAFT_VIEW_PREFS.onlyARB==='undefined')DRAFT_VIEW_PREFS.onlyARB=false;
 if(typeof DRAFT_VIEW_PREFS.statsYear==='undefined')DRAFT_VIEW_PREFS.statsYear='2025';
 if(typeof DRAFT_VIEW_PREFS.minAge==='undefined')DRAFT_VIEW_PREFS.minAge='';
 if(typeof DRAFT_VIEW_PREFS.maxAge==='undefined')DRAFT_VIEW_PREFS.maxAge='';
@@ -2924,10 +2925,10 @@ function renderDraftPool(){
     if(prefs.maxAAV!==''&&!isNaN(parseFloat(prefs.maxAAV))){
       if((p.aav||0)>parseFloat(prefs.maxAAV))return false;
     }
-    if(prefs.hideARB){
-      var arbVal=ARB();
-      if(p.aav<=arbVal+0.01)return false;
-    }
+    var arbVal=ARB();
+    var isArbPlayer=(p.aav<=arbVal+0.01);
+    if(prefs.hideARB && isArbPlayer)return false;
+    if(prefs.onlyARB && !isArbPlayer)return false;
     return true;
   });
 
@@ -3619,12 +3620,12 @@ function resetDraftFilters(){
   DRAFT_VIEW_PREFS = {
     sortBy:'pts', sortDir:'desc',
     minAge:'', maxAge:'', minPts:'', maxAAV:'',
-    hideARB:false, statsYear:'2025'
+    hideARB:false, onlyARB:false, statsYear:'2025'
   };
   saveDraftViewPrefs();
   // Update inputs visually
   ['dvMinAge','dvMaxAge','dvMinPts','dvMaxAAV'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
-  var ha=document.getElementById('dvHideARB');if(ha)ha.checked=false;
+  var ha=document.getElementById('dvHideARB');if(ha)ha.checked=false;var oa=document.getElementById('dvOnlyARB');if(oa)oa.checked=false;
   var sb=document.getElementById('dvSortBy');if(sb)sb.value='pts';
   var sd=document.getElementById('dvSortDir');if(sd)sd.value='desc';
   renderDraftPool();
@@ -3984,7 +3985,8 @@ setInterval(function(){
         <input type="number" class="field-input" id="dvMaxAAV" placeholder="Max AAV $M" oninput="setDraftViewPref('maxAAV',this.value)" style="font-size:16px;flex:1">
       </div>
 
-      <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#e2e8f0;padding:.3rem 0"><input type="checkbox" id="dvHideARB" onchange="setDraftViewPref('hideARB',this.checked)"> Hide ARB players</label>
+      <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#e2e8f0;padding:.3rem 0"><input type="checkbox" id="dvHideARB" onchange="setDraftViewPref('hideARB',this.checked);if(this.checked){var o=document.getElementById('dvOnlyARB');if(o){o.checked=false;setDraftViewPref('onlyARB',false);}}"> Hide ARB players</label>
+      <label style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:#e2e8f0;padding:.3rem 0"><input type="checkbox" id="dvOnlyARB" onchange="setDraftViewPref('onlyARB',this.checked);if(this.checked){var h=document.getElementById('dvHideARB');if(h){h.checked=false;setDraftViewPref('hideARB',false);}}"> Show only ARB players</label>
 
       <button class="set-btn" onclick="resetDraftFilters()" style="width:100%;margin-top:.5rem;background:#181c24;border:1px solid #252a35">Reset Filters</button>
     </div>
