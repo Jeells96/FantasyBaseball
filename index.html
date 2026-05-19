@@ -883,7 +883,7 @@ window._loadPdfJs = function(){
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.35</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.36</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -4138,25 +4138,49 @@ function parseSalaryPaste(){
     }
   }
 
-  // Two-line pass — look for NUMERIC_LINE followed (within next 3 lines) by NAME_POS_RX
-  for(var i = 0; i < rawLines.length; i++){
-    if(consumed[i]) continue;
-    var num = rawLines[i].match(NUMERIC_LINE);
-    if(!num) continue;
-    // Find next non-consumed name+pos line within 3 lines
-    var nameLine = null, nameIdx = -1;
-    for(var j = i + 1; j <= Math.min(i + 3, rawLines.length - 1); j++){
-      if(consumed[j]) continue;
-      var npm = rawLines[j].match(NAME_POS_RX);
-      if(npm){ nameLine = npm; nameIdx = j; break; }
+  // Block-pairing pass for Spotrac's print layout:
+  // Numbers come in a block (one row per line), then names+positions come in a block below.
+  // Pair them index-for-index.
+  var ii = 0;
+  while(ii < rawLines.length){
+    if(consumed[ii]){ii++; continue;}
+    if(!NUMERIC_LINE.test(rawLines[ii])){ii++; continue;}
+    // Collect numeric block
+    var numBlock = [];
+    var numIdx = [];
+    while(ii < rawLines.length && NUMERIC_LINE.test(rawLines[ii])){
+      if(!consumed[ii]){
+        numBlock.push(rawLines[ii].match(NUMERIC_LINE));
+        numIdx.push(ii);
+      }
+      ii++;
     }
-    if(!nameLine) continue;
-    var nm = nameLine[1].replace(/\*+$/,'').replace(/\u2192/g,'').trim();
-    if(/spotrac|copyright|league|football|basketball|trending|^top$/i.test(nm)) continue;
-    // num groups: team1, team2, age, start, end, yrs, total, aav
-    if(pushRow(nm, nameLine[2], num[1], num[3], num[4], num[5], num[6], num[7], num[8])){
-      consumed[i] = true;
-      consumed[nameIdx] = true;
+    if(!numBlock.length) continue;
+    // Skip non-name lines until we hit name+pos lines
+    while(ii < rawLines.length && !NAME_POS_RX.test(rawLines[ii])){
+      ii++;
+    }
+    // Collect name+pos block
+    var nameBlock = [];
+    var nameIdx2 = [];
+    while(ii < rawLines.length && NAME_POS_RX.test(rawLines[ii])){
+      if(!consumed[ii]){
+        nameBlock.push(rawLines[ii].match(NAME_POS_RX));
+        nameIdx2.push(ii);
+      }
+      ii++;
+    }
+    // Pair them index-for-index
+    var pairCount = Math.min(numBlock.length, nameBlock.length);
+    for(var k = 0; k < pairCount; k++){
+      var num = numBlock[k];
+      var nameLine = nameBlock[k];
+      var nm = nameLine[1].replace(/\*+$/,'').replace(/\u2192/g,'').trim();
+      if(/spotrac|copyright|league|football|basketball|trending|^top$/i.test(nm)) continue;
+      if(pushRow(nm, nameLine[2], num[1], num[3], num[4], num[5], num[6], num[7], num[8])){
+        consumed[numIdx[k]] = true;
+        consumed[nameIdx2[k]] = true;
+      }
     }
   }
 
