@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.28</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.30</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -2745,7 +2745,9 @@ function getDraftPool(){
       var aavRaw=p.aav;
       var aav=(!aavRaw||aavRaw==='ARB'||aavRaw==='?'||isNaN(parseFloat(aavRaw)))?ARB():parseFloat(aavRaw);
       var pts=p.pts||0;
-      var salE=SAL_MAP[p.name]||{};
+      var salE=SAL_MAP[p.name];
+      var trueArb = !salE;
+      salE = salE || {};
       // Look up stats: first try FA pool, then rostered-player cache
       var faEntry=(FA_DATA||[]).find(function(f){return f.Player===p.name;});
       var rosterStat = (typeof ROSTERED_PLAYER_STATS!=='undefined') ? ROSTERED_PLAYER_STATS[p.name] : null;
@@ -2759,7 +2761,7 @@ function getDraftPool(){
         avg: faAvg,
         statLine: statLine,
         isPitcher: isPitcher,
-        isArb: true,
+        isArb: trueArb,
         age:p.age||salE.age||'?',
         fa:p.fa||salE.expires||'?',
         source: needsDrop ? 'drop' : 'unsigned',
@@ -2772,16 +2774,18 @@ function getDraftPool(){
   (FA_DATA||[]).forEach(function(p){
     if(pickedSet[p.Player])return;
     var aavRaw=p.AAV!==undefined&&p.AAV!==null?p.AAV:AAV_DB[p.Player];
-    var isArb=(!aavRaw||aavRaw==='ARB'||aavRaw==='?'||isNaN(parseFloat(aavRaw)));
-    var salE=SAL_MAP[p.Player]||{};
+    var noAav=(!aavRaw||aavRaw==='ARB'||aavRaw==='?'||isNaN(parseFloat(aavRaw)));
+    var salDbEntry=SAL_MAP[p.Player];
+    var trueArb = !salDbEntry; // ARB = not in salary DB at all
+    var salE=salDbEntry||{};
     pool.push({
       name:p.Player, pos:p.Position,
-      aav:isArb?ARB():parseFloat(aavRaw)||0,
+      aav:noAav?ARB():parseFloat(aavRaw)||0,
       pts:p.TotalPoints||0,
       avg:p.AvgPoints||null,
       statLine:p.StatLine||null,
       isPitcher:p.IsPitcher||false,
-      isArb: false,
+      isArb: trueArb,
       status:p.Availability,
       age:salE.age||'?',
       fa:salE.expires||'?',
@@ -2970,8 +2974,10 @@ function renderDraftPool(){
       if((p.aav||0)>parseFloat(prefs.maxAAV))return false;
     }
     var isArbPlayer = !!p.isArb;
-    if(prefs.hideARB && isArbPlayer)return false;
-    if(prefs.onlyARB && !isArbPlayer)return false;
+    var isOnTeam = (p.source !== 'fa');
+    // ARB-only filter: must be ARB AND not on a team (draftable)
+    if(prefs.hideARB && isArbPlayer && !isOnTeam)return false;
+    if(prefs.onlyARB && (!isArbPlayer || isOnTeam))return false;
     return true;
   });
 
