@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.22</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.23</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1830,6 +1830,7 @@ function fetchFreeAgents(){
             statLine.SB = rawStats['23'];
             statLine.AVG= rawStats['2'];
             statLine.H  = rawStats['1'];
+            statLine.K  = rawStats['27'];
           }
         }
 
@@ -2925,6 +2926,7 @@ function renderDraftPool(){
         if(typeof p.statLine.RBI==='number') statBits.push(p.statLine.RBI+'RBI');
         if(typeof p.statLine.SB==='number' && p.statLine.SB>0) statBits.push(p.statLine.SB+'SB');
         if(typeof p.statLine.AVG==='number') statBits.push('.'+Math.round(p.statLine.AVG*1000));
+        if(typeof p.statLine.K==='number') statBits.push(p.statLine.K+'K');
       }
     }
     var statLineStr = statBits.join(' · ');
