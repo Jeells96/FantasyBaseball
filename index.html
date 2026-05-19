@@ -865,7 +865,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.21</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.22</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1767,48 +1767,69 @@ function fetchFreeAgents(){
   FA_FETCHING=true;
   document.getElementById('faBody').innerHTML='<tr><td colspan="5" class="fa-loading">&#8635; Fetching&hellip;</td></tr>';
 
-  // statsYear can be e.g. "2025", "2026", or "2026p" for 2026 projection
-  var rawStatsYear=(typeof DRAFT_VIEW_PREFS!=='undefined' && DRAFT_VIEW_PREFS.statsYear)?String(DRAFT_VIEW_PREFS.statsYear):'2025';
-  var isProj = /p$/i.test(rawStatsYear);
-  var Y = parseInt(rawStatsYear);
-  var wantedSource = isProj ? 1 : 0; // 0 = actual, 1 = projection
+  var Y = CURRENT_SEASON; // Always current season
 
   var q=loadQueries();
-  var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+CURRENT_SEASON+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');
+  var url=(q.fa&&q.fa.value&&q.fa.value.match(/https:\/\/[^\s\n]+/))?q.fa.value.match(/https:\/\/[^\s\n]+/)[0]:('https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/'+Y+'/segments/0/leagues/'+LEAGUE_ID+'?view=kona_player_info');
 
-  // Always request both years and both sources — extract the right one client-side
-  var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[2024,2025,2026,2027]},filterStatsForSourceIds:{value:[0,1]},filterStatsForSplitTypeIds:{value:[0]},limit:3000}};
+  var filterObj={players:{filterStatus:{value:['FREEAGENT','WAIVERS']},filterStatsForExternalIds:{value:[Y]},filterStatsForSourceIds:{value:[0,1]},limit:3000}};
 
   var filterText=(q.fa&&q.fa.value)?q.fa.value:'';
   var filterMatch=filterText.match(/\{[\s\S]*"players"[\s\S]*\}/);
   if(filterMatch){try{filterObj=JSON.parse(filterMatch[0]);}catch(e){}}
 
-  console.log('[FA] looking for seasonId='+Y+' statSourceId='+wantedSource+' (isProj='+isProj+')');
+  console.log('[FA] fetching current season',Y);
 
   fetch(url,{headers:{'X-Fantasy-Filter':JSON.stringify(filterObj)}})
     .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
     .then(function(data){
       var players=data.players||[];
-      // Log Devers specifically so we can verify
+      // Log one player's raw stats so we can see statId numbers
       var devers = players.find(function(e){return e.player && e.player.fullName === 'Rafael Devers';});
-      if(devers){
-        console.log('[FA] Devers stats:',JSON.stringify((devers.player.stats||[]).map(function(s){return {y:s.seasonId,src:s.statSourceId,total:s.appliedTotal,avg:s.appliedAverage};})));
+      if(devers && devers.player.stats){
+        var actuals=devers.player.stats.filter(function(s){return s.seasonId===Y && s.statSourceId===0;});
+        if(actuals[0]){
+          console.log('[FA] Devers stats keys:',JSON.stringify(actuals[0].stats));
+        }
       }
 
       FA_DATA = players.map(function(entry){
         var p=entry.player||{};
         var stats=p.stats||[];
-        var pts=null, avg=null;
-
-        // STRICT match: seasonId === Y AND statSourceId === wantedSource
+        var pts=null, avg=null, rawStats=null;
+        // Strict: current season + actual
         for(var k=0;k<stats.length;k++){
           var s=stats[k];
-          if(s.seasonId===Y && s.statSourceId===wantedSource){
+          if(s.seasonId===Y && s.statSourceId===0){
             if(typeof s.appliedTotal==='number'){
               pts=s.appliedTotal;
               avg=(typeof s.appliedAverage==='number')?s.appliedAverage:null;
+              rawStats=s.stats||null;
               break;
             }
+          }
+        }
+
+        // Extract common stats from rawStats (statId -> value)
+        var statLine={};
+        if(rawStats){
+          var isPitcher = (p.defaultPositionId===1 || p.defaultPositionId===14 || p.defaultPositionId===15);
+          if(isPitcher){
+            // Pitcher stats
+            statLine.W  = rawStats['32'];
+            statLine.SV = rawStats['37'];
+            statLine.K  = rawStats['33'];
+            statLine.ERA= rawStats['47'];
+            statLine.IP = rawStats['34'];
+            statLine.WHIP=rawStats['41'];
+          } else {
+            // Hitter stats
+            statLine.HR = rawStats['5'];
+            statLine.R  = rawStats['20'];
+            statLine.RBI= rawStats['21'];
+            statLine.SB = rawStats['23'];
+            statLine.AVG= rawStats['2'];
+            statLine.H  = rawStats['1'];
           }
         }
 
@@ -1824,6 +1845,8 @@ function fetchFreeAgents(){
           Position:posStr, Positions:posList,
           Availability:entry.status||'FREEAGENT',
           TotalPoints:pts, AvgPoints:avg,
+          StatLine:statLine,
+          IsPitcher: (p.defaultPositionId===1 || p.defaultPositionId===14 || p.defaultPositionId===15),
           AAV:AAV_DB[name]||null
         };
       }).filter(function(p){return p.Player!=='Unknown';});
@@ -1831,8 +1854,7 @@ function fetchFreeAgents(){
       try{localStorage.setItem(LS_FA,JSON.stringify(FA_DATA));}catch(e){}
       renderFA();
       var withPts=FA_DATA.filter(function(p){return p.TotalPoints!==null;}).length;
-      var label = Y + (isProj ? ' proj' : ' actual');
-      showToast('✓ '+FA_DATA.length+' FAs ('+withPts+' with '+label+')','green',2200);
+      showToast('✓ '+FA_DATA.length+' FAs ('+withPts+' with stats)','green',2000);
       FA_FETCHING=false;
     })
     .catch(function(err){
@@ -2683,6 +2705,8 @@ function getDraftPool(){
       aav:isArb?ARB():parseFloat(aavRaw)||0,
       pts:p.TotalPoints||0,
       avg:p.AvgPoints||null,
+      statLine:p.StatLine||null,
+      isPitcher:p.IsPitcher||false,
       status:p.Availability,
       age:salE.age||'?',
       fa:salE.expires||'?',
@@ -2887,13 +2911,32 @@ function renderDraftPool(){
     metaParts.push('$'+p.aav.toFixed(1)+'M');
     if(p.fa && p.fa!='?') metaParts.push('FA '+p.fa);
     var meta=metaParts.join(' · ');
+    // Stat line
+    var statBits=[];
+    if(p.statLine){
+      if(p.isPitcher){
+        if(typeof p.statLine.W==='number') statBits.push(p.statLine.W+'W');
+        if(typeof p.statLine.SV==='number' && p.statLine.SV>0) statBits.push(p.statLine.SV+'SV');
+        if(typeof p.statLine.K==='number') statBits.push(p.statLine.K+'K');
+        if(typeof p.statLine.ERA==='number') statBits.push(p.statLine.ERA.toFixed(2)+' ERA');
+      } else {
+        if(typeof p.statLine.HR==='number') statBits.push(p.statLine.HR+'HR');
+        if(typeof p.statLine.R==='number') statBits.push(p.statLine.R+'R');
+        if(typeof p.statLine.RBI==='number') statBits.push(p.statLine.RBI+'RBI');
+        if(typeof p.statLine.SB==='number' && p.statLine.SB>0) statBits.push(p.statLine.SB+'SB');
+        if(typeof p.statLine.AVG==='number') statBits.push('.'+Math.round(p.statLine.AVG*1000));
+      }
+    }
+    var statLineStr = statBits.join(' · ');
     var safeName=p.name.replace(/'/g,"\\'");
     var avgStr=(p.avg && p.avg>0)?p.avg.toFixed(1)+' /gm':'—';var rightCol='<div class="cr-right"><div class="cr-aav" style="color:#e8c84b">'+(p.pts?p.pts.toFixed(1):'—')+'</div><div class="cr-detail">'+avgStr+'</div></div>';
+    var statHtml = statLineStr ? '<div class="cr-stat-line" style="font-family:\'DM Mono\',monospace;font-size:.6rem;color:#94a3b8;margin-top:.15rem;letter-spacing:.5px">'+statLineStr+'</div>' : '';
     return '<div class="draft-player-card" onclick="openDraftConfirm(\''+safeName+'\')">'+
       '<div class="cr-slot-wrap"><span class="slot '+sk+'">'+p.pos+'</span></div>'+
       '<div class="cr-info">'+
       '<div class="cr-name">'+p.name+sourceTag+'</div>'+
       (meta?'<div class="cr-team">'+meta+'</div>':'')+
+      statHtml+
       '</div>'+
       rightCol+
       '</div>';
@@ -3875,12 +3918,7 @@ setInterval(function(){
         </select>
       </div>
 
-      <label class="field-label">ESPN Stats</label>
-      <select class="field-input" id="dvStatsYear" onchange="changeStatsYear(this.value)" style="font-size:16px">
-        <option value="2025">2025 Actual</option>
-        <option value="2026">2026 Actual (in season)</option>
-        <option value="2026p">2026 Projection</option>
-      </select>
+      
 
       <label class="field-label" style="margin-top:.85rem">Filter by Age</label>
       <div style="display:flex;gap:.4rem;margin-bottom:.5rem">
