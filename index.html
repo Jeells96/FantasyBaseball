@@ -862,28 +862,15 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 </script>
 <script>
 // V28.5.35: Lazy-load PDF.js when needed (avoids loading on every page view)
-window._loadPdfJs = function(){
-  return new Promise(function(resolve, reject){
-    if(window.pdfjsLib){return resolve(window.pdfjsLib);}
-    var s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    s.onload = function(){
-      if(window.pdfjsLib){
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        resolve(window.pdfjsLib);
-      } else { reject(new Error('PDF.js loaded but pdfjsLib missing')); }
-    };
-    s.onerror = function(){ reject(new Error('PDF.js failed to load from CDN')); };
-    document.head.appendChild(s);
-  });
-};
+// V28.5.38: _loadPdfJs moved to bottom of main script
+
 </script>
 </head>
 <body>
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.37</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.38</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -3968,122 +3955,209 @@ function quickAddSalary(){
   showToast('\u2713 Added '+name+' @ $'+aav+'M','green',1800);
   updateSalDbStatus();
 }
-function importSalaryPDF(input){
-  var file = input.files && input.files[0];
-  if(!file){return;}
-  input.value = ''; // reset so same file can be picked again
-  var statusEl = document.getElementById('salDbStatus');
-  if(statusEl){statusEl.style.color='#94a3b8';statusEl.textContent='Loading PDF\u2026';}
-  showToast('Reading PDF\u2026','yellow',2500);
-
-  window._loadPdfJs().then(function(pdfjsLib){
-    var reader = new FileReader();
-    reader.onload = function(e){
-      var bytes = new Uint8Array(e.target.result);
-      pdfjsLib.getDocument({data: bytes}).promise.then(function(pdf){
-        window._pdfLineLog = [];
-        if(statusEl){statusEl.textContent='PDF: '+pdf.numPages+' pages, extracting text\u2026';}
-        var allLines = [];
-        var pageQueue = [];
-        for(var p=1; p<=pdf.numPages; p++){pageQueue.push(p);}
-
-        function extractPage(pn){
-          return pdf.getPage(pn).then(function(page){
-            return page.getTextContent().then(function(tc){
-              // V28.5.37: Tolerance-based y-grouping (Math.round snaps subpixel-different spans apart)
-              var spans = [];
-              tc.items.forEach(function(it){
-                if(!it.str || !it.str.trim()) return;
-                spans.push({x: it.transform[4], y: it.transform[5], str: it.str});
-              });
-              // Sort top-to-bottom by descending y
-              spans.sort(function(a,b){return b.y - a.y;});
-              var groups = [];
-              var curGroup = null;
-              var Y_TOLERANCE = 3.0;
-              spans.forEach(function(sp){
-                if(!curGroup || Math.abs(sp.y - curGroup.anchor) > Y_TOLERANCE){
-                  curGroup = {anchor: sp.y, items: [sp]};
-                  groups.push(curGroup);
-                } else {
-                  curGroup.items.push(sp);
-                }
-              });
-              groups.forEach(function(g){
-                var sorted = g.items.sort(function(a,b){return a.x - b.x;});
-                var line = sorted.map(function(it){return it.str;}).join(' ').replace(/\s+/g,' ').trim();
-                if(line){
-                  allLines.push(line);
-                  // Log first 30 lines from page 19 (first data page) for debugging
-                  if(pn === 19 && window._pdfLineLog && window._pdfLineLog.length < 30){
-                    window._pdfLineLog.push(line);
-                    console.log('[PDF line]', line);
-                  }
-                }
-              });
-              if(statusEl){statusEl.textContent='Extracted page '+pn+' of '+pdf.numPages;}
-            });
-          });
-        }
-
-        // Process pages sequentially to keep memory low
-        var chain = Promise.resolve();
-        pageQueue.forEach(function(pn){
-          chain = chain.then(function(){return extractPage(pn);});
-        });
-
-        chain.then(function(){
-          if(statusEl){statusEl.textContent='Parsing '+allLines.length+' lines\u2026';}
-          // Drop into textarea (creating it if missing) and call parser
-          var ta = document.getElementById('salPasteText');
-          if(!ta){
-            // Create offscreen textarea
-            ta = document.createElement('textarea');
-            ta.id = 'salPasteText';
-            ta.style.display = 'none';
-            document.body.appendChild(ta);
-          }
-          ta.value = allLines.join('\n');
-          // Make sure status target exists
-          var ps = document.getElementById('salPasteStatus');
-          if(!ps){
-            ps = document.createElement('div');
-            ps.id = 'salPasteStatus';
-            ps.style.display = 'none';
-            document.body.appendChild(ps);
-          }
-          parseSalaryPaste();
-          // Mirror status to main settings status
-          if(statusEl && ps){
-            statusEl.style.color = ps.style.color || '#94a3b8';
-            statusEl.textContent = ps.textContent;
-          }
-          // Show the secondary Undo button in settings if import succeeded
-          var undo2 = document.getElementById('salUndoBtn2');
-          if(undo2 && localStorage.getItem('dyn26_v4_sal_backup') !== null){
-            undo2.style.display = 'inline-block';
-          }
-        }).catch(function(err){
-          console.error('[PDF] page extraction failed', err);
-          if(statusEl){statusEl.style.color='#e84b4b';statusEl.textContent='PDF parse error: '+err.message;}
-          showToast('PDF error: '+err.message,'red',3500);
-        });
-      }).catch(function(err){
-        console.error('[PDF] document open failed', err);
-        if(statusEl){statusEl.style.color='#e84b4b';statusEl.textContent='Cannot open PDF: '+err.message;}
-        showToast('PDF open failed','red',3000);
-      });
+window._pdfJsReady = null;
+window._loadPdfJs = function(){
+  if(window._pdfJsReady) return window._pdfJsReady;
+  window._pdfJsReady = new Promise(function(resolve, reject){
+    if(window.pdfjsLib && window.pdfjsLib.getDocument){
+      try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; }catch(e){}
+      return resolve(window.pdfjsLib);
+    }
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = function(){
+      if(!window.pdfjsLib || !window.pdfjsLib.getDocument){
+        window._pdfJsReady = null;
+        return reject(new Error('pdfjsLib missing after script load'));
+      }
+      try{
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }catch(e){
+        console.warn('[PDF] worker setup failed, will fall back to fake worker:', e);
+      }
+      resolve(window.pdfjsLib);
     };
-    reader.onerror = function(){
-      if(statusEl){statusEl.style.color='#e84b4b';statusEl.textContent='File read failed';}
+    s.onerror = function(){
+      window._pdfJsReady = null;
+      reject(new Error('PDF.js CDN load failed'));
     };
-    reader.readAsArrayBuffer(file);
-  }).catch(function(err){
-    console.error('[PDF] loader failed', err);
-    if(statusEl){statusEl.style.color='#e84b4b';statusEl.textContent='Cannot load PDF.js: '+err.message;}
-    showToast('Network error loading PDF.js','red',3000);
+    document.head.appendChild(s);
   });
+  return window._pdfJsReady;
+};
+
+window._loadPdfJsLegacy = function(){
+  return new Promise(function(resolve, reject){
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
+    s.onload = function(){
+      if(!window.pdfjsLib || !window.pdfjsLib.getDocument) return reject(new Error('legacy pdfjsLib missing'));
+      try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js'; }catch(e){}
+      resolve(window.pdfjsLib);
+    };
+    s.onerror = function(){ reject(new Error('legacy PDF.js failed')); };
+    document.head.appendChild(s);
+  });
+};
+
+function _groupSpansToLines(spans, tol){
+  if(!spans.length) return [];
+  spans.sort(function(a,b){ return b.y - a.y; });
+  var groups = [];
+  var cur = null;
+  for(var i=0; i<spans.length; i++){
+    var sp = spans[i];
+    if(!cur || Math.abs(sp.y - cur.anchor) > tol){
+      cur = { anchor: sp.y, items: [sp] };
+      groups.push(cur);
+    } else {
+      cur.items.push(sp);
+    }
+  }
+  var lines = [];
+  for(var g=0; g<groups.length; g++){
+    groups[g].items.sort(function(a,b){ return a.x - b.x; });
+    var parts = [];
+    for(var k=0; k<groups[g].items.length; k++) parts.push(groups[g].items[k].str);
+    var ln = parts.join(' ').replace(/\s+/g,' ').trim();
+    if(ln) lines.push({ y: groups[g].anchor, text: ln });
+  }
+  return lines;
 }
+
+async function _extractAllPages(pdf, statusEl, tol){
+  var totalSpans = 0;
+  var allLines = [];
+  var perPageCounts = [];
+  for(var pn=1; pn<=pdf.numPages; pn++){
+    try{
+      var page = await pdf.getPage(pn);
+      var tc = await page.getTextContent({ normalizeWhitespace: true, disableCombineTextItems: false });
+      var spans = [];
+      for(var i=0; i<tc.items.length; i++){
+        var it = tc.items[i];
+        if(!it.str || !it.str.trim()) continue;
+        spans.push({ x: it.transform[4], y: it.transform[5], str: it.str });
+      }
+      totalSpans += spans.length;
+      perPageCounts.push(spans.length);
+      if(pn <= 3 || pn === 19 || pn === pdf.numPages){
+        console.log('[PDF p'+pn+'] spans='+spans.length+' first5='+JSON.stringify(spans.slice(0,5).map(function(s){return {y:Math.round(s.y*10)/10, x:Math.round(s.x*10)/10, t:s.str.substring(0,30)};})));
+      }
+      var lines = _groupSpansToLines(spans, tol);
+      if(pn === 19){
+        console.log('[PDF p19] grouped to '+lines.length+' lines with tol='+tol);
+        for(var lg=0; lg<Math.min(lines.length,40); lg++) console.log('[PDF p19 y='+Math.round(lines[lg].y)+'] '+lines[lg].text);
+      }
+      for(var ll=0; ll<lines.length; ll++) allLines.push(lines[ll].text);
+      if(statusEl && (pn % 5 === 0 || pn === pdf.numPages)) statusEl.textContent = 'Extracting page '+pn+'/'+pdf.numPages+' ('+allLines.length+' lines so far)';
+    } catch(e){
+      console.warn('[PDF] page '+pn+' failed:', e);
+      perPageCounts.push(-1);
+    }
+  }
+  console.log('[PDF] EXTRACTION DONE. totalSpans='+totalSpans+' totalLines='+allLines.length+' perPage='+JSON.stringify(perPageCounts));
+  return { lines: allLines, totalSpans: totalSpans, perPageCounts: perPageCounts };
+}
+
+async function _tryExtract(pdfjsLib, bytes, statusEl, tol){
+  var loadingTask = pdfjsLib.getDocument({
+    data: bytes,
+    disableFontFace: true,
+    useSystemFonts: true,
+    isEvalSupported: false,
+    disableAutoFetch: true,
+    disableStream: true
+  });
+  var pdf = await loadingTask.promise;
+  console.log('[PDF] opened, numPages='+pdf.numPages);
+  if(statusEl) statusEl.textContent = 'PDF opened: '+pdf.numPages+' pages';
+  return await _extractAllPages(pdf, statusEl, tol);
+}
+
+window.importSalaryPDF = async function(input){
+  var file = input && input.files && input.files[0];
+  if(!file) return;
+  try{ input.value = ''; }catch(e){}
+  var statusEl = document.getElementById('salDbStatus');
+  if(statusEl) statusEl.textContent = 'Loading PDF.js...';
+  if(typeof showToast === 'function') showToast('Reading PDF...','yellow',2500);
+
+  var bytes;
+  try{
+    var ab = await file.arrayBuffer();
+    bytes = new Uint8Array(ab);
+  } catch(e){
+    console.error('[PDF] file read failed:', e);
+    if(statusEl){ statusEl.textContent = 'Could not read file: '+e.message; statusEl.style.color = '#e84b4b'; }
+    return;
+  }
+
+  var pdfjsLib;
+  try{
+    pdfjsLib = await window._loadPdfJs();
+  } catch(e){
+    console.error('[PDF] loader failed:', e);
+    if(statusEl){ statusEl.textContent = 'PDF.js load failed: '+e.message; statusEl.style.color = '#e84b4b'; }
+    return;
+  }
+
+  var result;
+  try{
+    result = await _tryExtract(pdfjsLib, bytes, statusEl, 3.0);
+  } catch(e){
+    console.error('[PDF] primary extract threw:', e);
+    if(statusEl) statusEl.textContent = 'Primary extract failed, trying legacy build...';
+    try{
+      var legacyLib = await window._loadPdfJsLegacy();
+      result = await _tryExtract(legacyLib, bytes.slice(), statusEl, 3.0);
+    } catch(e2){
+      console.error('[PDF] legacy extract also failed:', e2);
+      if(statusEl){ statusEl.textContent = 'PDF extraction failed: '+e2.message; statusEl.style.color = '#e84b4b'; }
+      return;
+    }
+  }
+
+  console.log('[PDF] primary result: totalLines='+result.lines.length+' totalSpans='+result.totalSpans);
+
+  if(result.lines.length < 500 || result.totalSpans < 2000){
+    console.warn('[PDF] suspiciously low yield, retrying with legacy build');
+    if(statusEl) statusEl.textContent = 'Low yield ('+result.lines.length+' lines), retrying with legacy PDF.js...';
+    try{
+      var legacyLib2 = await window._loadPdfJsLegacy();
+      var legacyResult = await _tryExtract(legacyLib2, bytes.slice(), statusEl, 3.0);
+      console.log('[PDF] legacy result: totalLines='+legacyResult.lines.length+' totalSpans='+legacyResult.totalSpans);
+      if(legacyResult.lines.length > result.lines.length) result = legacyResult;
+    } catch(e3){
+      console.warn('[PDF] legacy retry failed, sticking with primary:', e3);
+    }
+  }
+
+  if(result.lines.length < 50){
+    console.error('[PDF] aborting -- only '+result.lines.length+' lines total');
+    if(statusEl){ statusEl.textContent = 'Only '+result.lines.length+' lines extracted (spans='+result.totalSpans+'). PDF may be image-only or grouping tolerance is wrong. Check console.'; statusEl.style.color = '#e84b4b'; }
+    return;
+  }
+
+  var ta = document.getElementById('salPasteText');
+  if(!ta){
+    ta = document.createElement('textarea');
+    ta.id = 'salPasteText';
+    ta.style.display = 'none';
+    document.body.appendChild(ta);
+  }
+  ta.value = result.lines.join('\n');
+  console.log('[PDF] handing '+result.lines.length+' lines ('+ta.value.length+' chars) to parseSalaryPaste');
+  if(statusEl) statusEl.textContent = 'Extracted '+result.lines.length+' lines, parsing...';
+
+  try{
+    parseSalaryPaste();
+  } catch(e){
+    console.error('[PDF] parser threw:', e);
+    if(statusEl){ statusEl.textContent = 'Parser error: '+e.message; statusEl.style.color = '#e84b4b'; }
+  }
+};
+
 
 function parseSalaryPaste(){
   var txt = document.getElementById('salPasteText').value || '';
