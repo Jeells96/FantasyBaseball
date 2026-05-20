@@ -870,7 +870,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.43</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.44</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1141,7 +1141,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
         <ol style="margin:0;padding-left:1.2rem">
           <li>Go to <strong style="color:#e8c84b">spotrac.com/mlb/contracts/_/limit/1000</strong></li>
           <li>Share &rarr; Print</li>
-          <li>Set <strong>Scale to 50%</strong></li>
+          <li>Set <strong>Scale to 90-100%</strong> (NOT 50%, that wraps the table)</li>
           <li>Share from preview &rarr; <strong>Save to Files</strong> (as PDF)</li>
           <li>Tap Import PDF below and pick the file</li>
         </ol>
@@ -4194,7 +4194,7 @@ function parseSalaryPaste(){
     return;
   }
 
-  // Clean lines
+  // Clean lines — preserve newlines, just trim each and collapse internal whitespace
   var rawLines = txt.split(/\r?\n/);
   for(var ri=0; ri<rawLines.length; ri++){
     rawLines[ri] = rawLines[ri].replace(/\u000c/g,' ').replace(/\s+/g,' ').trim();
@@ -4202,83 +4202,19 @@ function parseSalaryPaste(){
   rawLines = rawLines.filter(function(l){return l.length>0;});
   console.log('[parseSalaryPaste] cleaned lines:', rawLines.length, 'in', (Date.now()-t0)+'ms');
 
-  // Fast classifier: for each line, decide if it is NUMERIC, NAMEPOS, FOOTER, or OTHER
-  // Using anchored, non-backtracking patterns
-  // NUMERIC: TEAM TEAM age start end yrs $total $aav
-  //   Pattern: starts with two short uppercase tokens, has 4 numbers in sequence, then two dollar amounts
-  var NUMERIC_RX = /^([A-Z]{2,4}) ([A-Z]{2,4}) (\d{1,2}) (\d{4}) (\d{4}) (\d{1,2}) \$([\d,]+) \$([\d,]+)$/;
-  // NAMEPOS: ends with a position abbreviation (no lazy quantifier — match position at end, then strip)
-  // We test the END of the line against a fixed POS set.
-  var POS_END_RX = / (C|1B|2B|3B|SS|OF|LF|CF|RF|DH|SP|RP|P|INF)$/;
-  // Page footer / header markers that delimit blocks
-  var FOOTER_RX = /spotrac\.com|page \d+ of \d+|copied to clipboard/i;
+  // NUMERIC: "TEAM TEAM age start end yrs $total $aav"
+  var NUMERIC = /^([A-Z]{2,4}) ([A-Z]{2,4}) (\d{1,2}) (\d{4}) (\d{4}) (\d{1,2}) \$([\d,]+) \$([\d,]+)$/;
+  // POS at end of line, preceded by space
+  var POS_END = / (C|1B|2B|3B|SS|OF|LF|CF|RF|DH|SP|RP|P|INF)$/;
 
-  var types = new Array(rawLines.length);
-  var matches = new Array(rawLines.length);
-  for(var li=0; li<rawLines.length; li++){
-    var line = rawLines[li];
-    // Try NUMERIC
-    var m = NUMERIC_RX.exec(line);
-    if(m){ types[li] = 'NUM'; matches[li] = m; continue; }
-    // Try NAMEPOS — find position at end
-    var pm = POS_END_RX.exec(line);
-    if(pm){
-      // Validate: the part before the position should look like a name (not numbers)
-      var namePart = line.substring(0, pm.index).trim();
-      // Reject if namePart contains $ or 4-digit year or starts with team abbrev pattern
-      if(namePart && !/\$|^\d|^[A-Z]{2,4} [A-Z]{2,4} /.test(namePart) && namePart.length >= 2){
-        types[li] = 'NAMEPOS';
-        matches[li] = {name: namePart, pos: pm[1]};
-        continue;
-      }
-    }
-    // Footer/header marker?
-    if(FOOTER_RX.test(line)){ types[li] = 'FOOTER'; continue; }
-    types[li] = 'OTHER';
-  }
-
-  // Count types for diagnostics
-  var numCount=0, nameCount=0, footerCount=0, otherCount=0;
-  for(var ci=0; ci<types.length; ci++){
-    if(types[ci]==='NUM')numCount++;
-    else if(types[ci]==='NAMEPOS')nameCount++;
-    else if(types[ci]==='FOOTER')footerCount++;
-    else otherCount++;
-  }
-  console.log('[parseSalaryPaste] classified:', {NUM:numCount, NAMEPOS:nameCount, FOOTER:footerCount, OTHER:otherCount}, 'in', (Date.now()-t0)+'ms');
-
-  // Group lines by "block" — split on FOOTER markers
-  // Each block contains a sequence of NUM lines and NAMEPOS lines (and OTHERs we ignore)
-  var blocks = [];
-  var curBlock = { num: [], name: [] };
-  for(var bi=0; bi<types.length; bi++){
-    var tp = types[bi];
-    if(tp === 'FOOTER'){
-      if(curBlock.num.length || curBlock.name.length){
-        blocks.push(curBlock);
-      }
-      curBlock = { num: [], name: [] };
-      continue;
-    }
-    if(tp === 'NUM'){ curBlock.num.push({line: bi, match: matches[bi]}); }
-    else if(tp === 'NAMEPOS'){ curBlock.name.push({line: bi, match: matches[bi]}); }
-  }
-  if(curBlock.num.length || curBlock.name.length){blocks.push(curBlock);}
-  console.log('[parseSalaryPaste] blocks:', blocks.length);
-
-  // Pair within each block: index-for-index up to min(num.length, name.length)
   var rows = [];
   function pushRow(name, pos, team, age, signed, expires, years, totalRaw, aavRaw){
     name = (name || '').trim();
     if(!name || name.length < 2) return false;
-    if(/^(player|name|rank|#|pos|position|team|age|start|end|yrs|years|value|aav|copied)$/i.test(name)) return false;
-    var aavNum = parseFloat((aavRaw || totalRaw || '0').replace(/,/g,''));
+    if(/^(player|pos|position|team|age|start|end|yrs|years|value|aav)$/i.test(name)) return false;
+    var aavNum = parseFloat((aavRaw || '0').replace(/,/g,''));
     if(!isFinite(aavNum) || aavNum <= 0) return false;
-    if(!aavRaw && totalRaw && parseInt(years) > 0){
-      aavNum = parseFloat(totalRaw.replace(/,/g,'')) / parseInt(years);
-    }
-    var aavMillions = (aavNum / 1000000);
-    var aavStr = (Math.round(aavMillions * 1000) / 1000).toString();
+    var aavStr = (Math.round((aavNum/1000000) * 1000) / 1000).toString();
     rows.push({
       name: name, pos: (pos || '').toUpperCase(), team: (team || '').toUpperCase(),
       signed: signed || '', expires: expires || '', years: years || '',
@@ -4287,15 +4223,27 @@ function parseSalaryPaste(){
     return true;
   }
 
-  for(var bx=0; bx<blocks.length; bx++){
-    var blk = blocks[bx];
-    var pairs = Math.min(blk.num.length, blk.name.length);
-    for(var px=0; px<pairs; px++){
-      var nm = blk.num[px].match;
-      var nameMatch = blk.name[px].match;
-      // nm groups: 1=team1 2=team2 3=age 4=start 5=end 6=yrs 7=total 8=aav
-      pushRow(nameMatch.name, nameMatch.pos, nm[1], nm[3], nm[4], nm[5], nm[6], nm[7], nm[8]);
+  // Alternating-pair pass: line N has "Name POS", line N+1 has the numeric row
+  var i = 0;
+  while(i < rawLines.length - 1){
+    var cur = rawLines[i];
+    var nxt = rawLines[i+1];
+    var nm = NUMERIC.exec(nxt);
+    if(nm){
+      var pm = POS_END.exec(cur);
+      if(pm){
+        var name = cur.substring(0, pm.index).trim();
+        var pos = pm[1];
+        // Skip if the "name" line contains $ or 4-digit-year (means it's actually numeric data)
+        if(!/\$|\b(19|20)\d{2}\b/.test(name)){
+          if(pushRow(name, pos, nm[1], nm[3], nm[4], nm[5], nm[6], nm[7], nm[8])){
+            i += 2;
+            continue;
+          }
+        }
+      }
     }
+    i++;
   }
 
   console.log('[parseSalaryPaste] rows parsed:', rows.length, 'in', (Date.now()-t0)+'ms');
@@ -4303,7 +4251,7 @@ function parseSalaryPaste(){
   if(rows.length < 50){
     if(status){
       status.style.color = '#e84b4b';
-      status.textContent = 'Only parsed ' + rows.length + ' rows (' + numCount + ' NUM, ' + nameCount + ' NAMEPOS). Check console.';
+      status.textContent = 'Only parsed ' + rows.length + ' rows. Try printing Spotrac at 75-100% scale (not 50%) so rows don\'t wrap. ' + rawLines.length + ' lines seen.';
     }
     return;
   }
@@ -4343,7 +4291,6 @@ function parseSalaryPaste(){
   }
   try{ SAL.length = 0; for(var rx3=0; rx3<rows.length; rx3++){ SAL.push(rows[rx3]); } }catch(e){}
 
-  // Re-render DB if open
   try{
     var pgEl = document.getElementById('page-salaries-db');
     if(pgEl && pgEl.classList.contains('active') && typeof renderDB === 'function') renderDB();
