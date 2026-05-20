@@ -870,7 +870,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.45</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.46</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -4194,18 +4194,20 @@ function parseSalaryPaste(){
     return;
   }
 
-  // Clean lines — preserve newlines, just trim each and collapse internal whitespace
   var rawLines = txt.split(/\r?\n/);
   for(var ri=0; ri<rawLines.length; ri++){
     rawLines[ri] = rawLines[ri].replace(/\u000c/g,' ').replace(/\s+/g,' ').trim();
   }
   rawLines = rawLines.filter(function(l){return l.length>0;});
-  console.log('[parseSalaryPaste] cleaned lines:', rawLines.length, 'in', (Date.now()-t0)+'ms');
+  console.log('[parseSalaryPaste] cleaned lines:', rawLines.length);
 
-  // NUMERIC: "TEAM TEAM age start end yrs $total $aav"
-  var NUMERIC = /^([A-Z]{2,4}) ([A-Z]{2,4}) (\d{1,2}) (\d{4}) (\d{4}) (\d{1,2}) \$([\d,]+) \$([\d,]+)$/;
-  // POS at end of line, preceded by space
-  var POS_END = / (C|1B|2B|3B|SS|OF|LF|CF|RF|DH|SP|RP|P|INF)$/;
+  var POS_ALT = '(?:C|1B|2B|3B|SS|OF|LF|CF|RF|DH|SP|RP|P|INF)';
+  // Pattern A: Name POS TEAM TEAM age start end yrs $total $aav (all on one line)
+  var PATTERN_A = new RegExp('^(.+?) (' + POS_ALT + ') ([A-Z]{2,4}) ([A-Z]{2,4}) (\\d{1,2}) (\\d{4}) (\\d{4}) (\\d{1,2}) \\$([\\d,]+) \\$([\\d,]+)$');
+  // Pattern B: Name POS age start end yrs $total $aav (teams missing — look on next line)
+  var PATTERN_B = new RegExp('^(.+?) (' + POS_ALT + ') (\\d{1,2}) (\\d{4}) (\\d{4}) (\\d{1,2}) \\$([\\d,]+) \\$([\\d,]+)$');
+  // Team line: TEAM or TEAM TEAM
+  var PATTERN_TEAM = /^([A-Z]{2,4})(?: ([A-Z]{2,4}))?$/;
 
   var rows = [];
   function pushRow(name, pos, team, age, signed, expires, years, totalRaw, aavRaw){
@@ -4216,32 +4218,35 @@ function parseSalaryPaste(){
     if(!isFinite(aavNum) || aavNum <= 0) return false;
     var aavStr = (Math.round((aavNum/1000000) * 1000) / 1000).toString();
     rows.push({
-      name: name, pos: (pos || '').toUpperCase(), team: (team || '').toUpperCase(),
+      name: name, pos: (pos || '').toUpperCase(), team: (team || '?').toUpperCase(),
       signed: signed || '', expires: expires || '', years: years || '',
       aav: aavStr, age: age || ''
     });
     return true;
   }
 
-  // Alternating-pair pass: line N has "Name POS", line N+1 has the numeric row
   var i = 0;
-  while(i < rawLines.length - 1){
-    var cur = rawLines[i];
-    var nxt = rawLines[i+1];
-    var nm = NUMERIC.exec(nxt);
-    if(nm){
-      var pm = POS_END.exec(cur);
-      if(pm){
-        var name = cur.substring(0, pm.index).trim();
-        var pos = pm[1];
-        // Skip if the "name" line contains $ or 4-digit-year (means it's actually numeric data)
-        if(!/\$|\b(19|20)\d{2}\b/.test(name)){
-          if(pushRow(name, pos, nm[1], nm[3], nm[4], nm[5], nm[6], nm[7], nm[8])){
-            i += 2;
-            continue;
-          }
+  while(i < rawLines.length){
+    var line = rawLines[i];
+    var mA = PATTERN_A.exec(line);
+    if(mA){
+      pushRow(mA[1], mA[2], mA[3], mA[5], mA[6], mA[7], mA[8], mA[9], mA[10]);
+      i++;
+      continue;
+    }
+    var mB = PATTERN_B.exec(line);
+    if(mB){
+      var team = '?';
+      if(i+1 < rawLines.length){
+        var mT = PATTERN_TEAM.exec(rawLines[i+1]);
+        if(mT){
+          team = mT[1];
+          i++; // consume team line too
         }
       }
+      pushRow(mB[1], mB[2], team, mB[3], mB[4], mB[5], mB[6], mB[7], mB[8]);
+      i++;
+      continue;
     }
     i++;
   }
@@ -4251,7 +4256,7 @@ function parseSalaryPaste(){
   if(rows.length < 50){
     if(status){
       status.style.color = '#e84b4b';
-      status.textContent = 'Only parsed ' + rows.length + ' rows. Try printing Spotrac at 75-100% scale (not 50%) so rows don\'t wrap. ' + rawLines.length + ' lines seen.';
+      status.textContent = 'Only parsed ' + rows.length + ' rows from ' + rawLines.length + ' lines. Check console.';
     }
     return;
   }
@@ -4276,13 +4281,11 @@ function parseSalaryPaste(){
   }
   try{ sessionStorage.setItem('dyn28_sal_changes', JSON.stringify(window.SAL_CHANGES)); }catch(e){}
 
-  // Write new salary DB
   try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(rows)); }catch(ex){
     if(status){status.style.color='#e84b4b';status.textContent='Save failed: '+ex.message;}
     return;
   }
 
-  // Rebuild lookups
   AAV_DB = {}; SAL_MAP = {};
   for(var rx2=0; rx2<rows.length; rx2++){
     var pp = rows[rx2];
