@@ -870,7 +870,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.39</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.40</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -4161,9 +4161,22 @@ window.importSalaryPDF = async function(input){
   console.log('[PDF] handing '+result.lines.length+' lines ('+ta.value.length+' chars) to parseSalaryPaste');
   if(statusEl) statusEl.textContent = 'Extracted '+result.lines.length+' lines, parsing...';
 
+  // V28.5.40: defensive wrapper — yield to repaint, watchdog timeout, log entry/exit
+  var stuckTimer = setTimeout(function(){
+    console.warn('[PDF] parser still running after 5s — may be stuck');
+    if(statusEl){ statusEl.textContent = 'Parser appears stuck — check console.'; statusEl.style.color = '#e84b4b'; }
+  }, 5000);
+
+  // Yield so the status text repaints BEFORE we start the heavy work
+  await new Promise(function(r){ setTimeout(r, 0); });
+
+  console.log('[PDF] >>> calling parseSalaryPaste()');
   try{
     parseSalaryPaste();
+    console.log('[PDF] <<< parseSalaryPaste returned');
+    clearTimeout(stuckTimer);
   } catch(e){
+    clearTimeout(stuckTimer);
     console.error('[PDF] parser threw:', e);
     if(statusEl){ statusEl.textContent = 'Parser error: '+e.message; statusEl.style.color = '#e84b4b'; }
   }
