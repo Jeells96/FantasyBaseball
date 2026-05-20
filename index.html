@@ -870,7 +870,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.40</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.41</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -4184,169 +4184,183 @@ window.importSalaryPDF = async function(input){
 
 
 function parseSalaryPaste(){
+  console.log('[parseSalaryPaste] start');
+  var t0 = Date.now();
   var txt = document.getElementById('salPasteText').value || '';
   var status = document.getElementById('salPasteStatus');
-  if(!txt.trim()){status.style.color='#e84b4b';status.textContent='Paste data first.';return;}
-
-  // Valid positions to validate the trailing token on a "name + pos" line
-  var VALID_POS = ['C','1B','2B','3B','SS','OF','LF','CF','RF','DH','SP','RP','P','INF'];
+  if(!txt.trim()){
+    if(status){status.style.color='#e84b4b';status.textContent='Paste data first.';}
+    return;
+  }
 
   // Clean lines
-  var rawLines = txt.split(/\r?\n/).map(function(l){return l.replace(/\u000c/g,' ').trim();}).filter(function(l){return l.length>0;});
+  var rawLines = txt.split(/\r?\n/);
+  for(var ri=0; ri<rawLines.length; ri++){
+    rawLines[ri] = rawLines[ri].replace(/\u000c/g,' ').replace(/\s+/g,' ').trim();
+  }
+  rawLines = rawLines.filter(function(l){return l.length>0;});
+  console.log('[parseSalaryPaste] cleaned lines:', rawLines.length, 'in', (Date.now()-t0)+'ms');
 
+  // Fast classifier: for each line, decide if it is NUMERIC, NAMEPOS, FOOTER, or OTHER
+  // Using anchored, non-backtracking patterns
+  // NUMERIC: TEAM TEAM age start end yrs $total $aav
+  //   Pattern: starts with two short uppercase tokens, has 4 numbers in sequence, then two dollar amounts
+  var NUMERIC_RX = /^([A-Z]{2,4}) ([A-Z]{2,4}) (\d{1,2}) (\d{4}) (\d{4}) (\d{1,2}) \$([\d,]+) \$([\d,]+)$/;
+  // NAMEPOS: ends with a position abbreviation (no lazy quantifier — match position at end, then strip)
+  // We test the END of the line against a fixed POS set.
+  var POS_END_RX = / (C|1B|2B|3B|SS|OF|LF|CF|RF|DH|SP|RP|P|INF)$/;
+  // Page footer / header markers that delimit blocks
+  var FOOTER_RX = /spotrac\.com|page \d+ of \d+|copied to clipboard/i;
+
+  var types = new Array(rawLines.length);
+  var matches = new Array(rawLines.length);
+  for(var li=0; li<rawLines.length; li++){
+    var line = rawLines[li];
+    // Try NUMERIC
+    var m = NUMERIC_RX.exec(line);
+    if(m){ types[li] = 'NUM'; matches[li] = m; continue; }
+    // Try NAMEPOS — find position at end
+    var pm = POS_END_RX.exec(line);
+    if(pm){
+      // Validate: the part before the position should look like a name (not numbers)
+      var namePart = line.substring(0, pm.index).trim();
+      // Reject if namePart contains $ or 4-digit year or starts with team abbrev pattern
+      if(namePart && !/\$|^\d|^[A-Z]{2,4} [A-Z]{2,4} /.test(namePart) && namePart.length >= 2){
+        types[li] = 'NAMEPOS';
+        matches[li] = {name: namePart, pos: pm[1]};
+        continue;
+      }
+    }
+    // Footer/header marker?
+    if(FOOTER_RX.test(line)){ types[li] = 'FOOTER'; continue; }
+    types[li] = 'OTHER';
+  }
+
+  // Count types for diagnostics
+  var numCount=0, nameCount=0, footerCount=0, otherCount=0;
+  for(var ci=0; ci<types.length; ci++){
+    if(types[ci]==='NUM')numCount++;
+    else if(types[ci]==='NAMEPOS')nameCount++;
+    else if(types[ci]==='FOOTER')footerCount++;
+    else otherCount++;
+  }
+  console.log('[parseSalaryPaste] classified:', {NUM:numCount, NAMEPOS:nameCount, FOOTER:footerCount, OTHER:otherCount}, 'in', (Date.now()-t0)+'ms');
+
+  // Group lines by "block" — split on FOOTER markers
+  // Each block contains a sequence of NUM lines and NAMEPOS lines (and OTHERs we ignore)
+  var blocks = [];
+  var curBlock = { num: [], name: [] };
+  for(var bi=0; bi<types.length; bi++){
+    var tp = types[bi];
+    if(tp === 'FOOTER'){
+      if(curBlock.num.length || curBlock.name.length){
+        blocks.push(curBlock);
+      }
+      curBlock = { num: [], name: [] };
+      continue;
+    }
+    if(tp === 'NUM'){ curBlock.num.push({line: bi, match: matches[bi]}); }
+    else if(tp === 'NAMEPOS'){ curBlock.name.push({line: bi, match: matches[bi]}); }
+  }
+  if(curBlock.num.length || curBlock.name.length){blocks.push(curBlock);}
+  console.log('[parseSalaryPaste] blocks:', blocks.length);
+
+  // Pair within each block: index-for-index up to min(num.length, name.length)
   var rows = [];
-  var skipped = 0;
-
-  // Regex for single-line format: name pos team1 team2 age start end yrs $total $aav
-  // Spotrac single-line shape: "Juan Soto    RF   NYM   NYM   26   2025   2039   15   $765,000,000   $51,000,000"
-  var SINGLE_LINE = /^(.+?)\s+([A-Z0-9/]{1,4})\s+([A-Z]{2,4})(?:\s+([A-Z]{2,4}))?\s+(\d{1,2})\s+(\d{4})\s+(\d{4})\s+(\d{1,2})\s+\$\s*([\d,]+(?:\.\d+)?)(?:\s+\$\s*([\d,]+(?:\.\d+)?))?\s*$/;
-
-  // Two-line format (50% landscape):
-  // Line A: "TEAM1 TEAM2 AGE START END YRS $TOTAL $AAV"
-  // Line B: "Name Name Pos"
-  // The Line A "numbers row" — starts with team codes
-  var NUMERIC_LINE = /^([A-Z]{2,4})\s+([A-Z]{2,4})\s+(\d{1,2})\s+(\d{4})\s+(\d{4})\s+(\d{1,2})\s+\$\s*([\d,]+(?:\.\d+)?)\s+\$\s*([\d,]+(?:\.\d+)?)\s*$/;
-  // Name+pos line: "Name Words 3B" — must end with valid position token
-  var NAME_POS_RX = new RegExp('^(.+?)\\s+(' + VALID_POS.join('|') + ')\\s*$');
-
   function pushRow(name, pos, team, age, signed, expires, years, totalRaw, aavRaw){
     name = (name || '').trim();
     if(!name || name.length < 2) return false;
-    // Drop UI junk
     if(/^(player|name|rank|#|pos|position|team|age|start|end|yrs|years|value|aav|copied)$/i.test(name)) return false;
     var aavNum = parseFloat((aavRaw || totalRaw || '0').replace(/,/g,''));
     if(!isFinite(aavNum) || aavNum <= 0) return false;
-    // If only total present and years > 0, derive AAV
     if(!aavRaw && totalRaw && parseInt(years) > 0){
       aavNum = parseFloat(totalRaw.replace(/,/g,'')) / parseInt(years);
     }
-    // Store as $M with 3 decimals trimmed
     var aavMillions = (aavNum / 1000000);
     var aavStr = (Math.round(aavMillions * 1000) / 1000).toString();
     rows.push({
-      name: name,
-      pos: (pos || '').toUpperCase(),
-      team: (team || '').toUpperCase(),
-      signed: signed || '',
-      expires: expires || '',
-      years: years || '',
-      aav: aavStr,
-      age: age || ''
+      name: name, pos: (pos || '').toUpperCase(), team: (team || '').toUpperCase(),
+      signed: signed || '', expires: expires || '', years: years || '',
+      aav: aavStr, age: age || ''
     });
     return true;
   }
 
-  // First pass: scan for single-line matches
-  // Second pass for un-matched lines: pair numeric-line with next name+pos line
-  var consumed = new Array(rawLines.length).fill(false);
-
-  // Single-line pass
-  for(var i = 0; i < rawLines.length; i++){
-    var m = rawLines[i].match(SINGLE_LINE);
-    if(!m) continue;
-    var name = m[1].replace(/\*+$/,'').replace(/\u2192/g,'').trim();
-    // Drop trailing nav junk if name contains it
-    if(/spotrac|copyright|league|football|basketball/i.test(name)) continue;
-    if(pushRow(name, m[2], m[3], m[5], m[6], m[7], m[8], m[9], m[10])){
-      consumed[i] = true;
+  for(var bx=0; bx<blocks.length; bx++){
+    var blk = blocks[bx];
+    var pairs = Math.min(blk.num.length, blk.name.length);
+    for(var px=0; px<pairs; px++){
+      var nm = blk.num[px].match;
+      var nameMatch = blk.name[px].match;
+      // nm groups: 1=team1 2=team2 3=age 4=start 5=end 6=yrs 7=total 8=aav
+      pushRow(nameMatch.name, nameMatch.pos, nm[1], nm[3], nm[4], nm[5], nm[6], nm[7], nm[8]);
     }
   }
 
-  // Block-pairing pass for Spotrac's print layout:
-  // Numbers come in a block (one row per line), then names+positions come in a block below.
-  // Pair them index-for-index.
-  var ii = 0;
-  while(ii < rawLines.length){
-    if(consumed[ii]){ii++; continue;}
-    if(!NUMERIC_LINE.test(rawLines[ii])){ii++; continue;}
-    // Collect numeric block
-    var numBlock = [];
-    var numIdx = [];
-    while(ii < rawLines.length && NUMERIC_LINE.test(rawLines[ii])){
-      if(!consumed[ii]){
-        numBlock.push(rawLines[ii].match(NUMERIC_LINE));
-        numIdx.push(ii);
-      }
-      ii++;
-    }
-    if(!numBlock.length) continue;
-    // Skip non-name lines until we hit name+pos lines
-    while(ii < rawLines.length && !NAME_POS_RX.test(rawLines[ii])){
-      ii++;
-    }
-    // Collect name+pos block
-    var nameBlock = [];
-    var nameIdx2 = [];
-    while(ii < rawLines.length && NAME_POS_RX.test(rawLines[ii])){
-      if(!consumed[ii]){
-        nameBlock.push(rawLines[ii].match(NAME_POS_RX));
-        nameIdx2.push(ii);
-      }
-      ii++;
-    }
-    // Pair them index-for-index
-    var pairCount = Math.min(numBlock.length, nameBlock.length);
-    for(var k = 0; k < pairCount; k++){
-      var num = numBlock[k];
-      var nameLine = nameBlock[k];
-      var nm = nameLine[1].replace(/\*+$/,'').replace(/\u2192/g,'').trim();
-      if(/spotrac|copyright|league|football|basketball|trending|^top$/i.test(nm)) continue;
-      if(pushRow(nm, nameLine[2], num[1], num[3], num[4], num[5], num[6], num[7], num[8])){
-        consumed[numIdx[k]] = true;
-        consumed[nameIdx2[k]] = true;
-      }
-    }
-  }
+  console.log('[parseSalaryPaste] rows parsed:', rows.length, 'in', (Date.now()-t0)+'ms');
 
   if(rows.length < 50){
-    status.style.color = '#e84b4b';
-    status.textContent = 'Only parsed ' + rows.length + ' rows. Aborted — paste full PDF text. (' + rawLines.length + ' lines seen)';
+    if(status){
+      status.style.color = '#e84b4b';
+      status.textContent = 'Only parsed ' + rows.length + ' rows (' + numCount + ' NUM, ' + nameCount + ' NAMEPOS). Check console.';
+    }
     return;
   }
 
-  // Backup current salary DB before overwrite (for Undo)
+  // Backup current salary DB
   try{
     var current = localStorage.getItem('dyn26_v4_sal');
     localStorage.setItem('dyn26_v4_sal_backup', current === null ? 'NONE' : current);
   }catch(e){}
 
-  // Write new salary DB
-  try{localStorage.setItem('dyn26_v4_sal', JSON.stringify(rows));}catch(ex){
-    status.style.color = '#e84b4b';
-    status.textContent = 'Save failed: ' + ex.message;
-    return;
-  }
-
-  // Detect changes vs. previous SAL_MAP for highlighting
+  // Detect changes
   window.SAL_CHANGES = {};
   var prevSnapshot = {};
   try{ Object.keys(SAL_MAP).forEach(function(k){ prevSnapshot[k] = SAL_MAP[k]; }); }catch(e){}
-  rows.forEach(function(p){
+  for(var rx=0; rx<rows.length; rx++){
+    var p = rows[rx];
     var prev = prevSnapshot[p.name];
-    if(!prev){ window.SAL_CHANGES[p.name] = 'NEW'; return; }
+    if(!prev){ window.SAL_CHANGES[p.name] = 'NEW'; continue; }
     if(String(prev.aav) !== String(p.aav) || String(prev.expires) !== String(p.expires) || String(prev.years) !== String(p.years) || String(prev.team) !== String(p.team)){
       window.SAL_CHANGES[p.name] = 'CHANGED';
     }
-  });
+  }
   try{ sessionStorage.setItem('dyn28_sal_changes', JSON.stringify(window.SAL_CHANGES)); }catch(e){}
-  console.log('[salary] changes detected:', Object.keys(window.SAL_CHANGES).length);
 
-  // Rebuild lookups AND replace the global SAL array used by renderDB
+  // Write new salary DB
+  try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(rows)); }catch(ex){
+    if(status){status.style.color='#e84b4b';status.textContent='Save failed: '+ex.message;}
+    return;
+  }
+
+  // Rebuild lookups
   AAV_DB = {}; SAL_MAP = {};
-  rows.forEach(function(p){ AAV_DB[p.name] = p.aav; SAL_MAP[p.name] = p; });
-  // Update global SAL array so the Salaries DB page sees new data
-  try{ SAL.length = 0; rows.forEach(function(p){ SAL.push(p); }); }catch(e){ console.warn('SAL replace failed:', e); }
-  // Re-render DB page if currently open
-  try{ if(document.getElementById('page-salaries-db') && document.getElementById('page-salaries-db').classList.contains('active') && typeof renderDB === 'function') renderDB(); }catch(e){}
+  for(var rx2=0; rx2<rows.length; rx2++){
+    var pp = rows[rx2];
+    AAV_DB[pp.name] = pp.aav;
+    SAL_MAP[pp.name] = pp;
+  }
+  try{ SAL.length = 0; for(var rx3=0; rx3<rows.length; rx3++){ SAL.push(rows[rx3]); } }catch(e){}
 
-  status.style.color = '#22c55e';
-  status.textContent = '✓ Parsed ' + rows.length + ' contracts. Tap Undo if anything looks wrong.';
-  showToast('✓ Salary DB: ' + rows.length + ' contracts loaded', 'green', 2800);
-  updateSalDbStatus();
+  // Re-render DB if open
+  try{
+    var pgEl = document.getElementById('page-salaries-db');
+    if(pgEl && pgEl.classList.contains('active') && typeof renderDB === 'function') renderDB();
+  }catch(e){}
 
-  // Show Undo button
+  if(status){
+    status.style.color = '#22c55e';
+    status.textContent = '✓ Parsed ' + rows.length + ' contracts. Tap Undo if anything looks wrong.';
+  }
+  if(typeof showToast === 'function') showToast('✓ Salary DB: ' + rows.length + ' contracts loaded', 'green', 2800);
+  if(typeof updateSalDbStatus === 'function') updateSalDbStatus();
+
   var undoBtn = document.getElementById('salUndoBtn');
   if(undoBtn) undoBtn.style.display = 'inline-block';
+  var undoBtn2 = document.getElementById('salUndoBtn2');
+  if(undoBtn2) undoBtn2.style.display = 'inline-block';
+
+  console.log('[parseSalaryPaste] DONE in', (Date.now()-t0)+'ms');
 }
 
 function undoSalaryImport(){
