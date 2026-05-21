@@ -870,7 +870,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.46</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.48</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1141,7 +1141,8 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
         <ol style="margin:0;padding-left:1.2rem">
           <li>Go to <strong style="color:#e8c84b">spotrac.com/mlb/contracts/_/limit/1000</strong></li>
           <li>Share &rarr; Print</li>
-          <li>Set <strong>Scale to 90-100%</strong> (NOT 50%, that wraps the table)</li>
+          <li>Set <strong>Orientation: Landscape</strong></li>
+          <li>Set <strong>Scale to 90-100%</strong></li>
           <li>Share from preview &rarr; <strong>Save to Files</strong> (as PDF)</li>
           <li>Tap Import PDF below and pick the file</li>
         </ol>
@@ -1151,6 +1152,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
         <button class="set-btn accent" onclick="document.getElementById('salPdfImport').click()">&#8679; Import PDF</button>
         <button class="set-btn" onclick="document.getElementById('salImport').click()">Excel</button>
         <button id="salUndoBtn2" class="set-btn" onclick="undoSalaryImport()" style="display:none;background:rgba(232,75,75,.1);border:1px solid rgba(232,75,75,.3);color:#e84b4b">&#8630; Undo</button>
+        <button id="clearHighlightsBtn" class="set-btn" onclick="clearSalaryHighlights()" style="display:none;background:rgba(232,200,75,.1);border:1px solid rgba(232,200,75,.3);color:#e8c84b">Clear Highlights</button>
         <button class="set-btn" onclick="resetSalaries()">Reset</button>
       </div>
       <div style="font-size:.7rem;color:var(--dim);margin-top:.5rem;min-height:1rem" id="salDbStatus"></div>
@@ -1294,6 +1296,8 @@ var SAL_MAP={};
 SAL.forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});
 // V28.5.33: Load salary-change highlights from previous import (session-scoped)
 try{ window.SAL_CHANGES = JSON.parse(sessionStorage.getItem('dyn28_sal_changes')||'{}'); }catch(e){ window.SAL_CHANGES = {}; }
+// V28.5.48: Show Clear Highlights button on load if highlights exist
+setTimeout(function(){ if(typeof updateHighlightsButton === 'function') updateHighlightsButton(); }, 500);
 var ROSTER={};
 var rosterLoadTime=null;
 function flattenRoster(r){if(!r)return{};var flat={};Object.keys(r).forEach(function(tn){var v=r[tn];flat[tn]=Array.isArray(v)?v:(v&&v.players?v.players:[]);});return flat;}
@@ -4184,6 +4188,25 @@ window.importSalaryPDF = async function(input){
 };
 
 
+function clearSalaryHighlights(){
+  window.SAL_CHANGES = {};
+  try{ sessionStorage.removeItem('dyn28_sal_changes'); }catch(e){}
+  // Re-render any visible pages
+  try{ if(typeof renderDB === 'function') renderDB(); }catch(e){}
+  try{ if(typeof buildContractsTab === 'function') buildContractsTab(); }catch(e){}
+  // Hide the button
+  var btn = document.getElementById('clearHighlightsBtn');
+  if(btn) btn.style.display = 'none';
+  if(typeof showToast === 'function') showToast('Highlights cleared', 'green', 1800);
+}
+
+function updateHighlightsButton(){
+  var btn = document.getElementById('clearHighlightsBtn');
+  if(!btn) return;
+  var hasHighlights = window.SAL_CHANGES && Object.keys(window.SAL_CHANGES).length > 0;
+  btn.style.display = hasHighlights ? 'inline-block' : 'none';
+}
+
 function parseSalaryPaste(){
   console.log('[parseSalaryPaste] start');
   var t0 = Date.now();
@@ -4261,11 +4284,11 @@ function parseSalaryPaste(){
     return;
   }
 
-  // Backup current salary DB
+  // V28.5.47: Back up current SAL array (always restorable) so Undo can fully revert
   try{
-    var current = localStorage.getItem('dyn26_v4_sal');
-    localStorage.setItem('dyn26_v4_sal_backup', current === null ? 'NONE' : current);
-  }catch(e){}
+    var snapshot = JSON.stringify(SAL || []);
+    localStorage.setItem('dyn26_v4_sal_backup', snapshot);
+  }catch(e){console.warn('backup failed', e);}
 
   // Detect changes
   window.SAL_CHANGES = {};
@@ -4305,6 +4328,7 @@ function parseSalaryPaste(){
   }
   if(typeof showToast === 'function') showToast('✓ Salary DB: ' + rows.length + ' contracts loaded', 'green', 2800);
   if(typeof updateSalDbStatus === 'function') updateSalDbStatus();
+  updateHighlightsButton();
 
   var undoBtn = document.getElementById('salUndoBtn');
   if(undoBtn) undoBtn.style.display = 'inline-block';
@@ -4315,26 +4339,47 @@ function parseSalaryPaste(){
 }
 
 function undoSalaryImport(){
+  console.log('[undoSalaryImport] start');
   try{
     var backup = localStorage.getItem('dyn26_v4_sal_backup');
-    if(backup === null){
+    if(backup === null || backup === undefined){
       showToast('Nothing to undo', 'yellow', 1800);
       return;
     }
-    if(backup === 'NONE'){
-      localStorage.removeItem('dyn26_v4_sal');
-      // SAL stays as-is (built-in default already loaded)
-    } else {
-      localStorage.setItem('dyn26_v4_sal', backup);
-      var restored = JSON.parse(backup);
-      AAV_DB = {}; SAL_MAP = {};
-      restored.forEach(function(p){ AAV_DB[p.name] = p.aav; SAL_MAP[p.name] = p; });
-      try{ SAL.length = 0; restored.forEach(function(p){ SAL.push(p); }); }catch(e){}
+    var restored;
+    try{ restored = JSON.parse(backup); }catch(e){
+      console.error('[undoSalaryImport] backup parse failed:', e);
+      showToast('Undo failed: backup corrupted', 'red', 2500);
+      return;
     }
+    if(!Array.isArray(restored)){
+      showToast('Undo failed: bad backup format', 'red', 2500);
+      return;
+    }
+    console.log('[undoSalaryImport] restoring', restored.length, 'rows');
+
+    // Write restored data back to localStorage
+    try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(restored)); }catch(e){}
+    // Rebuild lookups
+    AAV_DB = {}; SAL_MAP = {};
+    for(var ri=0; ri<restored.length; ri++){
+      var pp = restored[ri];
+      AAV_DB[pp.name] = pp.aav;
+      SAL_MAP[pp.name] = pp;
+    }
+    // Replace global SAL contents (can't reassign const, but can mutate)
+    try{ SAL.length = 0; for(var rj=0; rj<restored.length; rj++){ SAL.push(restored[rj]); } }catch(e){console.warn('SAL replace failed', e);}
+
     // Clear change highlights
     window.SAL_CHANGES = {};
     try{ sessionStorage.removeItem('dyn28_sal_changes'); }catch(e){}
-    try{ if(document.getElementById('page-salaries-db') && document.getElementById('page-salaries-db').classList.contains('active') && typeof renderDB === 'function') renderDB(); }catch(e){}
+
+    // Re-render whichever page is open
+    try{ if(typeof renderDB === 'function') renderDB(); }catch(e){}
+    try{ if(typeof renderTeams === 'function') renderTeams(); }catch(e){}
+    try{ if(typeof buildContractsTab === 'function') buildContractsTab(); }catch(e){}
+
+    // Remove the backup so undo can't be tapped again
     localStorage.removeItem('dyn26_v4_sal_backup');
     var undoBtn = document.getElementById('salUndoBtn');
     if(undoBtn) undoBtn.style.display = 'none';
@@ -4343,11 +4388,18 @@ function undoSalaryImport(){
     var status = document.getElementById('salPasteStatus');
     if(status){
       status.style.color = '#94a3b8';
-      status.textContent = 'Undone. Previous salary DB restored.';
+      status.textContent = 'Undone. Previous salary DB restored (' + restored.length + ' rows).';
     }
-    showToast('↶ Salary DB restored', 'green', 2200);
-    updateSalDbStatus();
+    var st2 = document.getElementById('salDbStatus');
+    if(st2){
+      st2.style.color = '#94a3b8';
+      st2.textContent = 'Restored ' + restored.length + ' contracts from backup.';
+    }
+    showToast('↶ Restored ' + restored.length + ' contracts', 'green', 2200);
+    if(typeof updateSalDbStatus === 'function') updateSalDbStatus();
+    console.log('[undoSalaryImport] done');
   }catch(e){
+    console.error('[undoSalaryImport] threw:', e);
     showToast('Undo failed: ' + e.message, 'red', 2500);
   }
 }
