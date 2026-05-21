@@ -870,7 +870,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.55</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.56</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -4101,20 +4101,16 @@ async function _extractAllPages(pdf, statusEl, tol){
       if(pn === 65 || pn === 70 || pn <= 2){
         console.log('[PDF p'+pn+'] tc.items.length='+totalItems+' empty='+emptyCount+' kept='+spans.length);
         // Log a sample of raw items (first 10, including empties) to see what's really there
-        for(var ix=0; ix<Math.min(10, tc.items.length); ix++){
-          var raw = tc.items[ix];
-          console.log('[PDF p'+pn+' raw '+ix+']', JSON.stringify({str: raw.str, hasEOL: raw.hasEOL, dir: raw.dir, width: raw.width, height: raw.height, x: raw.transform?raw.transform[4]:null, y: raw.transform?raw.transform[5]:null}));
-        }
+
       }
       totalSpans += spans.length;
       perPageCounts.push(spans.length);
-      if(pn <= 3 || pn === 19 || pn === pdf.numPages){
-        console.log('[PDF p'+pn+'] spans='+spans.length+' first5='+JSON.stringify(spans.slice(0,5).map(function(s){return {y:Math.round(s.y*10)/10, x:Math.round(s.x*10)/10, t:s.str.substring(0,30)};})));
-      }
+      
       var lines = _groupSpansToLines(spans, tol);
-      if(pn === 65){
-        console.log('[PDF p19] grouped to '+lines.length+' lines with tol='+tol);
-        for(var lg=0; lg<Math.min(lines.length,40); lg++) console.log('[PDF p19 y='+Math.round(lines[lg].y)+'] '+lines[lg].text);
+      // V28.5.56: dump only on demand, controlled by window._dumpDataPage
+      if(pn === window._dumpDataPage){
+        console.log('[PDF p'+pn+'] grouped to '+lines.length+' lines with tol='+tol);
+        for(var lg=0; lg<Math.min(lines.length,40); lg++) console.log('[PDF p'+pn+' y='+Math.round(lines[lg].y)+'] '+lines[lg].text);
       }
       for(var ll=0; ll<lines.length; ll++) allLines.push(lines[ll].text);
       if(statusEl && (pn % 5 === 0 || pn === pdf.numPages)) statusEl.textContent = 'Extracting page '+pn+'/'+pdf.numPages+' ('+allLines.length+' lines so far)';
@@ -4369,7 +4365,14 @@ function parseSalaryPaste(){
 
   var nameWords = [];
   var ti2 = 0;
+  var __iterCap = tokens.length * 3; // safety net against any remaining infinite loops
+  var __iter = 0;
   while(ti2 < tokens.length){
+    __iter++;
+    if(__iter > __iterCap){
+      console.error('[parser] iteration cap hit at ti2=' + ti2 + ', tokens.length=' + tokens.length);
+      break;
+    }
     var t = types[ti2];
     if(t === 'POS'){
       // Strip leading TEAM tokens from nameWords (they belonged to previous player on wrapped format)
@@ -4386,11 +4389,11 @@ function parseSalaryPaste(){
         teams.push(tokens[ti2]); ti2++;
       }
       // Expect AGE YEAR YEAR YRS MONEY MONEY
-      if(ti2 + 5 >= tokens.length){ nameWords = []; continue; }
+      if(ti2 + 5 >= tokens.length){ nameWords = []; break; }
       if(types[ti2] !== 'NUM' || types[ti2+1] !== 'YEAR' || types[ti2+2] !== 'YEAR' || types[ti2+3] !== 'NUM' || types[ti2+4] !== 'MONEY' || types[ti2+5] !== 'MONEY'){
-        // Malformed — try to recover by skipping forward
+        // Malformed — skip this POS and try to recover
         nameWords = [];
-        continue;
+        continue; // ti2 has already advanced past POS above, so this is safe now
       }
       var age = tokens[ti2];
       var startYr = tokens[ti2+1];
