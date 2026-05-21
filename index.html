@@ -912,7 +912,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.63</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.64</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1824,6 +1824,9 @@ function importSalaryDB(input){
       try{ sessionStorage.setItem('dyn28_sal_changes', JSON.stringify(window.SAL_CHANGES)); }catch(e){}
       try{ sessionStorage.setItem('dyn28_sal_prev', JSON.stringify(window.SAL_PREV)); }catch(e){}
 
+      // V28.5.64: Apply through central helper (dedupes + propagates to roster)
+      var deduped = applySalariesToState(newSal);
+      newSal = deduped;
       // Push to Firebase (shared across league) and cache locally
       try{
         if(window.saveSalariesCloud){
@@ -1834,17 +1837,6 @@ function importSalaryDB(input){
         try{ localStorage.removeItem('dyn26_v4_sal_backup'); }catch(ee){}
         try{ localStorage.removeItem('dyn28_sal_prev'); }catch(ee){}
       }
-
-      // Replace in-memory state
-      AAV_DB = {}; SAL_MAP = {};
-      SAL.length = 0;
-      newSal.forEach(function(p){
-        AAV_DB[p.name] = p.aav;
-        SAL_MAP[p.name] = p;
-        SAL.push(p);
-      });
-
-      try{ if(typeof renderDB === 'function') renderDB(); }catch(e){}
 
       if(el){
         el.style.color = '#22c55e';
@@ -2200,7 +2192,7 @@ function openAAVEditor(){_aavSelectedName=null;document.getElementById('aavSearc
 function openAAVEditorForPlayer(name){closeModal('playerCardModal');openAAVEditor();document.getElementById('aavSearch').value=name;searchAAVPlayer();setTimeout(function(){var items=document.querySelectorAll('.aav-result-item');if(items.length===1)items[0].click();},100);}
 function searchAAVPlayer(){var q=(document.getElementById('aavSearch').value||'').toLowerCase().trim();var resultsEl=document.getElementById('aavResults');document.getElementById('aavSelected').style.display='none';_aavSelectedName=null;if(q.length<2){resultsEl.style.display='none';resultsEl.innerHTML='';return;}var found={};Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name.toLowerCase().includes(q)&&!found[p.name])found[p.name]={name:p.name,aav:p.aav,source:'roster',team:tn};});});SAL.forEach(function(p){if(p.name.toLowerCase().includes(q)&&!found[p.name])found[p.name]={name:p.name,aav:p.aav,source:'db',team:p.team};});var results=Object.values(found).slice(0,20);if(!results.length){resultsEl.innerHTML='<div class="aav-result-item"><span style="font-size:.8rem;color:var(--dim)">No players found</span></div>';resultsEl.style.display='block';return;}resultsEl.innerHTML=results.map(function(p){var isArb=(p.aav==='ARB'||p.aav==='?'||!p.aav||isNaN(parseFloat(p.aav)));var aavStr=isArb?'ARB':'$'+parseFloat(p.aav).toFixed(2)+'M';var badge=p.source==='roster'?'<span style="font-size:.6rem;color:var(--acc);margin-left:.3rem">ON ROSTER</span>':'';return '<div class="aav-result-item" onclick="selectAAVPlayer(\''+p.name.replace(/'/g,"\\'")+'\')" style="font-size:.8rem"><span><span style="color:var(--brt);font-weight:500">'+p.name+'</span>'+badge+'</span><span style="font-size:.7rem;color:var(--dim)">'+p.team+' \u00b7 '+aavStr+'</span></div>';}).join('');resultsEl.style.display='block';}
 function selectAAVPlayer(name){_aavSelectedName=name;document.getElementById('aavResults').style.display='none';document.getElementById('aavSearch').value=name;var curAav=null;Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===name)curAav=p.aav;});});if(!curAav&&SAL_MAP[name])curAav=SAL_MAP[name].aav;var isArb=(!curAav||curAav==='ARB'||curAav==='?'||isNaN(parseFloat(curAav)));document.getElementById('aavSelName').textContent=name;document.getElementById('aavSelCur').textContent='Current AAV: '+(isArb?'ARB ($'+ARB().toFixed(2)+'M)':'$'+parseFloat(curAav).toFixed(2)+'M');document.getElementById('aavNewVal').value=isArb?'':parseFloat(curAav)||'';document.getElementById('aavSelected').style.display='block';setTimeout(function(){document.getElementById('aavNewVal').focus();},100);}
-function saveAAV(){if(!_aavSelectedName){showToast('Select a player first','red',2000);return;}var raw=document.getElementById('aavNewVal').value.trim();if(!raw){showToast('Enter a new AAV value','red',2000);return;}var newAav=parseFloat(raw);if(isNaN(newAav)||newAav<0){showToast('Enter a valid number','red',2000);return;}var newAavStr=String(Math.round(newAav*1000)/1000);var name=_aavSelectedName;Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===name)p.aav=newAavStr;});});try{localStorage.setItem('dyn26_v3_roster',JSON.stringify(ROSTER));}catch(e){}SAL.forEach(function(p){if(p.name===name)p.aav=newAavStr;});if(SAL_MAP[name])SAL_MAP[name].aav=newAavStr;AAV_DB[name]=newAavStr;try{var ovr=JSON.parse(localStorage.getItem('dyn26_aav_overrides')||'{}');ovr[name]=newAavStr;localStorage.setItem('dyn26_aav_overrides',JSON.stringify(ovr));}catch(e){}if(currentTeam){teamBuilt[currentTeam]=false;document.getElementById('rosterBody').innerHTML='';buildTeamTable(currentTeam);updateTeamCells(currentTeam);}renderLeague();closeModal('aavModal');buildArbList();showToast('\u2713 AAV updated: '+name+' \u2192 $'+newAav.toFixed(2)+'M','green',2500);}
+function saveAAV(){if(!_aavSelectedName){showToast('Select a player first','red',2000);return;}var raw=document.getElementById('aavNewVal').value.trim();if(!raw){showToast('Enter a new AAV value','red',2000);return;}var newAav=parseFloat(raw);if(isNaN(newAav)||newAav<0){showToast('Enter a valid number','red',2000);return;}var newAavStr=String(Math.round(newAav*1000)/1000);var name=_aavSelectedName;Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===name)p.aav=newAavStr;});});try{localStorage.setItem('dyn26_v3_roster',JSON.stringify(ROSTER));}catch(e){}SAL.forEach(function(p){if(p.name===name)p.aav=newAavStr;});if(SAL_MAP[name])SAL_MAP[name].aav=newAavStr;AAV_DB[name]=newAavStr;try{var ovr=JSON.parse(localStorage.getItem('dyn26_aav_overrides')||'{}');ovr[name]=newAavStr;localStorage.setItem('dyn26_aav_overrides',JSON.stringify(ovr));}catch(e){}if(currentTeam){teamBuilt[currentTeam]=false;document.getElementById('rosterBody').innerHTML='';buildTeamTable(currentTeam);updateTeamCells(currentTeam);if(typeof buildSimpleRoster==='function')buildSimpleRoster(currentTeam);}renderLeague();try{var cPg=document.getElementById('page-contracts');if(cPg&&cPg.classList.contains('active')&&typeof buildContractsTab==='function')buildContractsTab();}catch(e){}try{var dPg=document.getElementById('page-draft');if(dPg&&dPg.classList.contains('active')&&typeof buildDraftPage==='function')buildDraftPage();}catch(e){}try{var sPg=document.getElementById('page-salaries-db');if(sPg&&sPg.classList.contains('active')&&typeof renderDB==='function')renderDB();}catch(e){}closeModal('aavModal');buildArbList();showToast('\u2713 AAV updated: '+name+' \u2192 $'+newAav.toFixed(2)+'M','green',2500);}
 
 function clearTeamContracts(){
   if(!currentTeam) return;
@@ -4121,18 +4113,9 @@ setTimeout(function(){
         try{
           if(!Array.isArray(salaries) || !salaries.length) return;
           console.log('[FB] applying ' + salaries.length + ' salaries from cloud');
-          AAV_DB = {}; SAL_MAP = {};
-          if(typeof SAL !== 'undefined' && SAL){
-            SAL.length = 0;
-            salaries.forEach(function(p){
-              AAV_DB[p.name] = p.aav;
-              SAL_MAP[p.name] = p;
-              SAL.push(p);
-            });
-          }
-          try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(salaries)); }catch(e){}
-          try{ if(typeof renderDB === 'function' && document.getElementById('page-salaries-db') && document.getElementById('page-salaries-db').classList.contains('active')) renderDB(); }catch(e){}
-          try{ if(typeof updateSalDbStatus === 'function') updateSalDbStatus(); }catch(e){}
+          // V28.5.64: route through central helper (dedupes + propagates)
+          var deduped = applySalariesToState(salaries);
+          try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(deduped)); }catch(e){}
         }catch(innerErr){console.error('[FB] salaries callback error:', innerErr);}
       });
     }
@@ -4145,17 +4128,9 @@ setTimeout(function(){
         try{
           if(salaries && salaries.length){
             console.log('[FB] initial salary load: ' + salaries.length + ' players');
-            AAV_DB = {}; SAL_MAP = {};
-            if(typeof SAL !== 'undefined' && SAL){
-              SAL.length = 0;
-              salaries.forEach(function(p){
-                AAV_DB[p.name] = p.aav;
-                SAL_MAP[p.name] = p;
-                SAL.push(p);
-              });
-            }
-            try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(salaries)); }catch(e){}
-            if(typeof updateSalDbStatus === 'function') updateSalDbStatus();
+            // V28.5.64: route through central helper (dedupes + propagates)
+            var deduped = applySalariesToState(salaries);
+            try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(deduped)); }catch(e){}
           }
         }catch(innerErr){console.error('[FB] initial load callback error:', innerErr);}
       }).catch(function(e){console.warn('[FB] initial load rejected:', e);});
@@ -4574,6 +4549,93 @@ function updateHighlightsButton(){
   btn.style.display = hasHighlights ? 'inline-block' : 'none';
 }
 
+// V28.5.64: Central function for applying a salary array to all in-memory state.
+// Deduplicates by name (keeps last occurrence — newest contract on Spotrac is listed last),
+// rebuilds SAL/SAL_MAP/AAV_DB, propagates new AAV/age/expires to every ROSTER player,
+// re-renders all visible pages.
+function applySalariesToState(rawSalaries){
+  if(!Array.isArray(rawSalaries)) return [];
+
+  // Dedupe by name — keep the LAST occurrence (newest entry on Spotrac)
+  var byName = {};
+  for(var i=0; i<rawSalaries.length; i++){
+    var p = rawSalaries[i];
+    if(!p || !p.name) continue;
+    byName[p.name] = p;
+  }
+  var deduped = Object.keys(byName).map(function(n){ return byName[n]; });
+  var droppedDupes = rawSalaries.length - deduped.length;
+  if(droppedDupes > 0){
+    console.log('[applySalaries] removed ' + droppedDupes + ' duplicate rows');
+  }
+
+  // Reset lookup tables
+  AAV_DB = {};
+  SAL_MAP = {};
+  if(typeof SAL !== 'undefined' && SAL){
+    SAL.length = 0;
+    deduped.forEach(function(p){
+      AAV_DB[p.name] = p.aav;
+      SAL_MAP[p.name] = p;
+      SAL.push(p);
+    });
+  }
+
+  // Reapply user AAV overrides (per-player edits from Settings > Edit Player AAV)
+  try{
+    var ovr = JSON.parse(localStorage.getItem('dyn26_aav_overrides') || '{}');
+    Object.keys(ovr).forEach(function(n){
+      AAV_DB[n] = ovr[n];
+      if(SAL_MAP[n]) SAL_MAP[n].aav = ovr[n];
+      SAL.forEach(function(p){ if(p.name === n) p.aav = ovr[n]; });
+    });
+  }catch(e){}
+
+  // Propagate updated AAV / age / FA-year to every roster player
+  if(typeof ROSTER !== 'undefined' && ROSTER){
+    Object.keys(ROSTER).forEach(function(tn){
+      (ROSTER[tn] || []).forEach(function(p){
+        var sal = SAL_MAP[p.name];
+        if(sal){
+          if(sal.aav) p.aav = sal.aav;
+          if(sal.age) p.age = sal.age;
+          if(sal.expires) p.fa = sal.expires;
+        }
+      });
+    });
+    try{ localStorage.setItem('dyn26_v3_roster', JSON.stringify(ROSTER)); }catch(e){}
+  }
+
+  // Re-render every visible page (and rebuild team table so cells reflect new AAVs)
+  try{
+    if(typeof teamBuilt !== 'undefined' && currentTeam){
+      teamBuilt[currentTeam] = false;
+      var rb = document.getElementById('rosterBody');
+      if(rb) rb.innerHTML = '';
+      if(typeof buildTeamTable === 'function') buildTeamTable(currentTeam);
+      if(typeof updateTeamCells === 'function') updateTeamCells(currentTeam);
+      if(typeof buildSimpleRoster === 'function') buildSimpleRoster(currentTeam);
+    }
+  }catch(e){console.warn('[applySalaries] team rebuild failed:', e);}
+
+  try{ if(typeof renderLeague === 'function') renderLeague(); }catch(e){}
+  try{
+    var dbPg = document.getElementById('page-salaries-db');
+    if(dbPg && dbPg.classList.contains('active') && typeof renderDB === 'function') renderDB();
+  }catch(e){}
+  try{
+    var cPg = document.getElementById('page-contracts');
+    if(cPg && cPg.classList.contains('active') && typeof buildContractsTab === 'function') buildContractsTab();
+  }catch(e){}
+  try{
+    var dPg = document.getElementById('page-draft');
+    if(dPg && dPg.classList.contains('active') && typeof buildDraftPage === 'function') buildDraftPage();
+  }catch(e){}
+  try{ if(typeof updateSalDbStatus === 'function') updateSalDbStatus(); }catch(e){}
+
+  return deduped;
+}
+
 function parseSalaryPaste(){
   var __pspStart = Date.now();
   console.log('[parseSalaryPaste] CALLED at ' + new Date().toISOString());
@@ -4821,8 +4883,11 @@ function parseSalaryPaste(){
   try{ sessionStorage.setItem('dyn28_sal_changes', JSON.stringify(window.SAL_CHANGES)); }catch(e){}
   try{ sessionStorage.setItem('dyn28_sal_prev', JSON.stringify(window.SAL_PREV)); }catch(e){}
 
-  // V28.5.59: Save to Firebase (shared across league) — localStorage is just a cache
-  console.log('[save] saving ' + rows.length + ' salaries to Firebase');
+  // V28.5.64: Apply through central helper (dedupes + propagates to roster)
+  var deduped = applySalariesToState(rows);
+  rows = deduped;
+  // Save to Firebase (shared across league)
+  console.log('[save] saving ' + rows.length + ' deduped salaries to Firebase');
   try{
     if(window.saveSalariesCloud){
       window.saveSalariesCloud(rows).then(function(){
@@ -4831,31 +4896,16 @@ function parseSalaryPaste(){
         console.error('[save] Firebase save failed:', e);
       });
     } else {
-      console.warn('[save] saveSalariesCloud not available — Firebase may not be ready');
+      console.warn('[save] saveSalariesCloud not available');
     }
   }catch(fbErr){console.error('[save] Firebase save threw:', fbErr);}
-  // Also cache locally for fast load (best-effort, ignore quota errors)
   try{
     localStorage.setItem('dyn26_v4_sal', JSON.stringify(rows));
   }catch(ex){
     console.log('[save] localStorage cache skipped (quota):', ex.message);
-    // Free space for next time
     try{ localStorage.removeItem('dyn26_v4_sal_backup'); }catch(e){}
     try{ localStorage.removeItem('dyn28_sal_prev'); }catch(e){}
   }
-
-  AAV_DB = {}; SAL_MAP = {};
-  for(var rx2=0; rx2<rows.length; rx2++){
-    var pp = rows[rx2];
-    AAV_DB[pp.name] = pp.aav;
-    SAL_MAP[pp.name] = pp;
-  }
-  try{ SAL.length = 0; for(var rx3=0; rx3<rows.length; rx3++){ SAL.push(rows[rx3]); } }catch(e){}
-
-  try{
-    var pgEl = document.getElementById('page-salaries-db');
-    if(pgEl && pgEl.classList.contains('active') && typeof renderDB === 'function') renderDB();
-  }catch(e){}
 
   if(status){
     status.style.color = '#22c55e';
