@@ -870,7 +870,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.56</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.57</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -4307,8 +4307,9 @@ function updateHighlightsButton(){
 }
 
 function parseSalaryPaste(){
-  console.log('[parseSalaryPaste] start');
-  var t0 = Date.now();
+  var __pspStart = Date.now();
+  console.log('[parseSalaryPaste] CALLED at ' + new Date().toISOString());
+  var t0 = __pspStart;
   var txt = document.getElementById('salPasteText').value || '';
   var status = document.getElementById('salPasteStatus');
   if(!txt.trim()){
@@ -4322,6 +4323,7 @@ function parseSalaryPaste(){
   }
   rawLines = rawLines.filter(function(l){return l.length>0;});
   console.log('[parseSalaryPaste] cleaned lines:', rawLines.length);
+  if(status){status.textContent = 'Tokenizing...';}
 
   var VALID_POS = {C:1,'1B':1,'2B':1,'3B':1,SS:1,OF:1,LF:1,CF:1,RF:1,DH:1,SP:1,RP:1,P:1,INF:1};
 
@@ -4360,18 +4362,40 @@ function parseSalaryPaste(){
   }
 
   // Pre-classify
+  console.log('[parser] tokens generated:', tokens.length);
   var types = new Array(tokens.length);
   for(var ti=0; ti<tokens.length; ti++) types[ti] = classify(tokens[ti]);
+  console.log('[parser] classification done');
+
+  console.log('[parser] starting walker, tokens=' + tokens.length);
+  // Wrap the walker in try/catch so exceptions don't silently abort
+  // Update status so user knows parser is running
+  if(status){status.textContent = 'Parsing ' + tokens.length + ' tokens...';}
 
   var nameWords = [];
   var ti2 = 0;
-  var __iterCap = tokens.length * 3; // safety net against any remaining infinite loops
+  var __iterCap = tokens.length * 3;
   var __iter = 0;
+  var __lastTi2 = -1;
+  var __stuckCount = 0;
   while(ti2 < tokens.length){
     __iter++;
     if(__iter > __iterCap){
-      console.error('[parser] iteration cap hit at ti2=' + ti2 + ', tokens.length=' + tokens.length);
+      console.error('[parser] iteration cap hit at ti2=' + ti2 + ', tokens.length=' + tokens.length + ', token=' + tokens[ti2]);
       break;
+    }
+    // Detect ti2 not advancing (true infinite loop)
+    if(ti2 === __lastTi2){
+      __stuckCount++;
+      if(__stuckCount > 5){
+        console.error('[parser] ti2 stuck at ' + ti2 + ' token=' + tokens[ti2] + ' type=' + types[ti2] + ' — force advancing');
+        ti2++;
+        __stuckCount = 0;
+        continue;
+      }
+    } else {
+      __stuckCount = 0;
+      __lastTi2 = ti2;
     }
     var t = types[ti2];
     if(t === 'POS'){
