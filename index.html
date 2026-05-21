@@ -870,7 +870,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.52</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.53</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -4098,7 +4098,7 @@ async function _extractAllPages(pdf, statusEl, tol){
         if(!it.str.trim()){emptyCount++; continue;}
         spans.push({ x: it.transform[4], y: it.transform[5], str: it.str });
       }
-      if(pn === 50 || pn === 60 || pn <= 2){
+      if(pn === 65 || pn === 70 || pn <= 2){
         console.log('[PDF p'+pn+'] tc.items.length='+totalItems+' empty='+emptyCount+' kept='+spans.length);
         // Log a sample of raw items (first 10, including empties) to see what's really there
         for(var ix=0; ix<Math.min(10, tc.items.length); ix++){
@@ -4112,7 +4112,7 @@ async function _extractAllPages(pdf, statusEl, tol){
         console.log('[PDF p'+pn+'] spans='+spans.length+' first5='+JSON.stringify(spans.slice(0,5).map(function(s){return {y:Math.round(s.y*10)/10, x:Math.round(s.x*10)/10, t:s.str.substring(0,30)};})));
       }
       var lines = _groupSpansToLines(spans, tol);
-      if(pn === 50){
+      if(pn === 65){
         console.log('[PDF p19] grouped to '+lines.length+' lines with tol='+tol);
         for(var lg=0; lg<Math.min(lines.length,40); lg++) console.log('[PDF p19 y='+Math.round(lines[lg].y)+'] '+lines[lg].text);
       }
