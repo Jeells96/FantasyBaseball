@@ -912,7 +912,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.61</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.62</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -4423,6 +4423,15 @@ function parseSalaryPaste(){
     name = (name || '').trim();
     if(!name || name.length < 2) return false;
     if(/^(player|pos|position|team|age|start|end|yrs|years|value|aav)$/i.test(name)) return false;
+    // V28.5.62: Reject names that look like nav junk or page footers
+    if(name.length > 35) return false; // real player names are short
+    if(/spotrac|\.com|Page|contracts|UNSIGNED|Bulls|Revolution|Sounders|Rapids|Galaxy|Whitecaps/i.test(name)) return false;
+    var wordCount = name.split(/\s+/).length;
+    if(wordCount > 4) return false; // real names are 1-4 words (e.g., "Vladimir Guerrero Jr.")
+    // Must start with capital letter (name)
+    if(!/^[A-Z]/.test(name)) return false;
+    // Reject if name has any digits or special chars beyond letters/spaces/periods/hyphens/apostrophes
+    if(!/^[A-Za-z\u00C0-\u017F][A-Za-z\u00C0-\u017F\s.\-\'\u2019]*$/.test(name)) return false;
     var aavNum = parseFloat(String(aavRaw || '0').replace(/,/g,'').replace(/^\$/,''));
     if(!isFinite(aavNum) || aavNum <= 0) return false;
     var aavStr = (Math.round((aavNum/1000000) * 1000) / 1000).toString();
@@ -4535,16 +4544,31 @@ function parseSalaryPaste(){
       pushRow(name, pos, team, age, startYr, endYr, yrsTok, totalStr, aavStr);
       nameWords = [];
     } else if(t === 'WORD'){
-      nameWords.push(tokens[ti2]);
+      // V28.5.62: Reject obvious junk tokens
+      var w = tokens[ti2];
+      if(/^https?:|spotrac|\.com|^\d+\/\d+|PM$|AM$|^Page$|^of$/i.test(w)){
+        // Junk — reset name buffer
+        nameWords = [];
+      } else {
+        nameWords.push(w);
+        // Cap name length to prevent garbage accumulation
+        if(nameWords.length > 6) nameWords.shift();
+      }
       ti2++;
     } else if(t === 'TEAM'){
       // A TEAM token outside a player record could be leftover. Accumulate into nameWords
       // — will be stripped when we hit next POS if it's a leading team code.
       nameWords.push(tokens[ti2]);
+      if(nameWords.length > 6) nameWords.shift();
+      ti2++;
+    } else if(t === 'MONEY' || t === 'YEAR'){
+      // V28.5.62: MONEY/YEAR outside expected context means we drifted into noise
+      // (page footer with date, table header, etc.) — reset name buffer
+      nameWords = [];
       ti2++;
     } else {
-      // NUM/YEAR/MONEY outside expected context — likely noise (table header numbers, page numbers)
-      // Don't reset nameWords (might be in middle of a name), just skip
+      // NUM outside expected — skip, but reset name if it's been growing too long
+      if(nameWords.length >= 5) nameWords = [];
       ti2++;
     }
   }
