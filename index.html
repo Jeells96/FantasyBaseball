@@ -870,7 +870,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.51</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.52</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1296,7 +1296,25 @@ var SAL_MAP={};
 SAL.forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});
 // V28.5.33: Load salary-change highlights from previous import (session-scoped)
 try{ window.SAL_CHANGES = JSON.parse(sessionStorage.getItem('dyn28_sal_changes')||'{}'); }catch(e){ window.SAL_CHANGES = {}; }
-try{ window.SAL_PREV = JSON.parse(sessionStorage.getItem('dyn28_sal_prev')||'{}'); }catch(e){ window.SAL_PREV = {}; }
+try{
+  window.SAL_PREV = JSON.parse(sessionStorage.getItem('dyn28_sal_prev')||'{}');
+  // V28.5.52: Validate stored SAL_PREV — must have diffs field per entry, else discard
+  var __keys = Object.keys(window.SAL_PREV);
+  for(var __i=0; __i<__keys.length; __i++){
+    var __e = window.SAL_PREV[__keys[__i]];
+    if(!__e || !Array.isArray(__e.diffs)){
+      console.log('[init] stale SAL_PREV without diffs, clearing');
+      window.SAL_PREV = {};
+      window.SAL_CHANGES = {};
+      try{ sessionStorage.removeItem('dyn28_sal_prev'); }catch(e){}
+      try{ sessionStorage.removeItem('dyn28_sal_changes'); }catch(e){}
+      break;
+    }
+  }
+}catch(e){ window.SAL_PREV = {}; }
+// V28.5.52: Update status on every page load
+setTimeout(function(){ if(typeof updateSalDbStatus === 'function') updateSalDbStatus(); }, 100);
+
 // V28.5.50: Delegated click handler for salary name cells with data-salidx
 document.addEventListener('click', function(ev){
   var cell = ev.target.closest('.sal-name-cell[data-salidx]');
@@ -4238,12 +4256,15 @@ function showSalaryChange(name){
     }
     return;
   }
-  var diffSet = {};
-  if(prev.diffs && prev.diffs.length){
-    for(var di=0; di<prev.diffs.length; di++){ diffSet[prev.diffs[di]] = true; }
+  // V28.5.52: Strictly use diffs field. No fallback comparison — old SAL_PREV without diffs is invalid.
+  if(!prev.diffs || !Array.isArray(prev.diffs) || !prev.diffs.length){
+    showToast(name + ' has no recorded changes', 'yellow', 2200);
+    return;
   }
+  var diffSet = {};
+  for(var di=0; di<prev.diffs.length; di++){ diffSet[prev.diffs[di]] = true; }
   function row(label, key, oldV, newV){
-    var changed = diffSet[key] || (Object.keys(diffSet).length === 0 && String(oldV||'') !== String(newV||''));
+    var changed = !!diffSet[key];
     return '<tr><td style="padding:6px 10px;color:#94a3b8;font-size:.75rem">' + label + '</td>' +
       '<td style="padding:6px 10px;font-size:.85rem;' + (changed?'color:#e84b4b;text-decoration:line-through':'color:#94a3b8') + '">' + (oldV||'—') + '</td>' +
       '<td style="padding:6px 10px;font-size:.85rem;' + (changed?'color:#22c55e;font-weight:600':'color:#94a3b8') + '">' + (newV||'—') + '</td></tr>';
@@ -4436,11 +4457,8 @@ function parseSalaryPaste(){
   }
   // Big toast that lasts longer
   if(typeof showToast === 'function') showToast('✅ ' + rows.length + ' contracts loaded successfully!', 'green', 5000);
-  // Also update the settings status with prominent success
-  var settingsStatus = document.getElementById('salDbStatus');
-  if(settingsStatus){
-    settingsStatus.innerHTML = '<span style="color:#22c55e;font-weight:600;font-size:.9rem">✓ ' + rows.length + ' contracts loaded</span><br><span style="color:#94a3b8;font-size:.7rem">' + Object.keys(window.SAL_CHANGES||{}).length + ' changes vs previous import</span>';
-  }
+  // V28.5.52: Just call updateSalDbStatus — single source of truth
+  if(typeof updateSalDbStatus === 'function') updateSalDbStatus();
   if(typeof updateSalDbStatus === 'function') updateSalDbStatus();
   updateHighlightsButton();
 
