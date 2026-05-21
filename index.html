@@ -870,7 +870,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.48</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.49</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1296,6 +1296,7 @@ var SAL_MAP={};
 SAL.forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});
 // V28.5.33: Load salary-change highlights from previous import (session-scoped)
 try{ window.SAL_CHANGES = JSON.parse(sessionStorage.getItem('dyn28_sal_changes')||'{}'); }catch(e){ window.SAL_CHANGES = {}; }
+try{ window.SAL_PREV = JSON.parse(sessionStorage.getItem('dyn28_sal_prev')||'{}'); }catch(e){ window.SAL_PREV = {}; }
 // V28.5.48: Show Clear Highlights button on load if highlights exist
 setTimeout(function(){ if(typeof updateHighlightsButton === 'function') updateHighlightsButton(); }, 500);
 var ROSTER={};
@@ -1784,7 +1785,7 @@ var tsel=document.getElementById('dbTeam');
 salTeams.forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t;tsel.appendChild(o);});
 var dbSort={col:'aav',dir:-1};
 function sortDB(col){dbSort=dbSort.col===col?{col:col,dir:dbSort.dir*-1}:{col:col,dir:(col==='name'||col==='pos'||col==='team')?1:-1};renderDB();}
-function renderDB(){var q=(document.getElementById('dbSearch').value||'').toLowerCase();var pos=document.getElementById('dbPos').value;var team=document.getElementById('dbTeam').value;var exp=document.getElementById('dbExp').value;var data=SAL.filter(function(p){if(q&&!p.name.toLowerCase().includes(q))return false;if(pos&&p.pos!==pos)return false;if(team&&p.team!==team)return false;if(exp){var ex=parseInt(p.expires)||0;if(exp==='2031+'){if(ex<2031)return false;}else if(p.expires!==exp)return false;}return true;});var col=dbSort.col,dir=dbSort.dir;data.sort(function(a,b){var av=a[col]||'',bv=b[col]||'';if(col==='aav'){return((av==='ARB'?ARB():parseFloat(av)||0)-(bv==='ARB'?ARB():parseFloat(bv)||0))*dir;}var an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return(an-bn)*dir;return av.toString().localeCompare(bv.toString())*dir;});document.getElementById('dbCnt').textContent=data.length+' contracts';document.querySelectorAll('.dbt th').forEach(function(th){th.classList.remove('srt');var ar=th.querySelector('.sar');if(ar)ar.innerHTML='&#8645;';});var sh=document.querySelector('.dbt th[data-col="'+col+'"]');if(sh){sh.classList.add('srt');var ar=sh.querySelector('.sar');if(ar)ar.innerHTML=dir===1?'&#8593;':'&#8595;';}var tbody=document.getElementById('dbBody');if(!data.length){tbody.innerHTML='<tr><td colspan="8" class="no-res">No contracts found</td></tr>';return;}tbody.innerHTML=data.slice(0,300).map(function(p){var n=p.aav==='ARB'?ARB():parseFloat(p.aav)||0,isA=p.aav==='ARB';var chg=(window.SAL_CHANGES||{})[p.name];var chgBadge=chg==='NEW'?' <span title="New since last import" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-left:6px;vertical-align:middle"></span>':chg==='CHANGED'?' <span title="Changed since last import" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#e8c84b;margin-left:6px;vertical-align:middle"></span>':'';return '<tr style="'+(chg?'background:rgba(232,200,75,.04)':'')+'"><td style="color:var(--brt);font-weight:500">'+p.name+chgBadge+(isA?'<span class="arb-tag">ARB</span>':'')+'</td><td><span class="ptag">'+(p.pos||'\u2014')+'</span></td><td style="color:var(--dim)">'+(p.team||'\u2014')+'</td><td>'+(p.age||'\u2014')+'</td><td>'+(p.signed||'\u2014')+'</td><td style="color:'+(parseInt(p.expires)<=2026?'var(--dim)':'var(--txt)')+'">'+( p.expires||'\u2014')+'</td><td>'+(p.years||'\u2014')+'</td><td style="color:'+(isA?'var(--acc)':'var(--brt)')+';font-weight:500">'+(isA?'ARB ($'+ARB().toFixed(2)+'M)':'$'+n.toFixed(2)+'M')+'</td></tr>';}).join('');if(data.length>300)tbody.innerHTML+='<tr><td colspan="8" style="text-align:center;padding:1rem;color:var(--dim);font-size:.7rem">Showing 300 of '+data.length+'</td></tr>';}
+function renderDB(){var q=(document.getElementById('dbSearch').value||'').toLowerCase();var pos=document.getElementById('dbPos').value;var team=document.getElementById('dbTeam').value;var exp=document.getElementById('dbExp').value;var data=SAL.filter(function(p){if(q&&!p.name.toLowerCase().includes(q))return false;if(pos&&p.pos!==pos)return false;if(team&&p.team!==team)return false;if(exp){var ex=parseInt(p.expires)||0;if(exp==='2031+'){if(ex<2031)return false;}else if(p.expires!==exp)return false;}return true;});var col=dbSort.col,dir=dbSort.dir;data.sort(function(a,b){var av=a[col]||'',bv=b[col]||'';if(col==='aav'){return((av==='ARB'?ARB():parseFloat(av)||0)-(bv==='ARB'?ARB():parseFloat(bv)||0))*dir;}var an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return(an-bn)*dir;return av.toString().localeCompare(bv.toString())*dir;});document.getElementById('dbCnt').textContent=data.length+' contracts';document.querySelectorAll('.dbt th').forEach(function(th){th.classList.remove('srt');var ar=th.querySelector('.sar');if(ar)ar.innerHTML='&#8645;';});var sh=document.querySelector('.dbt th[data-col="'+col+'"]');if(sh){sh.classList.add('srt');var ar=sh.querySelector('.sar');if(ar)ar.innerHTML=dir===1?'&#8593;':'&#8595;';}var tbody=document.getElementById('dbBody');if(!data.length){tbody.innerHTML='<tr><td colspan="8" class="no-res">No contracts found</td></tr>';return;}tbody.innerHTML=data.slice(0,300).map(function(p){var n=p.aav==='ARB'?ARB():parseFloat(p.aav)||0,isA=p.aav==='ARB';var chg=(window.SAL_CHANGES||{})[p.name];var chgBadge=chg==='NEW'?' <span title="New since last import" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-left:6px;vertical-align:middle"></span>':chg==='CHANGED'?' <span title="Changed since last import" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#e8c84b;margin-left:6px;vertical-align:middle"></span>':'';return '<tr style="'+(chg?'background:rgba(232,200,75,.04)':'')+'"><td style="color:var(--brt);font-weight:500'+(chg==='CHANGED'?';cursor:pointer;text-decoration:underline dotted #e8c84b':'')+'" '+(chg==='CHANGED'?'onclick="showSalaryChange(this.dataset.name); event.stopPropagation();" data-name="'+p.name.replace(/"/g,'&quot;')+'"':'')+'>'+p.name+chgBadge+(isA?'<span class="arb-tag">ARB</span>':'')+'</td><td><span class="ptag">'+(p.pos||'\u2014')+'</span></td><td style="color:var(--dim)">'+(p.team||'\u2014')+'</td><td>'+(p.age||'\u2014')+'</td><td>'+(p.signed||'\u2014')+'</td><td style="color:'+(parseInt(p.expires)<=2026?'var(--dim)':'var(--txt)')+'">'+( p.expires||'\u2014')+'</td><td>'+(p.years||'\u2014')+'</td><td style="color:'+(isA?'var(--acc)':'var(--brt)')+';font-weight:500">'+(isA?'ARB ($'+ARB().toFixed(2)+'M)':'$'+n.toFixed(2)+'M')+'</td></tr>';}).join('');if(data.length>300)tbody.innerHTML+='<tr><td colspan="8" style="text-align:center;padding:1rem;color:var(--dim);font-size:.7rem">Showing 300 of '+data.length+'</td></tr>';}
 var FA_DATA=[];var FA_SORT={col:'TotalPoints',dir:-1};var FA_FETCHING=false;var LS_FA='dyn26_v3_fa';
 var POS_MAP={1:'SP',2:'C',3:'1B',4:'2B',5:'3B',6:'SS',7:'OF',8:'OF',9:'OF',10:'OF',11:'OF',14:'RP',15:'P'};
 function fetchFreeAgents(){
@@ -4188,9 +4189,42 @@ window.importSalaryPDF = async function(input){
 };
 
 
+function showSalaryChange(name){
+  var cur = SAL_MAP[name];
+  var prev = (window.SAL_PREV || {})[name];
+  if(!cur){ showToast('Player not found', 'yellow', 1800); return; }
+  if(!prev){ showToast('No previous data for ' + name, 'yellow', 2200); return; }
+  function row(label, oldV, newV){
+    var changed = String(oldV||'') !== String(newV||'');
+    return '<tr><td style="padding:6px 10px;color:#94a3b8;font-size:.75rem">' + label + '</td>' +
+      '<td style="padding:6px 10px;font-size:.85rem;' + (changed?'color:#e84b4b;text-decoration:line-through':'color:#94a3b8') + '">' + (oldV||'—') + '</td>' +
+      '<td style="padding:6px 10px;font-size:.85rem;' + (changed?'color:#22c55e;font-weight:600':'color:#94a3b8') + '">' + (newV||'—') + '</td></tr>';
+  }
+  var html = '<div class="modal-overlay open" id="salChangeModal" onclick="if(event.target===this)this.remove()">' +
+    '<div class="modal-box" style="max-width:480px">' +
+    '<div class="modal-header"><h2 style="font-family:\'Bebas Neue\',sans-serif;font-size:1.3rem;letter-spacing:2px">' + name + '</h2>' +
+    '<p style="font-size:.7rem;color:var(--dim);margin-top:.2rem">Changes since last import</p></div>' +
+    '<div class="modal-body">' +
+    '<table style="width:100%;border-collapse:collapse;font-family:\'DM Mono\',monospace">' +
+    '<thead><tr><th></th><th style="text-align:left;padding:6px 10px;color:#94a3b8;font-size:.65rem;letter-spacing:1px">BEFORE</th><th style="text-align:left;padding:6px 10px;color:#22c55e;font-size:.65rem;letter-spacing:1px">AFTER</th></tr></thead>' +
+    '<tbody>' +
+    row('AAV', '$' + prev.aav + 'M', '$' + cur.aav + 'M') +
+    row('Team', prev.team, cur.team) +
+    row('Years', prev.years, cur.years) +
+    row('Expires', prev.expires, cur.expires) +
+    '</tbody></table>' +
+    '<button class="set-btn" onclick="document.getElementById(\'salChangeModal\').remove()" style="width:100%;margin-top:1rem">Close</button>' +
+    '</div></div></div>';
+  var div = document.createElement('div');
+  div.innerHTML = html;
+  document.body.appendChild(div.firstChild);
+}
+
 function clearSalaryHighlights(){
   window.SAL_CHANGES = {};
+  window.SAL_PREV = {};
   try{ sessionStorage.removeItem('dyn28_sal_changes'); }catch(e){}
+  try{ sessionStorage.removeItem('dyn28_sal_prev'); }catch(e){}
   // Re-render any visible pages
   try{ if(typeof renderDB === 'function') renderDB(); }catch(e){}
   try{ if(typeof buildContractsTab === 'function') buildContractsTab(); }catch(e){}
@@ -4284,14 +4318,24 @@ function parseSalaryPaste(){
     return;
   }
 
-  // V28.5.47: Back up current SAL array (always restorable) so Undo can fully revert
+  // V28.5.49: Back up current SAL array in memory (avoids localStorage quota issues)
   try{
-    var snapshot = JSON.stringify(SAL || []);
-    localStorage.setItem('dyn26_v4_sal_backup', snapshot);
+    // Deep-copy SAL into in-memory backup
+    window._salBackup = SAL.map(function(p){return Object.assign({}, p);});
+    // Try localStorage too, but don't fail if quota exceeded
+    try{
+      var snapshot = JSON.stringify(SAL || []);
+      localStorage.setItem('dyn26_v4_sal_backup', snapshot);
+    }catch(qe){
+      // Quota exceeded — that's fine, in-memory backup is enough for current session
+      try{ localStorage.removeItem('dyn26_v4_sal_backup'); }catch(ex){}
+      console.log('[backup] localStorage quota exceeded, using in-memory backup only');
+    }
   }catch(e){console.warn('backup failed', e);}
 
-  // Detect changes
+  // Detect changes — also store previous values for diff display
   window.SAL_CHANGES = {};
+  window.SAL_PREV = {};
   var prevSnapshot = {};
   try{ Object.keys(SAL_MAP).forEach(function(k){ prevSnapshot[k] = SAL_MAP[k]; }); }catch(e){}
   for(var rx=0; rx<rows.length; rx++){
@@ -4300,9 +4344,12 @@ function parseSalaryPaste(){
     if(!prev){ window.SAL_CHANGES[p.name] = 'NEW'; continue; }
     if(String(prev.aav) !== String(p.aav) || String(prev.expires) !== String(p.expires) || String(prev.years) !== String(p.years) || String(prev.team) !== String(p.team)){
       window.SAL_CHANGES[p.name] = 'CHANGED';
+      // Store previous values for the click-to-see-diff modal
+      window.SAL_PREV[p.name] = {aav: prev.aav, expires: prev.expires, years: prev.years, team: prev.team};
     }
   }
   try{ sessionStorage.setItem('dyn28_sal_changes', JSON.stringify(window.SAL_CHANGES)); }catch(e){}
+  try{ sessionStorage.setItem('dyn28_sal_prev', JSON.stringify(window.SAL_PREV)); }catch(e){}
 
   try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(rows)); }catch(ex){
     if(status){status.style.color='#e84b4b';status.textContent='Save failed: '+ex.message;}
@@ -4324,9 +4371,17 @@ function parseSalaryPaste(){
 
   if(status){
     status.style.color = '#22c55e';
-    status.textContent = '✓ Parsed ' + rows.length + ' contracts. Tap Undo if anything looks wrong.';
+    status.style.fontSize = '1rem';
+    status.style.fontWeight = '600';
+    status.textContent = '✓ SUCCESS — ' + rows.length + ' contracts imported';
   }
-  if(typeof showToast === 'function') showToast('✓ Salary DB: ' + rows.length + ' contracts loaded', 'green', 2800);
+  // Big toast that lasts longer
+  if(typeof showToast === 'function') showToast('✅ ' + rows.length + ' contracts loaded successfully!', 'green', 5000);
+  // Also update the settings status with prominent success
+  var settingsStatus = document.getElementById('salDbStatus');
+  if(settingsStatus){
+    settingsStatus.innerHTML = '<span style="color:#22c55e;font-weight:600;font-size:.9rem">✓ ' + rows.length + ' contracts loaded</span><br><span style="color:#94a3b8;font-size:.7rem">' + Object.keys(window.SAL_CHANGES||{}).length + ' changes vs previous import</span>';
+  }
   if(typeof updateSalDbStatus === 'function') updateSalDbStatus();
   updateHighlightsButton();
 
@@ -4341,16 +4396,21 @@ function parseSalaryPaste(){
 function undoSalaryImport(){
   console.log('[undoSalaryImport] start');
   try{
-    var backup = localStorage.getItem('dyn26_v4_sal_backup');
-    if(backup === null || backup === undefined){
-      showToast('Nothing to undo', 'yellow', 1800);
-      return;
-    }
-    var restored;
-    try{ restored = JSON.parse(backup); }catch(e){
-      console.error('[undoSalaryImport] backup parse failed:', e);
-      showToast('Undo failed: backup corrupted', 'red', 2500);
-      return;
+    var restored = null;
+    // V28.5.49: Prefer in-memory backup (set during last import), fall back to localStorage
+    if(window._salBackup && Array.isArray(window._salBackup)){
+      restored = window._salBackup;
+    } else {
+      var backup = localStorage.getItem('dyn26_v4_sal_backup');
+      if(backup === null || backup === undefined){
+        showToast('Nothing to undo', 'yellow', 1800);
+        return;
+      }
+      try{ restored = JSON.parse(backup); }catch(e){
+        console.error('[undoSalaryImport] backup parse failed:', e);
+        showToast('Undo failed: backup corrupted', 'red', 2500);
+        return;
+      }
     }
     if(!Array.isArray(restored)){
       showToast('Undo failed: bad backup format', 'red', 2500);
@@ -4380,7 +4440,8 @@ function undoSalaryImport(){
     try{ if(typeof buildContractsTab === 'function') buildContractsTab(); }catch(e){}
 
     // Remove the backup so undo can't be tapped again
-    localStorage.removeItem('dyn26_v4_sal_backup');
+    try{ localStorage.removeItem('dyn26_v4_sal_backup'); }catch(e){}
+    window._salBackup = null;
     var undoBtn = document.getElementById('salUndoBtn');
     if(undoBtn) undoBtn.style.display = 'none';
     var undoBtn2 = document.getElementById('salUndoBtn2');
@@ -4994,8 +5055,10 @@ function undoSalaryImport(){
   var box = null;
   function getBox(){ if(!box) box = document.getElementById('debugLog'); return box; }
   function add(level, args){
+    // V28.5.49: only auto-show overlay if user explicitly enabled it (window._debugOverlayEnabled = true)
     var ov = document.getElementById('debugOverlay');
-    if(ov && ov.style.display === 'none') ov.style.display = 'block';
+    if(!ov) return;
+    if(ov.style.display === 'none' && !window._debugOverlayEnabled) return; // skip if disabled
     var b = getBox();
     if(!b) return;
     var msg = Array.prototype.slice.call(args).map(function(a){
@@ -5024,7 +5087,13 @@ function undoSalaryImport(){
 window.toggleDebugOverlay = function(){
   var ov = document.getElementById('debugOverlay');
   if(!ov) return;
-  ov.style.display = ov.style.display === 'none' ? 'block' : 'none';
+  if(ov.style.display === 'none'){
+    ov.style.display = 'block';
+    window._debugOverlayEnabled = true;
+  } else {
+    ov.style.display = 'none';
+    window._debugOverlayEnabled = false;
+  }
 };
 </script>
 </body>
