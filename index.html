@@ -912,7 +912,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.59</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.60</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -3936,45 +3936,54 @@ if(typeof patchUpdateCellsForV283==='function')patchUpdateCellsForV283();
 if(typeof saveRosterSnapshot==='function')saveRosterSnapshot();
 applyDraftTabsVisibility();
 if(window.startDraftListeners)setTimeout(window.startDraftListeners,1500);
-// V28.5.59: Start salaries listener — applies any cloud changes from other devices
+// V28.5.60: Start salaries listener — wrapped in try/catch so Firebase issues never break the page
 setTimeout(function(){
-  if(window.startSalariesListener){
-    window.startSalariesListener(function(salaries){
-      if(!Array.isArray(salaries) || !salaries.length) return;
-      console.log('[FB] applying ' + salaries.length + ' salaries from cloud');
-      AAV_DB = {}; SAL_MAP = {};
-      SAL.length = 0;
-      salaries.forEach(function(p){
-        AAV_DB[p.name] = p.aav;
-        SAL_MAP[p.name] = p;
-        SAL.push(p);
+  try{
+    if(window.startSalariesListener){
+      window.startSalariesListener(function(salaries){
+        try{
+          if(!Array.isArray(salaries) || !salaries.length) return;
+          console.log('[FB] applying ' + salaries.length + ' salaries from cloud');
+          AAV_DB = {}; SAL_MAP = {};
+          if(typeof SAL !== 'undefined' && SAL){
+            SAL.length = 0;
+            salaries.forEach(function(p){
+              AAV_DB[p.name] = p.aav;
+              SAL_MAP[p.name] = p;
+              SAL.push(p);
+            });
+          }
+          try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(salaries)); }catch(e){}
+          try{ if(typeof renderDB === 'function' && document.getElementById('page-salaries-db') && document.getElementById('page-salaries-db').classList.contains('active')) renderDB(); }catch(e){}
+          try{ if(typeof updateSalDbStatus === 'function') updateSalDbStatus(); }catch(e){}
+        }catch(innerErr){console.error('[FB] salaries callback error:', innerErr);}
       });
-      // Cache locally
-      try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(salaries)); }catch(e){}
-      // Re-render visible pages
-      try{ if(typeof renderDB === 'function' && document.getElementById('page-salaries-db') && document.getElementById('page-salaries-db').classList.contains('active')) renderDB(); }catch(e){}
-      try{ if(typeof updateSalDbStatus === 'function') updateSalDbStatus(); }catch(e){}
-    });
-  }
+    }
+  }catch(e){console.error('[FB] salaries listener setup failed:', e);}
 }, 1700);
-// Initial load: if no localStorage cache, fetch from Firebase
 setTimeout(function(){
-  if(!localStorage.getItem('dyn26_v4_sal') && window.loadSalariesCloud){
-    window.loadSalariesCloud().then(function(salaries){
-      if(salaries && salaries.length){
-        console.log('[FB] initial salary load: ' + salaries.length + ' players');
-        AAV_DB = {}; SAL_MAP = {};
-        SAL.length = 0;
-        salaries.forEach(function(p){
-          AAV_DB[p.name] = p.aav;
-          SAL_MAP[p.name] = p;
-          SAL.push(p);
-        });
-        try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(salaries)); }catch(e){}
-        if(typeof updateSalDbStatus === 'function') updateSalDbStatus();
-      }
-    });
-  }
+  try{
+    if(!localStorage.getItem('dyn26_v4_sal') && window.loadSalariesCloud){
+      window.loadSalariesCloud().then(function(salaries){
+        try{
+          if(salaries && salaries.length){
+            console.log('[FB] initial salary load: ' + salaries.length + ' players');
+            AAV_DB = {}; SAL_MAP = {};
+            if(typeof SAL !== 'undefined' && SAL){
+              SAL.length = 0;
+              salaries.forEach(function(p){
+                AAV_DB[p.name] = p.aav;
+                SAL_MAP[p.name] = p;
+                SAL.push(p);
+              });
+            }
+            try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(salaries)); }catch(e){}
+            if(typeof updateSalDbStatus === 'function') updateSalDbStatus();
+          }
+        }catch(innerErr){console.error('[FB] initial load callback error:', innerErr);}
+      }).catch(function(e){console.warn('[FB] initial load rejected:', e);});
+    }
+  }catch(e){console.error('[FB] initial load setup failed:', e);}
 }, 1800);;
 try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){var __loaded=JSON.parse(cs);if(Array.isArray(__loaded)&&__loaded.length){AAV_DB={};SAL_MAP={};SAL.length=0;__loaded.forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;SAL.push(p);});}}}catch(e){}
 try{var ao=JSON.parse(localStorage.getItem('dyn26_aav_overrides')||'{}');Object.keys(ao).forEach(function(n){AAV_DB[n]=ao[n];if(SAL_MAP[n])SAL_MAP[n].aav=ao[n];SAL.forEach(function(p){if(p.name===n)p.aav=ao[n];});Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n)p.aav=ao[n];});});});}catch(e){}
@@ -4613,19 +4622,17 @@ function parseSalaryPaste(){
 
   // V28.5.59: Save to Firebase (shared across league) — localStorage is just a cache
   console.log('[save] saving ' + rows.length + ' salaries to Firebase');
-  if(window.saveSalariesCloud){
-    window.saveSalariesCloud(rows).then(function(){
-      console.log('[save] Firebase save succeeded');
-    }).catch(function(e){
-      console.error('[save] Firebase save failed:', e);
-      if(status){
-        status.style.color = '#e84b4b';
-        status.textContent = 'Cloud save failed: ' + e.message;
-      }
-    });
-  } else {
-    console.warn('[save] saveSalariesCloud not available — Firebase may not be ready');
-  }
+  try{
+    if(window.saveSalariesCloud){
+      window.saveSalariesCloud(rows).then(function(){
+        console.log('[save] Firebase save succeeded');
+      }).catch(function(e){
+        console.error('[save] Firebase save failed:', e);
+      });
+    } else {
+      console.warn('[save] saveSalariesCloud not available — Firebase may not be ready');
+    }
+  }catch(fbErr){console.error('[save] Firebase save threw:', fbErr);}
   // Also cache locally for fast load (best-effort, ignore quota errors)
   try{
     localStorage.setItem('dyn26_v4_sal', JSON.stringify(rows));
