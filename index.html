@@ -870,7 +870,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.54</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.55</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -4327,20 +4327,14 @@ function parseSalaryPaste(){
   rawLines = rawLines.filter(function(l){return l.length>0;});
   console.log('[parseSalaryPaste] cleaned lines:', rawLines.length);
 
-  var POS_ALT = '(?:C|1B|2B|3B|SS|OF|LF|CF|RF|DH|SP|RP|P|INF)';
-  // Pattern A: Name POS TEAM TEAM age start end yrs $total $aav (all on one line)
-  var PATTERN_A = new RegExp('^(.+?) (' + POS_ALT + ') ([A-Z]{2,4}) ([A-Z]{2,4}) (\\d{1,2}) (\\d{4}) (\\d{4}) (\\d{1,2}) \\$([\\d,]+) \\$([\\d,]+)$');
-  // Pattern B: Name POS age start end yrs $total $aav (teams missing — look on next line)
-  var PATTERN_B = new RegExp('^(.+?) (' + POS_ALT + ') (\\d{1,2}) (\\d{4}) (\\d{4}) (\\d{1,2}) \\$([\\d,]+) \\$([\\d,]+)$');
-  // Team line: TEAM or TEAM TEAM
-  var PATTERN_TEAM = /^([A-Z]{2,4})(?: ([A-Z]{2,4}))?$/;
+  var VALID_POS = {C:1,'1B':1,'2B':1,'3B':1,SS:1,OF:1,LF:1,CF:1,RF:1,DH:1,SP:1,RP:1,P:1,INF:1};
 
   var rows = [];
   function pushRow(name, pos, team, age, signed, expires, years, totalRaw, aavRaw){
     name = (name || '').trim();
     if(!name || name.length < 2) return false;
     if(/^(player|pos|position|team|age|start|end|yrs|years|value|aav)$/i.test(name)) return false;
-    var aavNum = parseFloat((aavRaw || '0').replace(/,/g,''));
+    var aavNum = parseFloat(String(aavRaw || '0').replace(/,/g,'').replace(/^\$/,''));
     if(!isFinite(aavNum) || aavNum <= 0) return false;
     var aavStr = (Math.round((aavNum/1000000) * 1000) / 1000).toString();
     rows.push({
@@ -4351,43 +4345,92 @@ function parseSalaryPaste(){
     return true;
   }
 
-  var i = 0;
-  // V28.5.54: track lines that LOOK like contract data but didn't match either pattern
-  var unmatchedLikelyContracts = [];
-  while(i < rawLines.length){
-    var line = rawLines[i];
-    var mA = PATTERN_A.exec(line);
-    if(mA){
-      pushRow(mA[1], mA[2], mA[3], mA[5], mA[6], mA[7], mA[8], mA[9], mA[10]);
-      i++;
-      continue;
+  // V28.5.55: Token-stream parser. Flatten all lines, tokenize, walk sequentially.
+  // Each player = [name words...] POS [TEAM] [TEAM] AGE YEAR YEAR YRS MONEY MONEY
+  // If teams are missing from this row, they appear as 1-2 TEAM tokens after the MONEY MONEY (next row's data).
+  var allText = rawLines.join(' ');
+  var tokens = allText.split(/\s+/).filter(function(t){return t.length>0;});
+
+  function classify(tok){
+    if(VALID_POS[tok]) return 'POS';
+    if(/^\$[\d,]+$/.test(tok)) return 'MONEY';
+    if(/^\d{4}$/.test(tok)){
+      var n = parseInt(tok);
+      if(n >= 2015 && n <= 2050) return 'YEAR';
     }
-    var mB = PATTERN_B.exec(line);
-    if(mB){
-      var team = '?';
-      if(i+1 < rawLines.length){
-        var mT = PATTERN_TEAM.exec(rawLines[i+1]);
-        if(mT){
-          team = mT[1];
-          i++;
+    if(/^\d{1,2}$/.test(tok)) return 'NUM'; // age or yrs (ambiguous, decide by position)
+    if(/^[A-Z]{2,4}$/.test(tok)) return 'TEAM';
+    return 'WORD';
+  }
+
+  // Pre-classify
+  var types = new Array(tokens.length);
+  for(var ti=0; ti<tokens.length; ti++) types[ti] = classify(tokens[ti]);
+
+  var nameWords = [];
+  var ti2 = 0;
+  while(ti2 < tokens.length){
+    var t = types[ti2];
+    if(t === 'POS'){
+      // Strip leading TEAM tokens from nameWords (they belonged to previous player on wrapped format)
+      while(nameWords.length && /^[A-Z]{2,4}$/.test(nameWords[0]) && nameWords[0] === nameWords[0].toUpperCase()){
+        nameWords.shift();
+      }
+      if(!nameWords.length){ ti2++; continue; }
+      var name = nameWords.join(' ');
+      var pos = tokens[ti2];
+      ti2++;
+      // Collect 0-2 TEAM tokens
+      var teams = [];
+      while(ti2 < tokens.length && types[ti2] === 'TEAM' && teams.length < 2){
+        teams.push(tokens[ti2]); ti2++;
+      }
+      // Expect AGE YEAR YEAR YRS MONEY MONEY
+      if(ti2 + 5 >= tokens.length){ nameWords = []; continue; }
+      if(types[ti2] !== 'NUM' || types[ti2+1] !== 'YEAR' || types[ti2+2] !== 'YEAR' || types[ti2+3] !== 'NUM' || types[ti2+4] !== 'MONEY' || types[ti2+5] !== 'MONEY'){
+        // Malformed — try to recover by skipping forward
+        nameWords = [];
+        continue;
+      }
+      var age = tokens[ti2];
+      var startYr = tokens[ti2+1];
+      var endYr = tokens[ti2+2];
+      var yrsTok = tokens[ti2+3];
+      var totalTok = tokens[ti2+4];
+      var aavTok = tokens[ti2+5];
+      ti2 += 6;
+      // If no teams yet, look ahead for 1-2 TEAM tokens (teams-on-next-line format)
+      var team = teams[0] || '?';
+      if(teams.length === 0){
+        if(ti2 < tokens.length && types[ti2] === 'TEAM'){
+          team = tokens[ti2];
+          ti2++;
+          // Optional second team token (same team repeated)
+          if(ti2 < tokens.length && types[ti2] === 'TEAM' && tokens[ti2] === team){
+            ti2++;
+          }
         }
       }
-      pushRow(mB[1], mB[2], team, mB[3], mB[4], mB[5], mB[6], mB[7], mB[8]);
-      i++;
-      continue;
+      // Strip leading $ from money strings
+      var totalStr = totalTok.replace(/^\$/,'').replace(/,/g,'');
+      var aavStr = aavTok.replace(/^\$/,'').replace(/,/g,'');
+      pushRow(name, pos, team, age, startYr, endYr, yrsTok, totalStr, aavStr);
+      nameWords = [];
+    } else if(t === 'WORD'){
+      nameWords.push(tokens[ti2]);
+      ti2++;
+    } else if(t === 'TEAM'){
+      // A TEAM token outside a player record could be leftover. Accumulate into nameWords
+      // — will be stripped when we hit next POS if it's a leading team code.
+      nameWords.push(tokens[ti2]);
+      ti2++;
+    } else {
+      // NUM/YEAR/MONEY outside expected context — likely noise (table header numbers, page numbers)
+      // Don't reset nameWords (might be in middle of a name), just skip
+      ti2++;
     }
-    // Heuristic: if a line contains 2 dollar amounts AND a 4-digit year, it's likely a contract row that fell through
-    if(/\$[\d,]+.*\$[\d,]+/.test(line) && /\b20\d{2}\b/.test(line)){
-      unmatchedLikelyContracts.push(line);
-    }
-    i++;
   }
-  if(unmatchedLikelyContracts.length){
-    console.log('[parser] UNMATCHED CONTRACT-LIKE LINES (' + unmatchedLikelyContracts.length + '):');
-    for(var ux=0; ux<Math.min(unmatchedLikelyContracts.length, 30); ux++){
-      console.log('[parser unmatched] ' + unmatchedLikelyContracts[ux]);
-    }
-  }
+  console.log('[parser] token-stream parser processed ' + tokens.length + ' tokens');
 
   console.log('[parseSalaryPaste] rows parsed:', rows.length, 'in', (Date.now()-t0)+'ms');
 
