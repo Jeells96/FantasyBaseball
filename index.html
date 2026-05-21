@@ -857,6 +857,48 @@ window.startContractsListener = function(callback) {
   });
 };
 
+// ── V28.5.59: Salaries cloud sync ──────────────────────────
+window.saveSalariesCloud = async function(salaries) {
+  if(!window._db) return;
+  try {
+    await setDoc(doc(db, 'league', 'salaries'), {
+      data: JSON.stringify(salaries),
+      updated: new Date().toISOString()
+    });
+    console.log('[FB] saved ' + salaries.length + ' salaries to Firestore');
+  } catch(e) {
+    console.warn('[FB] salaries save failed:', e);
+  }
+};
+
+window.loadSalariesCloud = async function() {
+  if(!window._db) return null;
+  try {
+    const snap = await getDoc(doc(db, 'league', 'salaries'));
+    if(snap.exists()) {
+      const parsed = JSON.parse(snap.data().data);
+      console.log('[FB] loaded ' + parsed.length + ' salaries from Firestore');
+      return parsed;
+    }
+  } catch(e) {
+    console.warn('[FB] salaries load failed:', e);
+  }
+  return null;
+};
+
+window.startSalariesListener = function(callback) {
+  if(!window._db) return;
+  return onSnapshot(doc(db, 'league', 'salaries'), (snap) => {
+    if(snap.exists()) {
+      try {
+        const salaries = JSON.parse(snap.data().data);
+        console.log('[FB] salaries snapshot fired: ' + salaries.length + ' players');
+        callback(salaries);
+      } catch(e) {}
+    }
+  });
+};
+
 // V28.5.3: Auto-start listeners as soon as module finishes loading
 if(window.startDraftListeners){console.log('[module] calling startDraftListeners immediately');setTimeout(window.startDraftListeners,100);}
 </script>
@@ -870,7 +912,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.57</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.59</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -3894,6 +3936,46 @@ if(typeof patchUpdateCellsForV283==='function')patchUpdateCellsForV283();
 if(typeof saveRosterSnapshot==='function')saveRosterSnapshot();
 applyDraftTabsVisibility();
 if(window.startDraftListeners)setTimeout(window.startDraftListeners,1500);
+// V28.5.59: Start salaries listener — applies any cloud changes from other devices
+setTimeout(function(){
+  if(window.startSalariesListener){
+    window.startSalariesListener(function(salaries){
+      if(!Array.isArray(salaries) || !salaries.length) return;
+      console.log('[FB] applying ' + salaries.length + ' salaries from cloud');
+      AAV_DB = {}; SAL_MAP = {};
+      SAL.length = 0;
+      salaries.forEach(function(p){
+        AAV_DB[p.name] = p.aav;
+        SAL_MAP[p.name] = p;
+        SAL.push(p);
+      });
+      // Cache locally
+      try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(salaries)); }catch(e){}
+      // Re-render visible pages
+      try{ if(typeof renderDB === 'function' && document.getElementById('page-salaries-db') && document.getElementById('page-salaries-db').classList.contains('active')) renderDB(); }catch(e){}
+      try{ if(typeof updateSalDbStatus === 'function') updateSalDbStatus(); }catch(e){}
+    });
+  }
+}, 1700);
+// Initial load: if no localStorage cache, fetch from Firebase
+setTimeout(function(){
+  if(!localStorage.getItem('dyn26_v4_sal') && window.loadSalariesCloud){
+    window.loadSalariesCloud().then(function(salaries){
+      if(salaries && salaries.length){
+        console.log('[FB] initial salary load: ' + salaries.length + ' players');
+        AAV_DB = {}; SAL_MAP = {};
+        SAL.length = 0;
+        salaries.forEach(function(p){
+          AAV_DB[p.name] = p.aav;
+          SAL_MAP[p.name] = p;
+          SAL.push(p);
+        });
+        try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(salaries)); }catch(e){}
+        if(typeof updateSalDbStatus === 'function') updateSalDbStatus();
+      }
+    });
+  }
+}, 1800);;
 try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){var __loaded=JSON.parse(cs);if(Array.isArray(__loaded)&&__loaded.length){AAV_DB={};SAL_MAP={};SAL.length=0;__loaded.forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;SAL.push(p);});}}}catch(e){}
 try{var ao=JSON.parse(localStorage.getItem('dyn26_aav_overrides')||'{}');Object.keys(ao).forEach(function(n){AAV_DB[n]=ao[n];if(SAL_MAP[n])SAL_MAP[n].aav=ao[n];SAL.forEach(function(p){if(p.name===n)p.aav=ao[n];});Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n)p.aav=ao[n];});});});}catch(e){}
 // Load saved ARB player info
@@ -4506,7 +4588,12 @@ function parseSalaryPaste(){
     if(!aavEq(prev.aav, p.aav)) diffs.push('aav');
     if(!strEq(prev.expires, p.expires)) diffs.push('expires');
     if(!strEq(prev.years, p.years)) diffs.push('years');
-    if(!strEq(prev.team, p.team)) diffs.push('team');
+    // V28.5.58: don't flag team-change if new team is unknown ("?") — keep previous
+    if(p.team === '?' || !p.team){
+      p.team = prev.team || '?';
+    } else if(!strEq(prev.team, p.team)){
+      diffs.push('team');
+    }
     if(diffs.length){
       window.SAL_CHANGES[p.name] = 'CHANGED';
       window.SAL_PREV[p.name] = {aav: prev.aav, expires: prev.expires, years: prev.years, team: prev.team, diffs: diffs};
@@ -4524,9 +4611,29 @@ function parseSalaryPaste(){
   try{ sessionStorage.setItem('dyn28_sal_changes', JSON.stringify(window.SAL_CHANGES)); }catch(e){}
   try{ sessionStorage.setItem('dyn28_sal_prev', JSON.stringify(window.SAL_PREV)); }catch(e){}
 
-  try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(rows)); }catch(ex){
-    if(status){status.style.color='#e84b4b';status.textContent='Save failed: '+ex.message;}
-    return;
+  // V28.5.59: Save to Firebase (shared across league) — localStorage is just a cache
+  console.log('[save] saving ' + rows.length + ' salaries to Firebase');
+  if(window.saveSalariesCloud){
+    window.saveSalariesCloud(rows).then(function(){
+      console.log('[save] Firebase save succeeded');
+    }).catch(function(e){
+      console.error('[save] Firebase save failed:', e);
+      if(status){
+        status.style.color = '#e84b4b';
+        status.textContent = 'Cloud save failed: ' + e.message;
+      }
+    });
+  } else {
+    console.warn('[save] saveSalariesCloud not available — Firebase may not be ready');
+  }
+  // Also cache locally for fast load (best-effort, ignore quota errors)
+  try{
+    localStorage.setItem('dyn26_v4_sal', JSON.stringify(rows));
+  }catch(ex){
+    console.log('[save] localStorage cache skipped (quota):', ex.message);
+    // Free space for next time
+    try{ localStorage.removeItem('dyn26_v4_sal_backup'); }catch(e){}
+    try{ localStorage.removeItem('dyn28_sal_prev'); }catch(e){}
   }
 
   AAV_DB = {}; SAL_MAP = {};
@@ -4589,7 +4696,11 @@ function undoSalaryImport(){
     console.log('[undoSalaryImport] restoring', restored.length, 'rows');
 
     // Write restored data back to localStorage
-    try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(restored)); }catch(e){}
+    try{ localStorage.setItem('dyn26_v4_sal', JSON.stringify(restored)); }
+    // V28.5.59: Push rollback to Firebase so other devices get it too
+    if(window.saveSalariesCloud){
+      window.saveSalariesCloud(restored).catch(function(e){console.warn('Undo Firebase save failed', e);});
+    }catch(e){}
     // Rebuild lookups
     AAV_DB = {}; SAL_MAP = {};
     for(var ri=0; ri<restored.length; ri++){
