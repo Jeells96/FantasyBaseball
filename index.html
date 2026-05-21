@@ -870,7 +870,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.50</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.51</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1605,16 +1605,22 @@ function updateSalDbStatus(){
   var el=document.getElementById('salDbStatus');
   if(!el)return;
   var count = (typeof SAL !== 'undefined' && SAL.length) ? SAL.length : 0;
+  var isCustom = false;
   try{
     var c = localStorage.getItem('dyn26_v4_sal');
     if(c){
       var a = JSON.parse(c);
       count = a.length;
+      isCustom = true;
     }
   }catch(e){}
   var changes = (window.SAL_CHANGES && Object.keys(window.SAL_CHANGES).length) || 0;
   var changesHtml = changes > 0 ? '<br><span style="color:#94a3b8;font-size:.7rem">'+changes+' changes since last import</span>' : '';
-  el.innerHTML = '<span style="color:#22c55e;font-weight:600;font-size:.9rem">\u2713 Success \u2014 '+count+' contracts loaded</span>'+changesHtml;
+  if(isCustom){
+    el.innerHTML = '<span style="color:#22c55e;font-weight:600;font-size:.9rem">\u2713 Custom salary DB \u2014 '+count+' contracts</span>'+changesHtml;
+  } else {
+    el.innerHTML = '<span style="color:#94a3b8;font-size:.75rem">Using default salary database ('+count+' contracts)</span>';
+  }
 }
 function openQueryEditor(key,title,desc){_currentQueryKey=key;var q=loadQueries();document.getElementById('queryModalTitle').textContent=title;document.getElementById('queryModalDesc').textContent=desc;document.getElementById('queryModalText').value=q[key]?q[key].value:'';openModal('queryModal');}
 function saveQuery(){if(!_currentQueryKey)return;var q=loadQueries();if(!q[_currentQueryKey])q[_currentQueryKey]={};q[_currentQueryKey].value=document.getElementById('queryModalText').value.trim();saveQueriesStore(q);closeModal('queryModal');updateQueryPreviews();showToast('\u2713 Query saved','green',1800);}
@@ -3870,7 +3876,7 @@ if(typeof patchUpdateCellsForV283==='function')patchUpdateCellsForV283();
 if(typeof saveRosterSnapshot==='function')saveRosterSnapshot();
 applyDraftTabsVisibility();
 if(window.startDraftListeners)setTimeout(window.startDraftListeners,1500);
-try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){JSON.parse(cs).forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;});}}catch(e){}
+try{var cs=localStorage.getItem('dyn26_v4_sal');if(cs){var __loaded=JSON.parse(cs);if(Array.isArray(__loaded)&&__loaded.length){AAV_DB={};SAL_MAP={};SAL.length=0;__loaded.forEach(function(p){AAV_DB[p.name]=p.aav;SAL_MAP[p.name]=p;SAL.push(p);});}}}catch(e){}
 try{var ao=JSON.parse(localStorage.getItem('dyn26_aav_overrides')||'{}');Object.keys(ao).forEach(function(n){AAV_DB[n]=ao[n];if(SAL_MAP[n])SAL_MAP[n].aav=ao[n];SAL.forEach(function(p){if(p.name===n)p.aav=ao[n];});Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n)p.aav=ao[n];});});});}catch(e){}
 // Load saved ARB player info
 try{var ai=JSON.parse(localStorage.getItem('dyn26_arb_info')||'{}');Object.keys(ai).forEach(function(n){var entry=ai[n];var inSal=false;SAL.forEach(function(p,i){if(p.name===n){Object.assign(SAL[i],entry);inSal=true;}});if(!inSal)SAL.push(entry);SAL_MAP[n]=entry;AAV_DB[n]=entry.aav||'ARB';Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p){if(p.name===n){if(entry.age)p.age=entry.age;if(entry.expires)p.fa=entry.expires;}});});});}catch(e){}
@@ -4232,8 +4238,12 @@ function showSalaryChange(name){
     }
     return;
   }
-  function row(label, oldV, newV){
-    var changed = String(oldV||'') !== String(newV||'');
+  var diffSet = {};
+  if(prev.diffs && prev.diffs.length){
+    for(var di=0; di<prev.diffs.length; di++){ diffSet[prev.diffs[di]] = true; }
+  }
+  function row(label, key, oldV, newV){
+    var changed = diffSet[key] || (Object.keys(diffSet).length === 0 && String(oldV||'') !== String(newV||''));
     return '<tr><td style="padding:6px 10px;color:#94a3b8;font-size:.75rem">' + label + '</td>' +
       '<td style="padding:6px 10px;font-size:.85rem;' + (changed?'color:#e84b4b;text-decoration:line-through':'color:#94a3b8') + '">' + (oldV||'—') + '</td>' +
       '<td style="padding:6px 10px;font-size:.85rem;' + (changed?'color:#22c55e;font-weight:600':'color:#94a3b8') + '">' + (newV||'—') + '</td></tr>';
@@ -4246,10 +4256,10 @@ function showSalaryChange(name){
     '<table style="width:100%;border-collapse:collapse;font-family:\'DM Mono\',monospace">' +
     '<thead><tr><th></th><th style="text-align:left;padding:6px 10px;color:#94a3b8;font-size:.65rem;letter-spacing:1px">BEFORE</th><th style="text-align:left;padding:6px 10px;color:#22c55e;font-size:.65rem;letter-spacing:1px">AFTER</th></tr></thead>' +
     '<tbody>' +
-    row('AAV', '$' + prev.aav + 'M', '$' + cur.aav + 'M') +
-    row('Team', prev.team, cur.team) +
-    row('Years', prev.years, cur.years) +
-    row('Expires', prev.expires, cur.expires) +
+    row('AAV', 'aav', '$' + prev.aav + 'M', '$' + cur.aav + 'M') +
+    row('Team', 'team', prev.team, cur.team) +
+    row('Years', 'years', prev.years, cur.years) +
+    row('Expires', 'expires', prev.expires, cur.expires) +
     '</tbody></table>' +
     '<button class="set-btn" onclick="document.getElementById(\'salChangeModal\').remove()" style="width:100%;margin-top:1rem">Close</button>' +
     '</div></div></div>';
@@ -4376,14 +4386,25 @@ function parseSalaryPaste(){
   window.SAL_PREV = {};
   var prevSnapshot = {};
   try{ Object.keys(SAL_MAP).forEach(function(k){ prevSnapshot[k] = SAL_MAP[k]; }); }catch(e){}
+  // V28.5.51: numeric-tolerant AAV comparison (avoid false positives from "11" vs "11.0" formatting)
+  function aavEq(a, b){
+    var na = parseFloat(a), nb = parseFloat(b);
+    if(isNaN(na) || isNaN(nb)) return String(a||'') === String(b||'');
+    return Math.abs(na - nb) < 0.01; // less than $10K difference
+  }
+  function strEq(a, b){ return String(a||'').trim() === String(b||'').trim(); }
   for(var rx=0; rx<rows.length; rx++){
     var p = rows[rx];
     var prev = prevSnapshot[p.name];
     if(!prev){ window.SAL_CHANGES[p.name] = 'NEW'; continue; }
-    if(String(prev.aav) !== String(p.aav) || String(prev.expires) !== String(p.expires) || String(prev.years) !== String(p.years) || String(prev.team) !== String(p.team)){
+    var diffs = [];
+    if(!aavEq(prev.aav, p.aav)) diffs.push('aav');
+    if(!strEq(prev.expires, p.expires)) diffs.push('expires');
+    if(!strEq(prev.years, p.years)) diffs.push('years');
+    if(!strEq(prev.team, p.team)) diffs.push('team');
+    if(diffs.length){
       window.SAL_CHANGES[p.name] = 'CHANGED';
-      // Store previous values for the click-to-see-diff modal
-      window.SAL_PREV[p.name] = {aav: prev.aav, expires: prev.expires, years: prev.years, team: prev.team};
+      window.SAL_PREV[p.name] = {aav: prev.aav, expires: prev.expires, years: prev.years, team: prev.team, diffs: diffs};
     }
   }
   try{ sessionStorage.setItem('dyn28_sal_changes', JSON.stringify(window.SAL_CHANGES)); }catch(e){}
