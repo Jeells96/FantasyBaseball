@@ -870,7 +870,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.53</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.54</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -4352,6 +4352,8 @@ function parseSalaryPaste(){
   }
 
   var i = 0;
+  // V28.5.54: track lines that LOOK like contract data but didn't match either pattern
+  var unmatchedLikelyContracts = [];
   while(i < rawLines.length){
     var line = rawLines[i];
     var mA = PATTERN_A.exec(line);
@@ -4367,14 +4369,24 @@ function parseSalaryPaste(){
         var mT = PATTERN_TEAM.exec(rawLines[i+1]);
         if(mT){
           team = mT[1];
-          i++; // consume team line too
+          i++;
         }
       }
       pushRow(mB[1], mB[2], team, mB[3], mB[4], mB[5], mB[6], mB[7], mB[8]);
       i++;
       continue;
     }
+    // Heuristic: if a line contains 2 dollar amounts AND a 4-digit year, it's likely a contract row that fell through
+    if(/\$[\d,]+.*\$[\d,]+/.test(line) && /\b20\d{2}\b/.test(line)){
+      unmatchedLikelyContracts.push(line);
+    }
     i++;
+  }
+  if(unmatchedLikelyContracts.length){
+    console.log('[parser] UNMATCHED CONTRACT-LIKE LINES (' + unmatchedLikelyContracts.length + '):');
+    for(var ux=0; ux<Math.min(unmatchedLikelyContracts.length, 30); ux++){
+      console.log('[parser unmatched] ' + unmatchedLikelyContracts[ux]);
+    }
   }
 
   console.log('[parseSalaryPaste] rows parsed:', rows.length, 'in', (Date.now()-t0)+'ms');
@@ -4407,6 +4419,7 @@ function parseSalaryPaste(){
   window.SAL_PREV = {};
   var prevSnapshot = {};
   try{ Object.keys(SAL_MAP).forEach(function(k){ prevSnapshot[k] = SAL_MAP[k]; }); }catch(e){}
+  console.log('[changes] prev snapshot has ' + Object.keys(prevSnapshot).length + ' players, parsing ' + rows.length + ' new rows');
   // V28.5.51: numeric-tolerant AAV comparison (avoid false positives from "11" vs "11.0" formatting)
   function aavEq(a, b){
     var na = parseFloat(a), nb = parseFloat(b);
@@ -4414,6 +4427,7 @@ function parseSalaryPaste(){
     return Math.abs(na - nb) < 0.01; // less than $10K difference
   }
   function strEq(a, b){ return String(a||'').trim() === String(b||'').trim(); }
+  var __changeDebug = [];
   for(var rx=0; rx<rows.length; rx++){
     var p = rows[rx];
     var prev = prevSnapshot[p.name];
@@ -4426,7 +4440,16 @@ function parseSalaryPaste(){
     if(diffs.length){
       window.SAL_CHANGES[p.name] = 'CHANGED';
       window.SAL_PREV[p.name] = {aav: prev.aav, expires: prev.expires, years: prev.years, team: prev.team, diffs: diffs};
+      // Log first 10 CHANGED detections so we can audit false positives
+      if(__changeDebug.length < 10){
+        __changeDebug.push({name: p.name, diffs: diffs.join(','), prev: JSON.stringify({aav:prev.aav,team:prev.team,years:prev.years,expires:prev.expires}), cur: JSON.stringify({aav:p.aav,team:p.team,years:p.years,expires:p.expires})});
+      }
     }
+  }
+  console.log('[changes] CHANGED count: ' + Object.keys(window.SAL_CHANGES).filter(function(k){return window.SAL_CHANGES[k]==='CHANGED';}).length + ', NEW count: ' + Object.keys(window.SAL_CHANGES).filter(function(k){return window.SAL_CHANGES[k]==='NEW';}).length);
+  for(var cdi=0; cdi<__changeDebug.length; cdi++){
+    var cd = __changeDebug[cdi];
+    console.log('[changes] ' + cd.name + ' | diffs=' + cd.diffs + ' | prev=' + cd.prev + ' | cur=' + cd.cur);
   }
   try{ sessionStorage.setItem('dyn28_sal_changes', JSON.stringify(window.SAL_CHANGES)); }catch(e){}
   try{ sessionStorage.setItem('dyn28_sal_prev', JSON.stringify(window.SAL_PREV)); }catch(e){}
