@@ -912,7 +912,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.64</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.65</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -4556,17 +4556,29 @@ function updateHighlightsButton(){
 function applySalariesToState(rawSalaries){
   if(!Array.isArray(rawSalaries)) return [];
 
-  // Dedupe by name — keep the LAST occurrence (newest entry on Spotrac)
+  // Dedupe by name. When a player is listed twice (e.g. signed an extension),
+  // keep the contract that EXPIRES LATEST. Tie-break on later signed year,
+  // then on last occurrence in the list.
+  function expYr(p){ var y = parseInt(p && p.expires); return isNaN(y) ? 0 : y; }
+  function signYr(p){ var y = parseInt(p && p.signed); return isNaN(y) ? 0 : y; }
   var byName = {};
   for(var i=0; i<rawSalaries.length; i++){
     var p = rawSalaries[i];
     if(!p || !p.name) continue;
-    byName[p.name] = p;
+    var prev = byName[p.name];
+    if(!prev){ byName[p.name] = p; continue; }
+    var pe = expYr(p), pre = expYr(prev);
+    if(pe > pre){ byName[p.name] = p; }
+    else if(pe === pre){
+      // same expiry — prefer later signed year, else the later-listed row
+      if(signYr(p) >= signYr(prev)) byName[p.name] = p;
+    }
+    // else keep prev (it expires later)
   }
   var deduped = Object.keys(byName).map(function(n){ return byName[n]; });
   var droppedDupes = rawSalaries.length - deduped.length;
   if(droppedDupes > 0){
-    console.log('[applySalaries] removed ' + droppedDupes + ' duplicate rows');
+    console.log('[applySalaries] merged ' + droppedDupes + ' duplicate rows (kept latest-expiring contract)');
   }
 
   // Reset lookup tables
