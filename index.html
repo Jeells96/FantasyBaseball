@@ -740,6 +740,21 @@ window.saveNTACloud = async function(n){
   if(!window._db) return;
   try{await setDoc(doc(db,'league','ntaList'),{data:JSON.stringify(n),updated:new Date().toISOString()});}catch(e){console.warn(e);}
 };
+window.saveManualArbCloud = async function(list){
+  if(!window._db) return;
+  try{await setDoc(doc(db,'league','manualArb'),{data:JSON.stringify(list||[]),updated:new Date().toISOString()});}catch(e){console.warn('[manualArb] save failed',e);}
+};
+window.loadManualArbCloud = async function(){
+  if(!window._db) return null;
+  try{var snap=await getDoc(doc(db,'league','manualArb'));if(snap.exists())return JSON.parse(snap.data().data);}catch(e){console.warn('[manualArb] load failed',e);}
+  return null;
+};
+window.startManualArbListener = function(callback){
+  if(!window._db){ setTimeout(function(){window.startManualArbListener(callback);}, 600); return; }
+  onSnapshot(doc(db,'league','manualArb'),function(snap){
+    if(snap.exists()){try{var list=JSON.parse(snap.data().data);if(typeof callback==='function')callback(list);}catch(e){}}
+  });
+};
 window.startDraftListeners = function(){
   console.log('[startDraftListeners] called. _db=',!!window._db,' started=',!!window._draftListenersStarted);
   if(window._draftListenersStarted) return;
@@ -912,7 +927,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.65</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.66</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -2317,6 +2332,66 @@ function buildArbList(){
       +'<div style="font-size:1rem;color:var(--dim);margin-left:.5rem">&#9998;</div>'
       +'</div>';
   }).join('');
+  // V28.5.66: also (re)render the manual ARB override list
+  if(typeof renderManualArbList === 'function') renderManualArbList();
+}
+
+// ---- V28.5.66: Manual ARB override list UI ----
+function renderManualArbList(){
+  var el = document.getElementById('manualArbList');
+  if(!el) return;
+  if(!MANUAL_ARB.length){
+    el.innerHTML = '<div class="arb-empty" style="opacity:.7;font-size:.75rem;padding:.4rem 0">No manual overrides. Auto-rule handles the rest.</div>';
+    return;
+  }
+  el.innerHTML = MANUAL_ARB.slice().sort(function(a,b){return String(a).localeCompare(String(b));}).map(function(name){
+    var safe = String(name).replace(/'/g,"\\'");
+    return '<div class="arb-player-row" style="display:flex;align-items:center;justify-content:space-between">'
+      + '<div class="arb-player-name">'+name+'<span class="arb-tag" style="margin-left:.4rem">ARB</span></div>'
+      + '<button onclick="removeManualArb(\''+safe+'\')" style="background:none;border:1px solid var(--bdr,#333a47);color:var(--dim,#8b95a3);border-radius:6px;padding:.25rem .55rem;font-size:.72rem;cursor:pointer">Remove</button>'
+      + '</div>';
+  }).join('');
+}
+function searchManualArb(){
+  var q = (document.getElementById('manualArbSearch').value||'').toLowerCase().trim();
+  var box = document.getElementById('manualArbResults');
+  if(!box) return;
+  if(q.length < 2){ box.style.display='none'; box.innerHTML=''; return; }
+  var found = {};
+  Object.keys(ROSTER).forEach(function(tn){ (ROSTER[tn]||[]).forEach(function(p){
+    if(p.name.toLowerCase().includes(q) && !found[p.name]) found[p.name]={name:p.name,team:tn};
+  });});
+  if(typeof SAL!=='undefined') SAL.forEach(function(p){
+    if(p.name.toLowerCase().includes(q) && !found[p.name]) found[p.name]={name:p.name,team:p.team};
+  });
+  var results = Object.values(found).filter(function(p){return !manualArbHas(p.name);}).slice(0,20);
+  if(!results.length){ box.innerHTML='<div style="padding:.5rem .7rem;font-size:.78rem;color:var(--dim,#8b95a3)">No matches</div>'; box.style.display='block'; return; }
+  box.innerHTML = results.map(function(p){
+    var safe = p.name.replace(/'/g,"\\'");
+    return '<div onclick="addManualArb(\''+safe+'\')" style="display:flex;justify-content:space-between;padding:.5rem .7rem;cursor:pointer;border-bottom:1px solid var(--bdr,#1c212b);font-size:.82rem">'
+      + '<span style="color:var(--brt,#f0f2f6);font-weight:500">'+p.name+'</span>'
+      + '<span style="color:var(--dim,#8b95a3);font-size:.72rem">'+(p.team||'')+'</span></div>';
+  }).join('');
+  box.style.display='block';
+}
+function addManualArb(name){
+  if(!name || manualArbHas(name)) return;
+  MANUAL_ARB.push(name);
+  saveManualArb();
+  document.getElementById('manualArbSearch').value='';
+  var box=document.getElementById('manualArbResults'); if(box){box.style.display='none';box.innerHTML='';}
+  renderManualArbList();
+  // Re-apply ARB rule immediately so the change shows everywhere
+  if(typeof SAL!=='undefined' && SAL.length) applySalariesToState(SAL.slice());
+  if(typeof showToast==='function') showToast('\u2713 '+name+' forced ARB','green',2000);
+}
+function removeManualArb(name){
+  var n=String(name).toLowerCase();
+  MANUAL_ARB = MANUAL_ARB.filter(function(x){return String(x).toLowerCase()!==n;});
+  saveManualArb();
+  renderManualArbList();
+  if(typeof SAL!=='undefined' && SAL.length) applySalariesToState(SAL.slice());
+  if(typeof showToast==='function') showToast('Removed '+name+' from manual ARB','yellow',2000);
 }
 
 var _arbInfoName=null;
@@ -4109,6 +4184,26 @@ if(window.startDraftListeners)setTimeout(window.startDraftListeners,1500);
 setTimeout(function(){
   try{
     if(window.startSalariesListener){
+      // V28.5.66: manual ARB list sync
+      if(window.startManualArbListener){
+        window.startManualArbListener(function(list){
+          if(!Array.isArray(list)) return;
+          if(JSON.stringify(list)===JSON.stringify(MANUAL_ARB)) return;
+          MANUAL_ARB = list;
+          try{ localStorage.setItem('dyn28_manual_arb', JSON.stringify(MANUAL_ARB)); }catch(e){}
+          if(typeof renderManualArbList==='function') renderManualArbList();
+          if(typeof SAL!=='undefined' && SAL.length) applySalariesToState(SAL.slice());
+        });
+      }
+      if(window.loadManualArbCloud){
+        window.loadManualArbCloud().then(function(list){
+          if(Array.isArray(list)){
+            MANUAL_ARB = list;
+            try{ localStorage.setItem('dyn28_manual_arb', JSON.stringify(MANUAL_ARB)); }catch(e){}
+            if(typeof SAL!=='undefined' && SAL.length) applySalariesToState(SAL.slice());
+          }
+        }).catch(function(e){});
+      }
       window.startSalariesListener(function(salaries){
         try{
           if(!Array.isArray(salaries) || !salaries.length) return;
@@ -4553,6 +4648,36 @@ function updateHighlightsButton(){
 // Deduplicates by name (keeps last occurrence — newest contract on Spotrac is listed last),
 // rebuilds SAL/SAL_MAP/AAV_DB, propagates new AAV/age/expires to every ROSTER player,
 // re-renders all visible pages.
+// V28.5.66: Manual ARB override list (names always treated as ARB).
+// Synced via Firebase league/manualArb; cached in localStorage.
+var MANUAL_ARB = [];
+try{ MANUAL_ARB = JSON.parse(localStorage.getItem('dyn28_manual_arb') || '[]'); }catch(e){ MANUAL_ARB = []; }
+function manualArbHas(name){
+  var n = String(name||'').toLowerCase();
+  for(var i=0;i<MANUAL_ARB.length;i++){ if(String(MANUAL_ARB[i]||'').toLowerCase()===n) return true; }
+  return false;
+}
+function saveManualArb(){
+  try{ localStorage.setItem('dyn28_manual_arb', JSON.stringify(MANUAL_ARB)); }catch(e){}
+  try{ if(window.saveManualArbCloud) window.saveManualArbCloud(MANUAL_ARB); }catch(e){}
+}
+// V28.5.66: Decide if an imported contract should be treated as ARB.
+// Rule: (1-year deal AND AAV < $2.0M) OR (no real salary / already flagged ARB)
+// OR (player is on the manual ARB override list).
+function isArbContract(p){
+  if(!p) return false;
+  if(manualArbHas(p.name)) return true;
+  var aav = p.aav;
+  // No real salary -> ARB (covers pre-arb rookies with aav 'ARB'/'?'/blank)
+  if(aav===undefined || aav===null || aav==='' || aav==='ARB' || aav==='?' ) return true;
+  var n = parseFloat(aav);
+  if(isNaN(n)) return true;
+  // 1-year deal under $2M -> ARB
+  var yrs = parseInt(p.years);
+  if(yrs===1 && n < 2.0) return true;
+  return false;
+}
+
 function applySalariesToState(rawSalaries){
   if(!Array.isArray(rawSalaries)) return [];
 
@@ -4580,6 +4705,15 @@ function applySalariesToState(rawSalaries){
   if(droppedDupes > 0){
     console.log('[applySalaries] merged ' + droppedDupes + ' duplicate rows (kept latest-expiring contract)');
   }
+
+  // V28.5.66: Apply ARB rule. Any contract matching the rule (1yr+<$2M,
+  // no real salary, or on the manual ARB list) gets its AAV normalized to 'ARB'
+  // so it uses the flat ARB rate everywhere.
+  var arbCount = 0;
+  deduped.forEach(function(p){
+    if(isArbContract(p)){ if(p.aav!=='ARB'){ p.aav='ARB'; } arbCount++; }
+  });
+  console.log('[applySalaries] ' + arbCount + ' players flagged ARB');
 
   // Reset lookup tables
   AAV_DB = {};
@@ -5520,8 +5654,15 @@ function undoSalaryImport(){
 <!-- ARB PLAYERS MODAL -->
 <div class="modal-overlay" id="arbPlayersModal" onclick="closeModalOutside(event,'arbPlayersModal')">
   <div class="modal-box">
-    <div class="modal-header"><h2>ARB Players</h2><p>Tap any player to set a custom AAV</p></div>
-    <div class="modal-body" style="max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch">
+    <div class="modal-header"><h2>ARB Players</h2><p>Auto-rule: 1-yr deal under $2M, or no salary. Add anyone the rule misses below.</p></div>
+    <div class="modal-body" style="max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch">
+      <div class="set-section-title" style="margin-top:0">Force ARB (manual override)</div>
+      <div style="display:flex;gap:.4rem;margin-bottom:.5rem;position:relative">
+        <input type="text" id="manualArbSearch" placeholder="Search a player to force ARB…" autocomplete="off" oninput="searchManualArb()" style="flex:1;padding:.55rem .7rem;background:var(--bg2,#10141c);border:1px solid var(--bdr,#252a35);border-radius:8px;color:var(--txt,#f0f2f6);font-size:.85rem">
+      </div>
+      <div id="manualArbResults" style="display:none;max-height:180px;overflow-y:auto;border:1px solid var(--bdr,#252a35);border-radius:8px;margin-bottom:.5rem"></div>
+      <div id="manualArbList" style="margin-bottom:.9rem"></div>
+      <div class="set-section-title">Currently ARB on rosters</div>
       <div id="arbPlayerList"></div>
     </div>
     <div class="modal-footer">
