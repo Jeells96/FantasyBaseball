@@ -658,7 +658,8 @@ input,select,textarea,input[type="text"],input[type="number"],input[type="email"
 .lr-pane{font-size:.85rem;line-height:1.55;color:var(--txt)}
 .lr-pane h3.lr-h{font-family:'Barlow Condensed',sans-serif;font-size:.95rem;letter-spacing:1.5px;color:#e8c84b;margin:1rem 0 .3rem;text-transform:uppercase}
 .lr-pane h3.lr-h:first-child{margin-top:0}
-.lr-pane .lr-list{padding-left:1.2rem;margin:.3rem 0 .8rem}
+.lr-pane .lr-list{padding-left:1.8rem;margin:.3rem 0 .8rem;list-style-position:outside}
+.lr-pane .lr-list>li::marker{color:var(--brt);font-weight:600}
 .lr-pane .lr-list>li{margin-bottom:.4rem}
 .lr-pane .lr-list ul{padding-left:1.1rem;margin:.3rem 0;list-style-type:none;color:var(--dim);font-size:.8rem}
 .lr-pane .lr-list ul li{margin-bottom:.2rem}
@@ -756,6 +757,21 @@ window.saveNTACloud = async function(n){
 window.saveManualArbCloud = async function(list){
   if(!window._db) return;
   try{await setDoc(doc(db,'league','manualArb'),{data:JSON.stringify(list||[]),updated:new Date().toISOString()});}catch(e){console.warn('[manualArb] save failed',e);}
+};
+window.saveRulesDocCloud = async function(doc_){
+  if(!window._db) return;
+  try{await setDoc(doc(db,'league','rulesDoc'),{data:JSON.stringify(doc_||{}),updated:new Date().toISOString()});}catch(e){console.warn('[rulesDoc] save failed',e);}
+};
+window.loadRulesDocCloud = async function(){
+  if(!window._db) return null;
+  try{var snap=await getDoc(doc(db,'league','rulesDoc'));if(snap.exists())return JSON.parse(snap.data().data);}catch(e){}
+  return null;
+};
+window.startRulesDocListener = function(callback){
+  if(!window._db){ setTimeout(function(){window.startRulesDocListener(callback);}, 600); return; }
+  onSnapshot(doc(db,'league','rulesDoc'),function(snap){
+    if(snap.exists()){try{var o=JSON.parse(snap.data().data);if(typeof callback==='function')callback(o);}catch(e){}}
+  });
 };
 window.saveCapOverridesCloud = async function(obj){
   if(!window._db) return;
@@ -955,7 +971,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.74</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.75</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1330,7 +1346,8 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
     <div class="set-section">
       <div class="set-section-title">League Rules</div>
-      <button class="set-btn accent" onclick="buildRulesFields();openModal('leagueRulesModal')">&#9998; Edit League Rules</button>
+      <button class="set-btn accent" onclick="buildRulesFields();openModal('leagueRulesModal')">&#9998; Edit Rule Values</button>
+      <button class="set-btn accent" onclick="openRulesDocEditor()">&#9998; Edit Rules Display Text</button>
     </div>
 
     <div class="set-section">
@@ -1549,20 +1566,282 @@ var toastTimer=null;
 function showToast(msg,cls,dur){var t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.className='toast '+(cls||'green')+' show';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},dur||2000);}
 function openModal(id){var el=document.getElementById(id);if(el)el.classList.add('open');}
 function closeModal(id){var el=document.getElementById(id);if(el)el.classList.remove('open');}
+// V28.5.75: Editable League Rules document. Stored in localStorage + Firebase.
+// Items support {TOKEN} placeholders that resolve to live RULES values at render.
+var DEFAULT_RULES_DOC = {
+  sections: [
+    { tab:'basics', title:'Roster & Cap', groups: [
+        { header:'1. The basics', items:[
+          '<b>8 teams</b>, dynasty format.',
+          '<b>25 players per roster</b> (configurable in Settings).',
+          'Current season is <b>{SEASON}</b>. Use the <i>Advance Season</i> button when the league rolls over.'
+        ]},
+        { header:'2. Salary cap', items:[
+          'The <b>{CURRENT_CAP}</b> cap is <b>${CAP_AMT}M</b>.',
+          'Cap grows <b>{CAP_GROWTH}%</b> per year.',
+          '2a. You can override the cap for a specific season by editing the Salary Cap field in Settings while viewing that season.',
+          'You can go over the cap on paper but you must be cap-compliant before opening day.'
+        ]},
+        { header:'3. Roster positions', items:[
+          'Lineup slots come from ESPN: C, 1B, 2B, 3B, SS, OF, UTIL, SP, RP, Bench, IL/IR.',
+          '<b>IL/IR salary discount: {IL_DISC}%</b> off in the current year only (default 50%).'
+        ]}
+    ]},
+    { tab:'contracts', title:'Contracts', groups: [
+        { header:'4. Signing a player', items:[
+          'When you sign someone to a new dynasty contract, pick a length (years).',
+          '<b>Year 0 discount: {DISC}%</b> off the player\'s MLB AAV.',
+          '4a. So a $20M MLB AAV with 12.5% off becomes <b>$17.5M</b> in year 0 of your contract.',
+          '<b>Annual escalator: {ESC}%</b> each year after year 0.',
+          '4b. That $17.5M year 0 grows to roughly $19.7M year 1, $22.2M year 2, and so on.'
+        ]},
+        { header:'5. Carried contracts', items:[
+          'Contracts you didn\'t sign yourself (trades, kept from prior owners) are <b>carried</b>.',
+          '<b>No year-0 discount</b> on carried contracts — you pay full AAV with whatever escalators were already on it.',
+          'You cannot edit a carried contract\'s years or salary.'
+        ]},
+        { header:'6. Expiring contracts', items:[
+          'A contract with 0 years remaining must be <b>dropped or re-signed</b> before the season locks.',
+          'Re-signing is a brand-new contract — year-0 discount and escalators apply again.',
+          'The Contracts tab shows what each expiring player would cost to re-draft next year (their raw MLB AAV).'
+        ]},
+        { header:'7. Projection window', items:[
+          'The team page shows a <b>{PROJ_YRS}-year look-ahead</b> so you can plan future cap commitments.'
+        ]}
+    ]},
+    { tab:'arb', title:'Arbitration', groups: [
+        { header:'8. Arbitration (ARB) players', items:[
+          'Pre-arb and arb-eligible MLB players cost a <b>flat ${ARB}M</b> regardless of their actual MLB pay.',
+          'A player is automatically treated as ARB if either:',
+          '8a. They are on a <b>1-year MLB contract for under $2.0M</b> (typical arb deal), OR',
+          '8b. They have no real salary listed (pre-arb rookies).',
+          'You can also <b>force-ARB</b> a player manually via <i>Settings → Edit ARB Players</i> for any edge case the auto-rule misses.',
+          'The manual ARB list syncs across all league members.'
+        ]}
+    ]}
+  ],
+  faq: [
+    { q:'My player got an extension and now they show up twice on Spotrac. What happens?',
+      a:'The app keeps the contract with the <b>later expiration year</b>. The old deal is dropped automatically on import.' },
+    { q:'I changed a player\'s AAV manually. Will the next import overwrite it?',
+      a:'No. Manual AAV overrides (set via the player card) are saved separately and re-applied after every import.' },
+    { q:'How are stats sourced?',
+      a:'Player stats come from the MLB Stats API. Use the year dropdown on Contracts, Draft, FA, or All Players to view different seasons.' },
+    { q:'Why does a 1-year veteran free-agent show up as ARB?',
+      a:'If the contract is 1-year and under $2.0M, the auto-rule flags it. Use Settings → Edit ARB Players to force them off ARB.' },
+    { q:'Can I set a custom cap for a specific season?',
+      a:'Yes. Advance (or rewind) to that season, then change the Salary Cap field in Settings. It overrides the formula for that year only.' },
+    { q:'What\'s the difference between Salary and Contract Years on the team page?',
+      a:'Salary is the player\'s MLB AAV (adjusted for ARB and any overrides). Contract Years is how many seasons remain on the dynasty deal you signed them to. They\'re independent.' }
+  ]
+};
+var RULES_DOC = null;
+function loadRulesDoc(){
+  try{ var s=localStorage.getItem('dyn28_rules_doc'); if(s){ var p=JSON.parse(s); if(p&&p.sections) return p; } }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT_RULES_DOC));
+}
+function saveRulesDocLocal(){
+  try{ localStorage.setItem('dyn28_rules_doc', JSON.stringify(RULES_DOC)); }catch(e){}
+}
+function saveRulesDocAll(){
+  saveRulesDocLocal();
+  try{ if(window.saveRulesDocCloud) window.saveRulesDocCloud(RULES_DOC); }catch(e){}
+}
+// Replace {TOKEN} placeholders with live values from RULES.
+function resolveTokens(s){
+  if(!s) return '';
+  var tokens = {
+    'SEASON': CURRENT_SEASON,
+    'CURRENT_CAP': CURRENT_SEASON,
+    'CAP_AMT': getBaseCap().toFixed(1),
+    'CAP_GROWTH': (RULES.capGrowth*100).toFixed(1),
+    'IL_DISC': ((1-RULES.irDiscount)*100).toFixed(0),
+    'DISC': ((1-RULES.discount)*100).toFixed(1),
+    'ESC': ((RULES.escalator-1)*100).toFixed(1),
+    'PROJ_YRS': RULES.projYears,
+    'ARB': RULES.arb.toFixed(2)
+  };
+  return String(s).replace(/\{(\w+)\}/g, function(m,k){ return (tokens[k]!==undefined)?tokens[k]:m; });
+}
+function renderRulesDocPane(tab){
+  RULES_DOC = RULES_DOC || loadRulesDoc();
+  var sec = RULES_DOC.sections.filter(function(s){return s.tab===tab;})[0];
+  if(!sec) return '';
+  return sec.groups.map(function(g){
+    var items = (g.items||[]).map(function(it){
+      // Items starting with a digit + letter (e.g., "2a.") render as sub-items
+      if(/^\d+[a-z]\./.test(String(it).trim())){
+        return '<ul style="margin:.1rem 0;padding-left:0;list-style:none"><li style="color:var(--dim);font-size:.8rem">'+resolveTokens(it)+'</li></ul>';
+      }
+      return '<li>'+resolveTokens(it)+'</li>';
+    }).join('');
+    return '<h3 class="lr-h">'+(g.header||'')+'</h3><ol class="lr-list">'+items+'</ol>';
+  }).join('');
+}
+function renderRulesDocFaq(){
+  RULES_DOC = RULES_DOC || loadRulesDoc();
+  return '<h3 class="lr-h">FAQ</h3>' + (RULES_DOC.faq||[]).map(function(qa){
+    return '<div class="lr-q"><b>Q: '+resolveTokens(qa.q)+'</b></div>'+
+           '<div class="lr-a">'+resolveTokens(qa.a)+'</div>';
+  }).join('');
+}
+function refreshRulesDisplayPanes(){
+  var basics = document.getElementById('lr-basics');
+  if(basics) basics.innerHTML = renderRulesDocPane('basics');
+  var contracts = document.getElementById('lr-contracts');
+  if(contracts) contracts.innerHTML = renderRulesDocPane('contracts');
+  var arb = document.getElementById('lr-arb');
+  if(arb) arb.innerHTML = renderRulesDocPane('arb');
+  var faq = document.getElementById('lr-faq');
+  if(faq) faq.innerHTML = renderRulesDocFaq();
+}
+
 // V28.5.73: League Rules modal
 function openLeagueRulesDisplay(){
-  function setText(id,v){var el=document.getElementById(id);if(el)el.textContent=String(v);}
-  setText('lr-season', CURRENT_SEASON);
-  setText('lr-current-cap', CURRENT_SEASON);
-  setText('lr-cap-amt', getBaseCap().toFixed(1));
-  setText('lr-cap-growth', (RULES.capGrowth*100).toFixed(1));
-  setText('lr-il-disc', ((1-RULES.irDiscount)*100).toFixed(0));
-  setText('lr-disc', ((1-RULES.discount)*100).toFixed(1));
-  setText('lr-esc', ((RULES.escalator-1)*100).toFixed(1));
-  setText('lr-projyrs', RULES.projYears);
-  setText('lr-arb', RULES.arb.toFixed(2));
+  RULES_DOC = loadRulesDoc();
+  refreshRulesDisplayPanes();
   setLeagueRulesTab('basics');
   openModal('leagueRulesDisplay');
+}
+// V28.5.75: rules-display editor
+var _RD_EDIT = null;
+var _RD_TAB = 'basics';
+function openRulesDocEditor(){
+  _RD_EDIT = JSON.parse(JSON.stringify(loadRulesDoc()));
+  _RD_TAB = 'basics';
+  renderRulesEditor();
+  openModal('rulesDocEditor');
+}
+function setRulesEditorTab(t){
+  // Commit visible inputs back to _RD_EDIT before switching
+  commitEditorInputs();
+  _RD_TAB = t;
+  document.querySelectorAll('#rulesDocEditor .lr-tab').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-ed-tab')===t);
+  });
+  renderRulesEditor();
+}
+function _esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function renderRulesEditor(){
+  var host = document.getElementById('rd-editor');
+  if(!host) return;
+  var html = '';
+  if(_RD_TAB === 'faq'){
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">'+
+            '<div style="font-family:Barlow Condensed,sans-serif;letter-spacing:1.5px;color:#e8c84b;font-size:.9rem">FAQ ENTRIES</div>'+
+            '<button class="set-btn" style="padding:.25rem .55rem;font-size:.7rem" onclick="addFaqEntry()">+ Add</button>'+
+            '</div>';
+    (_RD_EDIT.faq||[]).forEach(function(qa, fi){
+      html += '<div style="border:1px solid var(--bdr);border-radius:8px;padding:.6rem;margin-bottom:.6rem">'+
+              '<div style="font-size:.65rem;color:var(--dim);margin-bottom:.2rem;letter-spacing:1px">Q:</div>'+
+              '<input class="rule-input" id="rd-faq-q-'+fi+'" value="'+_esc(qa.q)+'" style="width:100%;font-size:.8rem;padding:.4rem .55rem;margin-bottom:.4rem"/>'+
+              '<div style="font-size:.65rem;color:var(--dim);margin-bottom:.2rem;letter-spacing:1px">A:</div>'+
+              '<textarea class="rule-input" id="rd-faq-a-'+fi+'" rows="2" style="width:100%;font-size:.78rem;padding:.4rem .55rem;font-family:inherit;resize:vertical">'+_esc(qa.a)+'</textarea>'+
+              '<div style="margin-top:.4rem;text-align:right"><button onclick="removeFaqEntry('+fi+')" style="background:none;border:1px solid var(--bdr);color:var(--dim);font-size:.7rem;padding:.2rem .55rem;border-radius:6px;cursor:pointer">Remove</button></div>'+
+              '</div>';
+    });
+    host.innerHTML = html;
+    return;
+  }
+  var sec = _RD_EDIT.sections.filter(function(s){return s.tab===_RD_TAB;})[0];
+  if(!sec){ host.innerHTML='<div style="color:var(--dim)">No section</div>'; return; }
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">'+
+          '<div style="font-family:Barlow Condensed,sans-serif;letter-spacing:1.5px;color:#e8c84b;font-size:.9rem">'+_esc(sec.title.toUpperCase())+'</div>'+
+          '<button class="set-btn" style="padding:.25rem .55rem;font-size:.7rem" onclick="addRulesGroup()">+ Add Section</button>'+
+          '</div>';
+  (sec.groups||[]).forEach(function(g, gi){
+    html += '<div style="border:1px solid var(--bdr);border-radius:8px;padding:.6rem;margin-bottom:.7rem">'+
+            '<div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.5rem">'+
+              '<input class="rule-input" id="rd-h-'+gi+'" value="'+_esc(g.header)+'" placeholder="Section header" style="flex:1;font-size:.82rem;padding:.4rem .55rem;font-weight:600"/>'+
+              '<button onclick="removeRulesGroup('+gi+')" style="background:none;border:1px solid var(--bdr);color:var(--dim);font-size:.7rem;padding:.25rem .55rem;border-radius:6px;cursor:pointer">Delete</button>'+
+            '</div>';
+    (g.items||[]).forEach(function(it, ii){
+      html += '<div style="display:flex;gap:.4rem;align-items:flex-start;margin-bottom:.35rem">'+
+              '<textarea class="rule-input" id="rd-i-'+gi+'-'+ii+'" rows="2" style="flex:1;font-size:.78rem;padding:.35rem .55rem;font-family:inherit;resize:vertical">'+_esc(it)+'</textarea>'+
+              '<button onclick="removeRulesItem('+gi+','+ii+')" style="background:none;border:1px solid var(--bdr);color:var(--dim);font-size:.65rem;padding:.25rem .45rem;border-radius:6px;cursor:pointer;flex-shrink:0;align-self:center">✕</button>'+
+              '</div>';
+    });
+    html += '<button onclick="addRulesItem('+gi+')" style="background:none;border:1px dashed var(--bdr);color:var(--dim);font-size:.7rem;padding:.3rem .6rem;border-radius:6px;cursor:pointer;width:100%;margin-top:.3rem">+ Add Item</button>'+
+            '</div>';
+  });
+  host.innerHTML = html;
+}
+function commitEditorInputs(){
+  if(!_RD_EDIT) return;
+  if(_RD_TAB === 'faq'){
+    (_RD_EDIT.faq||[]).forEach(function(qa, fi){
+      var qEl = document.getElementById('rd-faq-q-'+fi);
+      var aEl = document.getElementById('rd-faq-a-'+fi);
+      if(qEl) qa.q = qEl.value;
+      if(aEl) qa.a = aEl.value;
+    });
+    return;
+  }
+  var sec = _RD_EDIT.sections.filter(function(s){return s.tab===_RD_TAB;})[0];
+  if(!sec) return;
+  (sec.groups||[]).forEach(function(g, gi){
+    var hEl = document.getElementById('rd-h-'+gi);
+    if(hEl) g.header = hEl.value;
+    (g.items||[]).forEach(function(_, ii){
+      var iEl = document.getElementById('rd-i-'+gi+'-'+ii);
+      if(iEl) g.items[ii] = iEl.value;
+    });
+  });
+}
+function addRulesItem(gi){
+  commitEditorInputs();
+  var sec = _RD_EDIT.sections.filter(function(s){return s.tab===_RD_TAB;})[0];
+  if(!sec) return;
+  if(!sec.groups[gi].items) sec.groups[gi].items = [];
+  sec.groups[gi].items.push('');
+  renderRulesEditor();
+}
+function removeRulesItem(gi,ii){
+  commitEditorInputs();
+  var sec = _RD_EDIT.sections.filter(function(s){return s.tab===_RD_TAB;})[0];
+  if(!sec) return;
+  sec.groups[gi].items.splice(ii,1);
+  renderRulesEditor();
+}
+function addRulesGroup(){
+  commitEditorInputs();
+  var sec = _RD_EDIT.sections.filter(function(s){return s.tab===_RD_TAB;})[0];
+  if(!sec) return;
+  sec.groups.push({header:'New Section', items:['']});
+  renderRulesEditor();
+}
+function removeRulesGroup(gi){
+  if(!confirm('Delete this section and its items?')) return;
+  commitEditorInputs();
+  var sec = _RD_EDIT.sections.filter(function(s){return s.tab===_RD_TAB;})[0];
+  if(!sec) return;
+  sec.groups.splice(gi,1);
+  renderRulesEditor();
+}
+function addFaqEntry(){
+  commitEditorInputs();
+  _RD_EDIT.faq = _RD_EDIT.faq || [];
+  _RD_EDIT.faq.push({q:'New question?', a:'New answer.'});
+  renderRulesEditor();
+}
+function removeFaqEntry(fi){
+  if(!confirm('Delete this FAQ entry?')) return;
+  commitEditorInputs();
+  _RD_EDIT.faq.splice(fi,1);
+  renderRulesEditor();
+}
+function saveRulesDocFromEditor(){
+  commitEditorInputs();
+  RULES_DOC = _RD_EDIT;
+  saveRulesDocAll();
+  closeModal('rulesDocEditor');
+  refreshRulesDisplayPanes();
+  showToast('\u2713 Rules display saved','green',2000);
+}
+function resetRulesDocToDefault(){
+  if(!confirm('Reset rules display to defaults? This will overwrite all custom edits.')) return;
+  _RD_EDIT = JSON.parse(JSON.stringify(DEFAULT_RULES_DOC));
+  renderRulesEditor();
 }
 function setLeagueRulesTab(tab){
   ['basics','contracts','arb','faq'].forEach(function(t){
@@ -4836,6 +5115,21 @@ if(window.startDraftListeners)setTimeout(window.startDraftListeners,1500);
 setTimeout(function(){
   try{
     if(window.startSalariesListener){
+      // V28.5.75: rules-doc sync
+      if(window.startRulesDocListener){
+        window.startRulesDocListener(function(o){
+          if(!o||!o.sections) return;
+          if(JSON.stringify(o)===JSON.stringify(RULES_DOC)) return;
+          RULES_DOC = o;
+          try{localStorage.setItem('dyn28_rules_doc',JSON.stringify(RULES_DOC));}catch(e){}
+          if(document.getElementById('leagueRulesDisplay').classList.contains('open')) refreshRulesDisplayPanes();
+        });
+      }
+      if(window.loadRulesDocCloud){
+        window.loadRulesDocCloud().then(function(o){
+          if(o&&o.sections){RULES_DOC=o;try{localStorage.setItem('dyn28_rules_doc',JSON.stringify(RULES_DOC));}catch(e){}}
+        }).catch(function(e){});
+      }
       // V28.5.67: cap overrides sync
       if(window.startCapOverridesListener){
         window.startCapOverridesListener(function(o){
@@ -6581,7 +6875,7 @@ window.toggleDebugOverlay = function(){
       <button class="lr-tab" data-tab="arb" onclick="setLeagueRulesTab('arb')">Arbitration</button>
       <button class="lr-tab" data-tab="faq" onclick="setLeagueRulesTab('faq')">FAQ</button>
     </div>
-    <div class="modal-body" style="max-height:65vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1rem 1.2rem">
+    <div class="modal-body" style="max-height:65vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1rem 1rem 1rem .7rem">
       <div id="lr-basics" class="lr-pane">
         <h3 class="lr-h">1. The basics</h3>
         <ol class="lr-list">
@@ -6669,6 +6963,30 @@ window.toggleDebugOverlay = function(){
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeModal('leagueRulesDisplay')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- V28.5.75: Rules Display Text editor (PIN-gated by Settings) -->
+<div class="modal-overlay" id="rulesDocEditor" onclick="closeModalOutside(event,'rulesDocEditor')">
+  <div class="modal-box" style="max-width:760px;width:96vw">
+    <div class="modal-header"><h2>Edit Rules Display</h2><p>Change wording, add/remove rules and FAQ entries. Tokens like {SEASON}, {CAP_AMT}, {ARB} resolve to live values.</p></div>
+    <div style="display:flex;gap:.3rem;padding:0 1rem;border-bottom:1px solid var(--bdr);overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <button class="lr-tab active" data-ed-tab="basics" onclick="setRulesEditorTab('basics')">Roster &amp; Cap</button>
+      <button class="lr-tab" data-ed-tab="contracts" onclick="setRulesEditorTab('contracts')">Contracts</button>
+      <button class="lr-tab" data-ed-tab="arb" onclick="setRulesEditorTab('arb')">Arbitration</button>
+      <button class="lr-tab" data-ed-tab="faq" onclick="setRulesEditorTab('faq')">FAQ</button>
+    </div>
+    <div class="modal-body" style="max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1rem">
+      <div id="rd-editor"></div>
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:.5rem">
+      <button class="btn-primary" onclick="saveRulesDocFromEditor()">Save</button>
+      <button class="btn-secondary" onclick="resetRulesDocToDefault()">Reset to Default</button>
+      <button class="btn-secondary" onclick="closeModal('rulesDocEditor')">Cancel</button>
+    </div>
+    <div style="font-size:.7rem;color:var(--dim);padding:.4rem 1.2rem 1rem;line-height:1.5">
+      HTML allowed: &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt;. Tokens resolved at display: <b>{SEASON}</b>, <b>{CAP_AMT}</b>, <b>{CAP_GROWTH}</b>, <b>{IL_DISC}</b>, <b>{DISC}</b>, <b>{ESC}</b>, <b>{PROJ_YRS}</b>, <b>{ARB}</b>.
     </div>
   </div>
 </div>
