@@ -744,6 +744,21 @@ window.saveManualArbCloud = async function(list){
   if(!window._db) return;
   try{await setDoc(doc(db,'league','manualArb'),{data:JSON.stringify(list||[]),updated:new Date().toISOString()});}catch(e){console.warn('[manualArb] save failed',e);}
 };
+window.saveCapOverridesCloud = async function(obj){
+  if(!window._db) return;
+  try{await setDoc(doc(db,'league','capOverrides'),{data:JSON.stringify(obj||{}),updated:new Date().toISOString()});}catch(e){console.warn('[capOv] save failed',e);}
+};
+window.loadCapOverridesCloud = async function(){
+  if(!window._db) return null;
+  try{var snap=await getDoc(doc(db,'league','capOverrides'));if(snap.exists())return JSON.parse(snap.data().data);}catch(e){}
+  return null;
+};
+window.startCapOverridesListener = function(callback){
+  if(!window._db){ setTimeout(function(){window.startCapOverridesListener(callback);}, 600); return; }
+  onSnapshot(doc(db,'league','capOverrides'),function(snap){
+    if(snap.exists()){try{var o=JSON.parse(snap.data().data);if(typeof callback==='function')callback(o);}catch(e){}}
+  });
+};
 window.loadManualArbCloud = async function(){
   if(!window._db) return null;
   try{var snap=await getDoc(doc(db,'league','manualArb'));if(snap.exists())return JSON.parse(snap.data().data);}catch(e){console.warn('[manualArb] load failed',e);}
@@ -927,7 +942,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.66</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.67</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1346,7 +1361,16 @@ function ARB(){return RULES.arb;}
 var CURRENT_SEASON=parseInt(localStorage.getItem('dyn26_season')||'2026');
 function buildYRS(){var y=[];for(var i=0;i<10;i++)y.push(CURRENT_SEASON+i);return y;}
 var YRS=buildYRS();
-function getBaseCap(){return RULES.baseCap*Math.pow(1+RULES.capGrowth,CURRENT_SEASON-2026);}
+var CAP_OVERRIDES={};
+try{ CAP_OVERRIDES=JSON.parse(localStorage.getItem('dyn28_cap_overrides')||'{}')||{}; }catch(e){ CAP_OVERRIDES={}; }
+function saveCapOverrides(){try{localStorage.setItem('dyn28_cap_overrides',JSON.stringify(CAP_OVERRIDES));}catch(e){}try{if(window.saveCapOverridesCloud)window.saveCapOverridesCloud(CAP_OVERRIDES);}catch(e){}}
+// V28.5.67: Cap for a given season. Explicit per-year override wins; else 2026 base grown forward.
+function capForSeason(season){
+  var ov=CAP_OVERRIDES[String(season)];
+  if(ov!==undefined&&ov!==null&&!isNaN(parseFloat(ov))) return parseFloat(ov);
+  return RULES.baseCap*Math.pow(1+RULES.capGrowth,season-2026);
+}
+function getBaseCap(){return capForSeason(CURRENT_SEASON);}
 var LEAGUE_ID=69029411;
 var SLOT_MAP={"0":"C","1":"1B","2":"2B","3":"3B","4":"SS","5":"OF","6":"OF","7":"OF","8":"OF","9":"OF","10":"UTIL","11":"UTIL","12":"UTIL","13":"SP","14":"RP","15":"P","16":"Bench","17":"IL","18":"IL","19":"NA"};
 var DEFAULT_TEAMS_CONFIG={"Jaren":1,"Biscuit":2,"Morgan":3,"John M":4,"Linn":5,"John H":6,"Davis":7,"Dawson":8};
@@ -1462,7 +1486,7 @@ function calcSal(aav,contract,yi,carried,onIR){
 }
 function playerSals(tn,p,i){var c=getC(tn,i);var carried=isCarried(tn,i);var onIR=(p.slot==='IL'||p.slot==='IR'||p.slotId===17||p.slotId===18);return YRS.map(function(_,yi){return calcSal(p.aav,c,yi,carried,onIR);});}
 function teamTotals(tn){return YRS.map(function(_,yi){var base=(ROSTER[tn]||[]).reduce(function(s,p,i){var v=playerSals(tn,p,i)[yi];return v!==null?s+v:s;},0);var dc=(typeof deadCapForYear==='function')?deadCapForYear(tn,yi):0;var tc=(typeof tradeCashForYear==='function')?tradeCashForYear(tn,yi):0;return base+dc+tc;});}
-function capY(yi){return getBaseCap()*Math.pow(1+RULES.capGrowth,yi);}
+function capY(yi){var season=CURRENT_SEASON+yi;var ov=CAP_OVERRIDES[String(season)];if(ov!==undefined&&ov!==null&&!isNaN(parseFloat(ov)))return parseFloat(ov);return getBaseCap()*Math.pow(1+RULES.capGrowth,yi);}
 function fs(v){if(v===null||v===undefined)return '\u2014';var n=parseFloat(v);if(isNaN(n)||n===0)return '\u2014';return n.toFixed(1);}
 function fsN(v){if(v===null||v===undefined)return '\u2014';var n=parseFloat(v);if(isNaN(n)||n===0)return '\u2014';return n.toFixed(1);}
 var toastTimer=null;
@@ -1672,8 +1696,19 @@ function doAdvanceSeason(){
 }
 function undoAdvanceSeason(){if(CURRENT_SEASON<=2026){showToast('Already at 2026','red',2000);return;}Object.keys(CONTRACTS).forEach(function(k){var e=CONTRACTS[k];if(e&&e.carried){e.years=(parseInt(e.years)||0)+1;e.carried=false;}});try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}CURRENT_SEASON--;localStorage.setItem('dyn26_season',String(CURRENT_SEASON));YRS=buildYRS();teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateSeasonUI();showToast('\u21A9 Reverted to '+CURRENT_SEASON,'yellow',3000);}
 var RULE_DEFS=[{key:'arb',label:'ARB Salary',sub:'Flat rate for ARB players ($M)',step:'0.01'},{key:'discount',label:'Year-0 Discount',sub:'Multiplier for new contract yr 0 (e.g. 0.875)',step:'0.001'},{key:'escalator',label:'Annual Escalator',sub:'Salary multiplier per year after yr 0',step:'0.001'},{key:'irDiscount',label:'IL/IR Discount',sub:'Current-year salary multiplier for IL/IR slot players (e.g. 0.5 = 50%)',step:'0.01'},{key:'baseCap',label:'Base Cap ($M)',sub:'Salary cap starting in 2026',step:'1'},{key:'capGrowth',label:'Cap Growth Rate',sub:'Annual increase e.g. 0.021 = 2.1%',step:'0.001'},{key:'projYears',label:'Projection Years',sub:'Number of salary columns',step:'1'},{key:'rosterMax',label:'Max Roster Size',sub:'Rows parsed per team from Excel',step:'1'}];
-function buildRulesFields(){var el=document.getElementById('rulesFields');if(!el)return;el.innerHTML=RULE_DEFS.map(function(d){return '<div class="rule-row"><div><div class="rule-lbl">'+d.label+'</div><div class="rule-sub">'+d.sub+'</div></div><input type="number" class="rule-input" id="rule-'+d.key+'" step="'+d.step+'" value="'+RULES[d.key]+'"></div>';}).join('');}
-function saveLeagueRules(){var ok=true;RULE_DEFS.forEach(function(d){var inp=document.getElementById('rule-'+d.key);if(!inp)return;var v=parseFloat(inp.value);if(isNaN(v)||v<=0)ok=false;else RULES[d.key]=v;});if(!ok){showToast('Invalid value','red',2000);return;}saveRules();YRS=buildYRS();if(currentTeam){teamBuilt[currentTeam]=false;document.getElementById('rosterBody').innerHTML='';buildTeamTable(currentTeam);updateTeamCells(currentTeam);}renderLeague();updateSeasonUI();document.getElementById('rulesSaveStatus').textContent='\u2713 Saved at '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});showToast('\u2713 Rules saved','green',2000);}
+function buildRulesFields(){var el=document.getElementById('rulesFields');if(!el)return;el.innerHTML=RULE_DEFS.map(function(d){
+  var val=RULES[d.key];var lbl=d.label;var sub=d.sub;
+  if(d.key==='baseCap'){val=getBaseCap();lbl='Salary Cap ('+CURRENT_SEASON+')';sub='Cap for the '+CURRENT_SEASON+' season \u2014 editing changes this year only';}
+  return '<div class="rule-row"><div><div class="rule-lbl">'+lbl+'</div><div class="rule-sub">'+sub+'</div></div><input type="number" class="rule-input" id="rule-'+d.key+'" step="'+d.step+'" value="'+val+'"></div>';
+}).join('');}
+function saveLeagueRules(){var ok=true;var newBaseCap=null;RULE_DEFS.forEach(function(d){var inp=document.getElementById('rule-'+d.key);if(!inp)return;var v=parseFloat(inp.value);if(isNaN(v)||v<=0){ok=false;return;}if(d.key==='baseCap'){newBaseCap=v;}else{RULES[d.key]=v;}});if(!ok){showToast('Invalid value','red',2000);return;}
+  // V28.5.67: Base Cap edit sets the cap for the CURRENT season (per-year override).
+  if(newBaseCap!==null){
+    if(CURRENT_SEASON===2026){RULES.baseCap=newBaseCap;delete CAP_OVERRIDES['2026'];}
+    else{CAP_OVERRIDES[String(CURRENT_SEASON)]=newBaseCap;}
+    saveCapOverrides();
+  }
+  saveRules();YRS=buildYRS();if(currentTeam){teamBuilt[currentTeam]=false;document.getElementById('rosterBody').innerHTML='';buildTeamTable(currentTeam);updateTeamCells(currentTeam);}renderLeague();updateSeasonUI();document.getElementById('rulesSaveStatus').textContent='\u2713 Saved at '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});showToast('\u2713 Rules saved','green',2000);}
 function resetLeagueRules(){RULES=Object.assign({},DEFAULT_RULES);saveRules();buildRulesFields();YRS=buildYRS();if(currentTeam){teamBuilt[currentTeam]=false;document.getElementById('rosterBody').innerHTML='';buildTeamTable(currentTeam);updateTeamCells(currentTeam);}renderLeague();updateSeasonUI();document.getElementById('rulesSaveStatus').textContent='\u2713 Reset to defaults';showToast('Rules reset','yellow',2000);}
 var _currentQueryKey=null;
 var DEFAULT_QUERIES={};
@@ -2147,6 +2182,7 @@ function fetchFreeAgents(){
             statLine.AVG= rawStats['2'];
             statLine.H  = rawStats['1'];
             statLine.K  = rawStats['27'];
+            statLine.E  = rawStats['18'];
           }
         }
 
@@ -2196,7 +2232,7 @@ if(rStats[0] && rStats[0].stats){
   var isPit=(p.defaultPositionId===1 || p.defaultPositionId===14 || p.defaultPositionId===15);
   var sl={};
   if(isPit){sl.W=raw['32'];sl.SV=raw['37'];sl.K=raw['33'];sl.ERA=raw['47'];sl.IP=raw['34'];}
-  else{sl.HR=raw['5'];sl.R=raw['20'];sl.RBI=raw['21'];sl.SB=raw['23'];sl.AVG=raw['2'];sl.K=raw['27'];}
+  else{sl.HR=raw['5'];sl.R=raw['20'];sl.RBI=raw['21'];sl.SB=raw['23'];sl.AVG=raw['2'];sl.K=raw['27'];sl.E=raw['18'];}
   ROSTERED_PLAYER_STATS[name]={statLine:sl,isPitcher:isPit,pts:rStats[0].appliedTotal||null,avg:rStats[0].appliedAverage||null};
 }
 players.push({slot:slot,name:name,aav:aav,age:age2,injured:injured,slotId:slotId,fa:salE&&salE.expires?salE.expires:'?'});});players.sort(function(a,b){return a.slotId-b.slotId;});newRoster[teamName]=players;}).catch(function(){errors++;if(ROSTER[teamName])newRoster[teamName]=ROSTER[teamName];}).finally(function(){done++;if(done===teamNames.length){isFetching=false;try{localStorage.setItem('dyn28_rostered_stats',JSON.stringify(ROSTERED_PLAYER_STATS));}catch(e){}if(typeof checkForDrops==='function'){try{checkForDrops();}catch(e){}}if(btn)btn.classList.remove('spinning');if(Object.keys(newRoster).length){ROSTER=newRoster;saveCachedRoster();teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateLastUpdated();if(errors===0)showToast('\u2713 Rosters updated from ESPN','green',2500);else showToast('\u26A0 Updated '+(teamNames.length-errors)+'/'+teamNames.length+' teams','yellow',3000);}else showToast('Failed to fetch rosters','red',3000);}});});}
@@ -2613,7 +2649,53 @@ function showContracts(){
   buildContractsTab();
 }
 
+// V28.5.67: Compute league averages for each stat, split by hitters/pitchers,
+// across every player that currently has a stat line loaded (rostered + FA pool).
+// Returns {hit:{HR:avg,...}, pit:{W:avg,...}}.
+function computeStatAverages(){
+  var hitSums={}, hitCnt={}, pitSums={}, pitCnt={};
+  function acc(sums,cnt,sl){
+    if(!sl)return;
+    Object.keys(sl).forEach(function(k){
+      var v=sl[k];
+      if(typeof v!=='number'||isNaN(v))return;
+      sums[k]=(sums[k]||0)+v; cnt[k]=(cnt[k]||0)+1;
+    });
+  }
+  // FA pool
+  (typeof FA_DATA!=='undefined'?FA_DATA:[]||[]).forEach(function(f){
+    if(!f||!f.StatLine)return;
+    if(f.IsPitcher) acc(pitSums,pitCnt,f.StatLine); else acc(hitSums,hitCnt,f.StatLine);
+  });
+  // Rostered cache
+  if(typeof ROSTERED_PLAYER_STATS!=='undefined'&&ROSTERED_PLAYER_STATS){
+    Object.keys(ROSTERED_PLAYER_STATS).forEach(function(nm){
+      var r=ROSTERED_PLAYER_STATS[nm];
+      if(!r||!r.statLine)return;
+      if(r.isPitcher) acc(pitSums,pitCnt,r.statLine); else acc(hitSums,hitCnt,r.statLine);
+    });
+  }
+  var hit={}, pit={};
+  Object.keys(hitSums).forEach(function(k){ if(hitCnt[k]) hit[k]=hitSums[k]/hitCnt[k]; });
+  Object.keys(pitSums).forEach(function(k){ if(pitCnt[k]) pit[k]=pitSums[k]/pitCnt[k]; });
+  return {hit:hit, pit:pit};
+}
+// Stats where LOWER is better (green = below average): ERA, WHIP, errors, hitter strikeouts.
+var STAT_LOWER_BETTER={ERA:true,WHIP:true,E:true,K_hit:true};
+// Color a stat value vs league average. statKey is the logical stat; lowerKey
+// distinguishes hitter-K from pitcher-K. Returns a hex color or '' (white/avg).
+function statColor(val,avg,statKey){
+  if(typeof val!=='number'||isNaN(val)||avg===undefined||avg===null||isNaN(avg))return '';
+  // 4% dead-band around the average counts as "average" -> white
+  var band=Math.abs(avg)*0.04;
+  var diff=val-avg;
+  if(Math.abs(diff)<=band) return '';
+  var lower=STAT_LOWER_BETTER[statKey];
+  var better = lower ? (diff<0) : (diff>0);
+  return better ? '#22c55e' : '#e84b4b';
+}
 function buildContractsTab(){
+  var STAT_AVGS=computeStatAverages();
   var expiring=[], mustDrop=[], unsigned=[], arbPlayers=[];
   Object.keys(TEAMS_CONFIG).forEach(function(tn){
     (ROSTER[tn]||[]).forEach(function(p,i){
@@ -2632,7 +2714,10 @@ function buildContractsTab(){
       var isPitcher = faEntry ? faEntry.IsPitcher : (rosterStat ? rosterStat.isPitcher : (p.slot==='SP'||p.slot==='RP'));
       var pts = faEntry ? (faEntry.TotalPoints||0) : (rosterStat ? (rosterStat.pts||0) : 0);
       var avg = faEntry ? faEntry.AvgPoints : (rosterStat ? rosterStat.avg : null);
-      var item={name:p.name,slot:p.slot,team:tn,aav:p.aav,fa:p.fa,cNum:cNum,salStr:salStr,i:i,isArb:isArb,statLine:statLine,isPitcher:isPitcher,pts:pts,avg:avg};
+      // V28.5.67: raw AAV (no discounts/multipliers) for expiring re-draft cost
+      var _rawN=(p.aav==='ARB')?ARB():(parseFloat(p.aav)||0);
+      var rawAavStr=(p.aav==='ARB')?('ARB ($'+ARB().toFixed(1)+'M)'):('$'+_rawN.toFixed(1)+'M');
+      var item={name:p.name,slot:p.slot,team:tn,aav:p.aav,fa:p.fa,cNum:cNum,salStr:salStr,rawAavStr:rawAavStr,i:i,isArb:isArb,statLine:statLine,isPitcher:isPitcher,pts:pts,avg:avg};
       if(needsDrop) mustDrop.push(item);
       else if(cval===''&&!isArb) unsigned.push(item);
       else if(cNum===1&&!needsDrop) expiring.push(item);
@@ -2651,7 +2736,7 @@ function buildContractsTab(){
   document.getElementById('unsigned-count').textContent=unsigned.length;
   document.getElementById('arb-count').textContent=arbPlayers.length;
 
-  function renderList(items, elId, emptyMsg, accentColor){
+  function renderList(items, elId, emptyMsg, accentColor, showRawAav){
     var el=document.getElementById(elId);
     if(!el)return;
     if(!items.length){
@@ -2663,31 +2748,40 @@ function buildContractsTab(){
       var slotDisp=(p.slot==='Bench'||p.slot==='BN')?'BN':p.slot;
       var detail=p.cNum>0?p.cNum+' yr left':'FA after '+CURRENT_SEASON;
       if(p.isArb) detail='ARB'+(p.fa&&p.fa!='?'?' · FA '+p.fa:'');
-      // V28.5.27: Build stat line
+      // V28.5.67: Build stat line with full labels, errors, and avg-based coloring.
       var statBits=[];
+      function bit(txt,val,avgKey,colorKey){
+        var c=statColor(val, (colorKey==='pit'?STAT_AVGS.pit[avgKey]:STAT_AVGS.hit[avgKey]), colorKey==='pit'?avgKey:(avgKey==='K'?'K_hit':avgKey));
+        statBits.push(c?'<span style="color:'+c+'">'+txt+'</span>':'<span>'+txt+'</span>');
+      }
       if(p.statLine){
+        var s=p.statLine;
         if(p.isPitcher){
-          if(typeof p.statLine.W==='number') statBits.push(p.statLine.W+'W');
-          if(typeof p.statLine.SV==='number' && p.statLine.SV>0) statBits.push(p.statLine.SV+'SV');
-          if(typeof p.statLine.K==='number') statBits.push(p.statLine.K+'K');
-          if(typeof p.statLine.ERA==='number') statBits.push(p.statLine.ERA.toFixed(2)+' ERA');
+          if(typeof s.W==='number') bit(s.W+'W', s.W, 'W', 'pit');
+          if(typeof s.SV==='number' && s.SV>0) bit(s.SV+'SV', s.SV, 'SV', 'pit');
+          if(typeof s.K==='number') bit(s.K+' '+(s.K===1?'strikeout':'strikeouts'), s.K, 'K', 'pit');
+          if(typeof s.ERA==='number') bit(s.ERA.toFixed(2)+' ERA', s.ERA, 'ERA', 'pit');
         } else {
-          if(typeof p.statLine.HR==='number') statBits.push(p.statLine.HR+'HR');
-          if(typeof p.statLine.R==='number') statBits.push(p.statLine.R+'R');
-          if(typeof p.statLine.RBI==='number') statBits.push(p.statLine.RBI+'RBI');
-          if(typeof p.statLine.SB==='number' && p.statLine.SB>0) statBits.push(p.statLine.SB+'SB');
-          if(typeof p.statLine.AVG==='number') statBits.push('.'+Math.round(p.statLine.AVG*1000));
-          if(typeof p.statLine.K==='number') statBits.push(p.statLine.K+'K');
+          if(typeof s.HR==='number') bit(s.HR+'HR', s.HR, 'HR', 'hit');
+          if(typeof s.R==='number') bit(s.R+'R', s.R, 'R', 'hit');
+          if(typeof s.RBI==='number') bit(s.RBI+'RBI', s.RBI, 'RBI', 'hit');
+          if(typeof s.SB==='number' && s.SB>0) bit(s.SB+'SB', s.SB, 'SB', 'hit');
+          if(typeof s.AVG==='number') bit('.'+Math.round(s.AVG*1000), s.AVG, 'AVG', 'hit');
+          if(typeof s.K==='number') bit(s.K+' '+(s.K===1?'strikeout':'strikeouts'), s.K, 'K', 'hit');
+          if(typeof s.E==='number') bit(s.E+' '+(s.E===1?'error':'errors'), s.E, 'E', 'hit');
         }
       }
       var statHtml = statBits.length ? '<div style="font-family:DM Mono,monospace;font-size:.6rem;color:#94a3b8;margin-top:.15rem;letter-spacing:.5px">'+statBits.join(' · ')+'</div>' : '';
       var rightHtml;
-      if(p.pts && p.pts>0){
+      if(showRawAav){
+        // V28.5.67: expiring players show RAW AAV (re-draft cost), not discounted salary
+        rightHtml = '<div class="cr-aav" style="color:'+accentColor+'">'+p.rawAavStr+'</div><div class="cr-detail">re-draft AAV</div>';
+      } else if(p.pts && p.pts>0){
         rightHtml = '<div class="cr-aav" style="color:#e8c84b">'+p.pts.toFixed(1)+'</div><div class="cr-detail">'+(p.avg?p.avg.toFixed(1)+' /gm':'ESPN pts')+'</div>';
       } else {
         rightHtml = '<div class="cr-aav" style="color:'+accentColor+'">'+p.salStr+'</div><div class="cr-detail">'+detail+'</div>';
       }
-      var teamLine = p.team+' · '+p.salStr+' · '+detail;
+      var teamLine = showRawAav ? (p.team+' · '+p.rawAavStr+' AAV · '+detail) : (p.team+' · '+p.salStr+' · '+detail);
       return '<div class="contract-row" onclick="showTeam(\''+p.team.replace(/\\'/g,'')+'\')">'+
         '<div class="cr-slot-wrap"><span class="slot '+sk+'">'+slotDisp+'</span></div>'+
         '<div class="cr-info">'+
@@ -2702,7 +2796,7 @@ function buildContractsTab(){
     }).join('');
   }
 
-  renderList(expiring,'expiring-list','None expiring this season','#f97316');
+  renderList(expiring,'expiring-list','None expiring this season','#f97316',true);
   renderList(mustDrop,'drop-list','No drops required','#e84b4b');
   renderList(unsigned,'unsigned-list','All players have contracts','#94a3b8');
   renderList(arbPlayers,'arb-contracts-list','No ARB players on rosters','#e8c84b');
@@ -4184,6 +4278,22 @@ if(window.startDraftListeners)setTimeout(window.startDraftListeners,1500);
 setTimeout(function(){
   try{
     if(window.startSalariesListener){
+      // V28.5.67: cap overrides sync
+      if(window.startCapOverridesListener){
+        window.startCapOverridesListener(function(o){
+          if(!o||typeof o!=='object')return;
+          if(JSON.stringify(o)===JSON.stringify(CAP_OVERRIDES))return;
+          CAP_OVERRIDES=o;
+          try{localStorage.setItem('dyn28_cap_overrides',JSON.stringify(CAP_OVERRIDES));}catch(e){}
+          if(typeof renderLeague==='function')renderLeague();
+          if(currentTeam&&typeof teamBuilt!=='undefined'){teamBuilt[currentTeam]=false;var rb=document.getElementById('rosterBody');if(rb)rb.innerHTML='';if(typeof buildTeamTable==='function')buildTeamTable(currentTeam);if(typeof updateTeamCells==='function')updateTeamCells(currentTeam);}
+        });
+      }
+      if(window.loadCapOverridesCloud){
+        window.loadCapOverridesCloud().then(function(o){
+          if(o&&typeof o==='object'){CAP_OVERRIDES=o;try{localStorage.setItem('dyn28_cap_overrides',JSON.stringify(CAP_OVERRIDES));}catch(e){}if(typeof renderLeague==='function')renderLeague();}
+        }).catch(function(e){});
+      }
       // V28.5.66: manual ARB list sync
       if(window.startManualArbListener){
         window.startManualArbListener(function(list){
