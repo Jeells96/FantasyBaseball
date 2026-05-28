@@ -973,7 +973,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.78</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.79</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1858,8 +1858,32 @@ function removeFaqEntry(fi){
 }
 function saveRulesDocFromEditor(){
   commitEditorInputs();
-  RULES_DOC = _RD_EDIT;
+  // V28.5.79: deep copy so RULES_DOC and _RD_EDIT don't share references.
+  RULES_DOC = JSON.parse(JSON.stringify(_RD_EDIT));
+  // Mark the time of save so the Firebase listener can ignore echoes for a moment.
+  window._RD_LAST_LOCAL_SAVE = Date.now();
   saveRulesDocAll();
+  console.log('[rulesDoc] saved', {
+    sections: RULES_DOC.sections.length,
+    items: RULES_DOC.sections.reduce(function(s,sec){return s+sec.groups.reduce(function(t,g){return t+(g.items||[]).length;},0);},0),
+    faq: (RULES_DOC.faq||[]).length,
+    bytes: JSON.stringify(RULES_DOC).length
+  });
+  // Verify the localStorage write actually landed.
+  try{
+    var roundtrip = localStorage.getItem('dyn28_rules_doc_v4');
+    if(!roundtrip){
+      console.error('[rulesDoc] localStorage write returned nothing!');
+      showToast('Save failed: localStorage unavailable','red',3000);
+      return;
+    }
+    var parsed = JSON.parse(roundtrip);
+    if(JSON.stringify(parsed) !== JSON.stringify(RULES_DOC)){
+      console.error('[rulesDoc] localStorage roundtrip mismatch');
+    }
+  }catch(e){
+    console.error('[rulesDoc] localStorage verify failed:', e);
+  }
   closeModal('rulesDocEditor');
   refreshRulesDisplayPanes();
   showToast('\u2713 Rules display saved','green',2000);
@@ -5145,7 +5169,13 @@ setTimeout(function(){
       if(window.startRulesDocListener){
         window.startRulesDocListener(function(o){
           if(!o||!o.sections) return;
+          // V28.5.79: ignore listener echo within 5s of a local save
+          if(window._RD_LAST_LOCAL_SAVE && (Date.now()-window._RD_LAST_LOCAL_SAVE)<5000){
+            console.log('[rulesDoc] ignoring listener echo (within 5s of local save)');
+            return;
+          }
           if(JSON.stringify(o)===JSON.stringify(RULES_DOC)) return;
+          console.log('[rulesDoc] applying remote update from listener');
           RULES_DOC = o;
           try{localStorage.setItem('dyn28_rules_doc_v4',JSON.stringify(RULES_DOC));}catch(e){}
           if(document.getElementById('leagueRulesDisplay').classList.contains('open')) refreshRulesDisplayPanes();
@@ -5153,7 +5183,22 @@ setTimeout(function(){
       }
       if(window.loadRulesDocCloud){
         window.loadRulesDocCloud().then(function(o){
-          if(o&&o.sections){RULES_DOC=o;try{localStorage.setItem('dyn28_rules_doc_v4',JSON.stringify(RULES_DOC));}catch(e){}}
+          if(!o||!o.sections) return;
+          // V28.5.79: if there's a local save newer than cloud, prefer local.
+          var localStr=null; try{localStr=localStorage.getItem('dyn28_rules_doc_v4');}catch(e){}
+          if(localStr){
+            try{
+              var localObj=JSON.parse(localStr);
+              if(localObj && localObj.sections && JSON.stringify(localObj)!==JSON.stringify(o)){
+                console.log('[rulesDoc] local copy differs from cloud, pushing local up');
+                RULES_DOC = localObj;
+                if(window.saveRulesDocCloud) window.saveRulesDocCloud(RULES_DOC);
+                return;
+              }
+            }catch(e){}
+          }
+          RULES_DOC = o;
+          try{localStorage.setItem('dyn28_rules_doc_v4',JSON.stringify(RULES_DOC));}catch(e){}
         }).catch(function(e){});
       }
       // V28.5.67: cap overrides sync
