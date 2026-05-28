@@ -942,7 +942,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.67</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.68</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -2646,42 +2646,184 @@ function showContracts(){
   document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
   var nb=document.getElementById('nav-contracts');
   if(nb)nb.classList.add('active');
+  populateStatsYearSelect();
+  ensureMLBStatsLoaded();
   buildContractsTab();
 }
+// V28.5.68: helpers for year dropdown, refresh, and on-change
+function populateStatsYearSelect(){
+  var el = document.getElementById('ctrYear');
+  if(!el) return;
+  var cur = STATS_SEASON;
+  var thisYear = (new Date()).getFullYear();
+  var yrs = [];
+  for(var y = thisYear; y >= 2020; y--) yrs.push(y);
+  el.innerHTML = yrs.map(function(y){ return '<option value="'+y+'"'+(y===cur?' selected':'')+'>'+y+'</option>'; }).join('');
+}
+function ensureMLBStatsLoaded(){
+  var s=document.getElementById('ctrStatus'); if(s) s.textContent='Loading stats…';
+  fetchMLBStats(STATS_SEASON).then(function(){
+    if(s) s.textContent=Object.keys(MLB_STATS).length+' players · '+STATS_SEASON;
+    buildContractsTab();
+  }).catch(function(e){ if(s) s.textContent='Stats load failed'; });
+}
+function refreshMLBStats(){
+  var s=document.getElementById('ctrStatus'); if(s) s.textContent='Fetching MLB stats…';
+  fetchMLBStats(STATS_SEASON, true).then(function(){
+    if(s) s.textContent=Object.keys(MLB_STATS).length+' players · '+STATS_SEASON;
+    buildContractsTab();
+    showToast('✓ Stats refreshed','green',2000);
+  }).catch(function(){
+    if(s) s.textContent='Fetch failed';
+    showToast('Stats fetch failed','red',2500);
+  });
+}
+function onStatsYearChange(){
+  var el=document.getElementById('ctrYear'); if(!el)return;
+  var y = parseInt(el.value,10); if(isNaN(y)) return;
+  STATS_SEASON = y;
+  try{localStorage.setItem('dyn28_stats_season', String(y));}catch(e){}
+  // Try cache first
+  loadMLBStatsCache(y);
+  if(Object.keys(MLB_STATS).length > 100){
+    var s=document.getElementById('ctrStatus'); if(s) s.textContent=Object.keys(MLB_STATS).length+' players · '+y;
+    buildContractsTab();
+  } else {
+    ensureMLBStatsLoaded();
+  }
+}
+
+// V28.5.68: MLB Stats API integration. Pulls hitting, pitching, and fielding
+// stats for a chosen season; matches by player name to our ROSTER/SAL_MAP.
+var STATS_SEASON = parseInt(localStorage.getItem('dyn28_stats_season')||CURRENT_SEASON,10);
+if(isNaN(STATS_SEASON)) STATS_SEASON = CURRENT_SEASON;
+var MLB_STATS = {};
+function loadMLBStatsCache(season){
+  try{ var s=localStorage.getItem('dyn28_mlb_stats_'+season); if(s){ MLB_STATS=JSON.parse(s)||{}; return true; } }catch(e){}
+  MLB_STATS = {}; return false;
+}
+loadMLBStatsCache(STATS_SEASON);
+function saveMLBStatsCache(season){ try{ localStorage.setItem('dyn28_mlb_stats_'+season, JSON.stringify(MLB_STATS)); }catch(e){} }
+// Normalize a name for matching: lowercase, strip accents/punct, drop trailing 'jr'/'sr'/'ii'/'iii'.
+function normName(name){
+  return String(name||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[.,'\u2019]/g,'')
+    .replace(/\s+(jr|sr|ii|iii|iv)\s*$/,'')
+    .replace(/\s+/g,' ').trim();
+}
+function getMlbStat(name){
+  if(!name) return null;
+  var k = normName(name);
+  return MLB_STATS[k] || null;
+}
+var _mlbFetchPromise = null;
+function fetchMLBStats(season, force){
+  season = parseInt(season||STATS_SEASON,10);
+  if(!force && _mlbFetchPromise) return _mlbFetchPromise;
+  if(!force){
+    // Cache hit: skip refetch
+    var cached=null;
+    try{ var s=localStorage.getItem('dyn28_mlb_stats_'+season); if(s) cached=JSON.parse(s); }catch(e){}
+    if(cached && Object.keys(cached).length > 100){
+      MLB_STATS = cached; STATS_SEASON = season;
+      try{localStorage.setItem('dyn28_stats_season', String(season));}catch(e){}
+      return Promise.resolve(MLB_STATS);
+    }
+  }
+  var base = 'https://statsapi.mlb.com/api/v1/stats?stats=season&playerPool=All&limit=2000&sportIds=1&season='+season;
+  function go(grp){ return fetch(base+'&group='+grp).then(function(r){return r.json();}).catch(function(e){console.warn('[mlb '+grp+'] fetch failed',e);return null;}); }
+  _mlbFetchPromise = Promise.all([go('hitting'), go('pitching'), go('fielding')]).then(function(res){
+    var byName = {};
+    function ingest(blob, key){
+      if(!blob||!blob.stats) return;
+      blob.stats.forEach(function(grp){
+        (grp.splits||[]).forEach(function(sp){
+          var nm = sp.player && (sp.player.fullName || sp.player.fullFMLName);
+          if(!nm) return;
+          var k = normName(nm);
+          if(!byName[k]) byName[k] = {name:nm};
+          // Merge fielding errors: pick the MAX (each position is a row; total = sum)
+          if(key==='fielding'){
+            if(!byName[k].fielding) byName[k].fielding = {errors:0,assists:0,putOuts:0,games:0};
+            var f=byName[k].fielding;
+            f.errors  += parseInt(sp.stat.errors)||0;
+            f.assists += parseInt(sp.stat.assists)||0;
+            f.putOuts += parseInt(sp.stat.putOuts)||0;
+            f.games    = Math.max(f.games, parseInt(sp.stat.games)||0);
+          } else if(key==='hitting'){
+            byName[k].hitting = sp.stat || {};
+          } else if(key==='pitching'){
+            byName[k].pitching = sp.stat || {};
+          }
+        });
+      });
+    }
+    ingest(res[0],'hitting');
+    ingest(res[1],'pitching');
+    ingest(res[2],'fielding');
+    MLB_STATS = byName;
+    STATS_SEASON = season;
+    saveMLBStatsCache(season);
+    try{localStorage.setItem('dyn28_stats_season', String(season));}catch(e){}
+    console.log('[mlb] loaded '+Object.keys(MLB_STATS).length+' players for '+season);
+    _mlbFetchPromise = null;
+    return MLB_STATS;
+  }).catch(function(e){ console.error('[mlb] fetch failed',e); _mlbFetchPromise=null; throw e; });
+  return _mlbFetchPromise;
+}
+// Position helper: does this roster slot indicate a starting pitcher specifically?
+function isStartingPitcher(slot){ return slot==='SP'; }
+function isReliever(slot){ return slot==='RP'; }
+function isPitcherSlot(slot){ return slot==='SP'||slot==='RP'||slot==='P'; }
 
 // V28.5.67: Compute league averages for each stat, split by hitters/pitchers,
 // across every player that currently has a stat line loaded (rostered + FA pool).
 // Returns {hit:{HR:avg,...}, pit:{W:avg,...}}.
 function computeStatAverages(){
-  var hitSums={}, hitCnt={}, pitSums={}, pitCnt={};
-  function acc(sums,cnt,sl){
-    if(!sl)return;
-    Object.keys(sl).forEach(function(k){
-      var v=sl[k];
-      if(typeof v!=='number'||isNaN(v))return;
-      sums[k]=(sums[k]||0)+v; cnt[k]=(cnt[k]||0)+1;
-    });
-  }
-  // FA pool
-  (typeof FA_DATA!=='undefined'?FA_DATA:[]||[]).forEach(function(f){
-    if(!f||!f.StatLine)return;
-    if(f.IsPitcher) acc(pitSums,pitCnt,f.StatLine); else acc(hitSums,hitCnt,f.StatLine);
+  // V28.5.68: averages over MLB_STATS, only players with meaningful sample size.
+  // For hitters: avg over all with hitting.atBats >= 50.
+  // For pitchers: avg over all with pitching.inningsPitched >= 10.
+  var hits={HR:[],R:[],RBI:[],SB:[],AVG:[],SO:[],E:[]};
+  var pits={W:[],SV:[],BS:[],SO:[],ERA:[],WHIP:[]};
+  Object.keys(MLB_STATS).forEach(function(k){
+    var p = MLB_STATS[k];
+    if(p.hitting){
+      var h=p.hitting;
+      var ab = parseInt(h.atBats)||0;
+      if(ab >= 50){
+        if(typeof h.homeRuns==='number') hits.HR.push(h.homeRuns);
+        if(typeof h.runs==='number') hits.R.push(h.runs);
+        if(typeof h.rbi==='number') hits.RBI.push(h.rbi);
+        if(typeof h.stolenBases==='number') hits.SB.push(h.stolenBases);
+        if(typeof h.avg==='string' || typeof h.avg==='number'){var a=parseFloat(h.avg);if(!isNaN(a))hits.AVG.push(a);}
+        if(typeof h.strikeOuts==='number') hits.SO.push(h.strikeOuts);
+      }
+    }
+    if(p.fielding && (parseInt((p.fielding||{}).games)||0) >= 20){
+      hits.E.push(p.fielding.errors||0);
+    }
+    if(p.pitching){
+      var q=p.pitching;
+      var ip = parseFloat(q.inningsPitched)||0;
+      if(ip >= 10){
+        if(typeof q.wins==='number') pits.W.push(q.wins);
+        if(typeof q.saves==='number') pits.SV.push(q.saves);
+        if(typeof q.blownSaves==='number') pits.BS.push(q.blownSaves);
+        if(typeof q.strikeOuts==='number') pits.SO.push(q.strikeOuts);
+        if(typeof q.era==='string'||typeof q.era==='number'){var e=parseFloat(q.era);if(!isNaN(e)&&e<99)pits.ERA.push(e);}
+        if(typeof q.whip==='string'||typeof q.whip==='number'){var w=parseFloat(q.whip);if(!isNaN(w)&&w<10)pits.WHIP.push(w);}
+      }
+    }
   });
-  // Rostered cache
-  if(typeof ROSTERED_PLAYER_STATS!=='undefined'&&ROSTERED_PLAYER_STATS){
-    Object.keys(ROSTERED_PLAYER_STATS).forEach(function(nm){
-      var r=ROSTERED_PLAYER_STATS[nm];
-      if(!r||!r.statLine)return;
-      if(r.isPitcher) acc(pitSums,pitCnt,r.statLine); else acc(hitSums,hitCnt,r.statLine);
-    });
-  }
+  function mean(arr){ if(!arr.length)return undefined; var s=0; for(var i=0;i<arr.length;i++)s+=arr[i]; return s/arr.length; }
   var hit={}, pit={};
-  Object.keys(hitSums).forEach(function(k){ if(hitCnt[k]) hit[k]=hitSums[k]/hitCnt[k]; });
-  Object.keys(pitSums).forEach(function(k){ if(pitCnt[k]) pit[k]=pitSums[k]/pitCnt[k]; });
+  Object.keys(hits).forEach(function(k){ var m=mean(hits[k]); if(m!==undefined) hit[k]=m; });
+  Object.keys(pits).forEach(function(k){ var m=mean(pits[k]); if(m!==undefined) pit[k]=m; });
   return {hit:hit, pit:pit};
 }
 // Stats where LOWER is better (green = below average): ERA, WHIP, errors, hitter strikeouts.
-var STAT_LOWER_BETTER={ERA:true,WHIP:true,E:true,K_hit:true};
+var STAT_LOWER_BETTER={ERA:true,WHIP:true,E:true,SO_hit:true,BS:true};
 // Color a stat value vs league average. statKey is the logical stat; lowerKey
 // distinguishes hitter-K from pitcher-K. Returns a hex color or '' (white/avg).
 function statColor(val,avg,statKey){
@@ -2707,29 +2849,82 @@ function buildContractsTab(){
       var isArb=isArbPlayer(p);
       var sal0=playerSals(tn,p,i)[0];
       var salStr=sal0!==null?'$'+sal0.toFixed(1)+'M':'—';
-      // V28.5.27: lookup ESPN stats (FA pool first, then rostered-player cache)
+      // V28.5.68: lookup MLB stats by normalized name + keep ESPN points for ranking
+      var mlb = getMlbStat(p.name);
+      var slotIsP = isPitcherSlot(p.slot);
       var faEntry=(FA_DATA||[]).find(function(f){return f.Player===p.name;});
       var rosterStat = (typeof ROSTERED_PLAYER_STATS!=='undefined') ? ROSTERED_PLAYER_STATS[p.name] : null;
-      var statLine = (faEntry && faEntry.StatLine) || (rosterStat && rosterStat.statLine) || null;
-      var isPitcher = faEntry ? faEntry.IsPitcher : (rosterStat ? rosterStat.isPitcher : (p.slot==='SP'||p.slot==='RP'));
       var pts = faEntry ? (faEntry.TotalPoints||0) : (rosterStat ? (rosterStat.pts||0) : 0);
       var avg = faEntry ? faEntry.AvgPoints : (rosterStat ? rosterStat.avg : null);
+      // Decide hitter vs pitcher purely from roster slot.
+      var isPitcher = slotIsP;
+      // Build a normalized stat object so sorting is straightforward.
+      var stats = {};
+      if(mlb){
+        if(mlb.hitting){
+          stats.HR  = mlb.hitting.homeRuns;
+          stats.R   = mlb.hitting.runs;
+          stats.RBI = mlb.hitting.rbi;
+          stats.SB  = mlb.hitting.stolenBases;
+          stats.AVG = parseFloat(mlb.hitting.avg);
+          stats.SO_hit = mlb.hitting.strikeOuts;
+        }
+        if(mlb.fielding){ stats.E = mlb.fielding.errors; }
+        if(mlb.pitching){
+          stats.W      = mlb.pitching.wins;
+          stats.SV     = mlb.pitching.saves;
+          stats.BS     = mlb.pitching.blownSaves;
+          stats.SO_pit = mlb.pitching.strikeOuts;
+          stats.ERA    = parseFloat(mlb.pitching.era);
+          stats.WHIP   = parseFloat(mlb.pitching.whip);
+        }
+      }
       // V28.5.67: raw AAV (no discounts/multipliers) for expiring re-draft cost
       var _rawN=(p.aav==='ARB')?ARB():(parseFloat(p.aav)||0);
       var rawAavStr=(p.aav==='ARB')?('ARB ($'+ARB().toFixed(1)+'M)'):('$'+_rawN.toFixed(1)+'M');
-      var item={name:p.name,slot:p.slot,team:tn,aav:p.aav,fa:p.fa,cNum:cNum,salStr:salStr,rawAavStr:rawAavStr,i:i,isArb:isArb,statLine:statLine,isPitcher:isPitcher,pts:pts,avg:avg};
+      var item={name:p.name,slot:p.slot,team:tn,aav:p.aav,aavN:_rawN,fa:p.fa,cNum:cNum,salStr:salStr,rawAavStr:rawAavStr,i:i,isArb:isArb,mlb:mlb,stats:stats,isPitcher:isPitcher,pts:pts,avg:avg};
       if(needsDrop) mustDrop.push(item);
       else if(cval===''&&!isArb) unsigned.push(item);
       else if(cNum===1&&!needsDrop) expiring.push(item);
       if(isArb) arbPlayers.push(item);
     });
   });
-  // V28.5.27: default sort by ESPN pts descending
-  var byPts = function(a,b){return (b.pts||0)-(a.pts||0);};
-  expiring.sort(byPts);
-  mustDrop.sort(byPts);
-  unsigned.sort(byPts);
-  arbPlayers.sort(byPts);
+  // V28.5.68: position filter + chosen sort
+  var posF = (document.getElementById('ctrPos')||{}).value || '';
+  var sortF = (document.getElementById('ctrSort')||{}).value || 'pts';
+  function passFilter(it){
+    if(!posF) return true;
+    if(posF==='IR') return it.slot==='IL'||it.slot==='IR';
+    if(posF==='OF') return it.slot==='OF';
+    return it.slot===posF;
+  }
+  expiring = expiring.filter(passFilter);
+  mustDrop = mustDrop.filter(passFilter);
+  unsigned = unsigned.filter(passFilter);
+  arbPlayers = arbPlayers.filter(passFilter);
+  function getSortVal(it){
+    switch(sortF){
+      case 'name': return it.name;
+      case 'aav': return -(it.aavN||0);
+      case 'pts': return -(it.pts||0);
+      case 'HR': case 'R': case 'RBI': case 'SB': case 'AVG': case 'SO_hit':
+      case 'E': case 'W': case 'SV': case 'BS': case 'SO_pit': case 'ERA': case 'WHIP':
+        var v = it.stats ? it.stats[sortF] : undefined;
+        if(v===undefined||v===null||(typeof v==='number'&&isNaN(v))) return Infinity;
+        // ERA/WHIP/E/BS/SO_hit: lower-is-better -> sort ascending; else descending.
+        var lower = (sortF==='ERA'||sortF==='WHIP'||sortF==='E'||sortF==='BS'||sortF==='SO_hit');
+        return lower ? v : -v;
+      default: return -(it.pts||0);
+    }
+  }
+  function sortBy(arr){
+    arr.sort(function(a,b){
+      var av=getSortVal(a), bv=getSortVal(b);
+      if(typeof av==='string'||typeof bv==='string'){return String(av).localeCompare(String(bv));}
+      return av-bv;
+    });
+  }
+  sortBy(expiring); sortBy(mustDrop); sortBy(unsigned); sortBy(arbPlayers);
 
   document.getElementById('expiring-count').textContent=expiring.length;
   document.getElementById('drop-count').textContent=mustDrop.length;
@@ -2748,28 +2943,31 @@ function buildContractsTab(){
       var slotDisp=(p.slot==='Bench'||p.slot==='BN')?'BN':p.slot;
       var detail=p.cNum>0?p.cNum+' yr left':'FA after '+CURRENT_SEASON;
       if(p.isArb) detail='ARB'+(p.fa&&p.fa!='?'?' · FA '+p.fa:'');
-      // V28.5.67: Build stat line with full labels, errors, and avg-based coloring.
+      // V28.5.68: MLB-sourced stat line with smart per-position fields + coloring.
       var statBits=[];
-      function bit(txt,val,avgKey,colorKey){
-        var c=statColor(val, (colorKey==='pit'?STAT_AVGS.pit[avgKey]:STAT_AVGS.hit[avgKey]), colorKey==='pit'?avgKey:(avgKey==='K'?'K_hit':avgKey));
+      function bit(txt, val, statKey, group){
+        // group is 'hit' or 'pit' for which average set to use. statKey identifies stat for coloring.
+        var avgVal = (group==='pit') ? STAT_AVGS.pit[(statKey==='SO_pit'?'SO':statKey)] : STAT_AVGS.hit[(statKey==='SO_hit'?'SO':statKey)];
+        var c = statColor(val, avgVal, statKey);
         statBits.push(c?'<span style="color:'+c+'">'+txt+'</span>':'<span>'+txt+'</span>');
       }
-      if(p.statLine){
-        var s=p.statLine;
-        if(p.isPitcher){
-          if(typeof s.W==='number') bit(s.W+'W', s.W, 'W', 'pit');
-          if(typeof s.SV==='number' && s.SV>0) bit(s.SV+'SV', s.SV, 'SV', 'pit');
-          if(typeof s.K==='number') bit(s.K+' '+(s.K===1?'strikeout':'strikeouts'), s.K, 'K', 'pit');
-          if(typeof s.ERA==='number') bit(s.ERA.toFixed(2)+' ERA', s.ERA, 'ERA', 'pit');
-        } else {
-          if(typeof s.HR==='number') bit(s.HR+'HR', s.HR, 'HR', 'hit');
-          if(typeof s.R==='number') bit(s.R+'R', s.R, 'R', 'hit');
-          if(typeof s.RBI==='number') bit(s.RBI+'RBI', s.RBI, 'RBI', 'hit');
-          if(typeof s.SB==='number' && s.SB>0) bit(s.SB+'SB', s.SB, 'SB', 'hit');
-          if(typeof s.AVG==='number') bit('.'+Math.round(s.AVG*1000), s.AVG, 'AVG', 'hit');
-          if(typeof s.K==='number') bit(s.K+' '+(s.K===1?'strikeout':'strikeouts'), s.K, 'K', 'hit');
-          if(typeof s.E==='number') bit(s.E+' '+(s.E===1?'error':'errors'), s.E, 'E', 'hit');
-        }
+      var s = p.stats || {};
+      if(p.isPitcher){
+        // Pitcher fields. Saves only for relievers; blown saves always shown when nonzero.
+        if(typeof s.W==='number') bit(s.W+' '+(s.W===1?'win':'wins'), s.W, 'W', 'pit');
+        if(isReliever(p.slot) && typeof s.SV==='number') bit(s.SV+' '+(s.SV===1?'save':'saves'), s.SV, 'SV', 'pit');
+        if(isReliever(p.slot) && typeof s.BS==='number' && s.BS>0) bit(s.BS+' blown', s.BS, 'BS', 'pit');
+        if(typeof s.SO_pit==='number') bit(s.SO_pit+' '+(s.SO_pit===1?'strikeout':'strikeouts'), s.SO_pit, 'SO_pit', 'pit');
+        if(typeof s.ERA==='number' && !isNaN(s.ERA)) bit(s.ERA.toFixed(2)+' ERA', s.ERA, 'ERA', 'pit');
+        if(typeof s.WHIP==='number' && !isNaN(s.WHIP)) bit(s.WHIP.toFixed(2)+' WHIP', s.WHIP, 'WHIP', 'pit');
+      } else {
+        if(typeof s.HR==='number') bit(s.HR+'HR', s.HR, 'HR', 'hit');
+        if(typeof s.R==='number') bit(s.R+'R', s.R, 'R', 'hit');
+        if(typeof s.RBI==='number') bit(s.RBI+'RBI', s.RBI, 'RBI', 'hit');
+        if(typeof s.SB==='number' && s.SB>0) bit(s.SB+'SB', s.SB, 'SB', 'hit');
+        if(typeof s.AVG==='number' && !isNaN(s.AVG)) bit('.'+Math.round(s.AVG*1000), s.AVG, 'AVG', 'hit');
+        if(typeof s.SO_hit==='number') bit(s.SO_hit+' '+(s.SO_hit===1?'strikeout':'strikeouts'), s.SO_hit, 'SO_hit', 'hit');
+        if(typeof s.E==='number') bit(s.E+' '+(s.E===1?'error':'errors'), s.E, 'E', 'hit');
       }
       var statHtml = statBits.length ? '<div style="font-family:DM Mono,monospace;font-size:.6rem;color:#94a3b8;margin-top:.15rem;letter-spacing:.5px">'+statBits.join(' · ')+'</div>' : '';
       var rightHtml;
@@ -5270,6 +5468,40 @@ function undoSalaryImport(){
   <div class="pg-wrap">
     <div class="pg-title">Contracts</div>
     <div class="pg-sub">League-wide contract status</div>
+
+    <!-- V28.5.68: Stats controls -->
+    <div id="contractsControls" style="display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:.5rem 0 .9rem;font-family:'Barlow Condensed',sans-serif">
+      <select id="ctrYear" onchange="onStatsYearChange()" class="db-sel" style="min-width:90px">
+        <option value="">Year</option>
+      </select>
+      <select id="ctrPos" onchange="buildContractsTab()" class="db-sel" style="min-width:90px">
+        <option value="">All Pos</option>
+        <option value="C">C</option><option value="1B">1B</option><option value="2B">2B</option>
+        <option value="3B">3B</option><option value="SS">SS</option><option value="OF">OF</option>
+        <option value="UTIL">UTIL</option><option value="SP">SP</option><option value="RP">RP</option>
+        <option value="Bench">Bench</option><option value="IR">IL/IR</option>
+      </select>
+      <select id="ctrSort" onchange="buildContractsTab()" class="db-sel" style="min-width:110px">
+        <option value="pts">Sort: Points</option>
+        <option value="aav">Sort: AAV</option>
+        <option value="name">Sort: Name</option>
+        <option value="HR">Sort: HR</option>
+        <option value="R">Sort: Runs</option>
+        <option value="RBI">Sort: RBI</option>
+        <option value="SB">Sort: SB</option>
+        <option value="AVG">Sort: AVG</option>
+        <option value="SO_hit">Sort: Hitter K</option>
+        <option value="E">Sort: Errors</option>
+        <option value="W">Sort: Wins</option>
+        <option value="SV">Sort: Saves</option>
+        <option value="BS">Sort: Blown SV</option>
+        <option value="SO_pit">Sort: Pitcher K</option>
+        <option value="ERA">Sort: ERA</option>
+        <option value="WHIP">Sort: WHIP</option>
+      </select>
+      <button id="ctrRefresh" onclick="refreshMLBStats()" class="set-btn" style="padding:.35rem .6rem;font-size:.7rem;min-width:auto">↻ Refresh</button>
+      <span id="ctrStatus" style="font-size:.65rem;color:var(--dim);margin-left:auto"></span>
+    </div>
 
     <div class="contracts-block">
       <div class="contracts-head">
