@@ -655,11 +655,13 @@ input,select,textarea,input[type="text"],input[type="number"],input[type="email"
 /* V28.5.74: League Rules display modal */
 .lr-tab{background:transparent;border:none;color:var(--dim);font-family:'Barlow Condensed',sans-serif;font-size:.78rem;letter-spacing:.5px;padding:.6rem .8rem;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0}
 .lr-tab.active{color:#e8c84b;border-bottom-color:#e8c84b}
-.lr-pane{font-size:.85rem;line-height:1.55;color:var(--txt)}
-.lr-pane h3.lr-h{font-family:'Barlow Condensed',sans-serif;font-size:.95rem;letter-spacing:1.5px;color:#e8c84b;margin:1rem 0 .3rem;text-transform:uppercase}
+.lr-pane{font-size:.82rem;line-height:1.5;color:var(--txt);overflow-wrap:break-word;word-wrap:break-word}
+.lr-pane h3.lr-h{font-family:'Barlow Condensed',sans-serif;font-size:.9rem;letter-spacing:1.2px;color:#e8c84b;margin:.85rem 0 .25rem;text-transform:uppercase}
 .lr-pane h3.lr-h:first-child{margin-top:0}
-.lr-pane .lr-list{padding-left:1.8rem;margin:.3rem 0 .8rem;list-style-position:outside}
-.lr-pane .lr-list>li::marker{color:var(--brt);font-weight:600}
+.lr-pane .lr-list{padding-left:1.4rem;margin:.25rem 0 .65rem;list-style-position:outside}
+.lr-pane .lr-list>li{margin-bottom:.35rem;padding-left:.15rem}
+.lr-pane .lr-list>li::marker{color:#e8c84b;font-weight:600}
+.lr-pane .lr-sub{margin:.15rem 0 .25rem 0;padding-left:1.4rem;color:var(--dim);font-size:.76rem;line-height:1.45}
 .lr-pane .lr-list>li{margin-bottom:.4rem}
 .lr-pane .lr-list ul{padding-left:1.1rem;margin:.3rem 0;list-style-type:none;color:var(--dim);font-size:.8rem}
 .lr-pane .lr-list ul li{margin-bottom:.2rem}
@@ -971,7 +973,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.75</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.77</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1570,78 +1572,70 @@ function closeModal(id){var el=document.getElementById(id);if(el)el.classList.re
 // Items support {TOKEN} placeholders that resolve to live RULES values at render.
 var DEFAULT_RULES_DOC = {
   sections: [
-    { tab:'basics', title:'Roster & Cap', groups: [
-        { header:'1. The basics', items:[
-          '<b>8 teams</b>, dynasty format.',
-          '<b>25 players per roster</b> (configurable in Settings).',
-          'Current season is <b>{SEASON}</b>. Use the <i>Advance Season</i> button when the league rolls over.'
-        ]},
-        { header:'2. Salary cap', items:[
-          'The <b>{CURRENT_CAP}</b> cap is <b>${CAP_AMT}M</b>.',
-          'Cap grows <b>{CAP_GROWTH}%</b> per year.',
-          '2a. You can override the cap for a specific season by editing the Salary Cap field in Settings while viewing that season.',
-          'You can go over the cap on paper but you must be cap-compliant before opening day.'
-        ]},
-        { header:'3. Roster positions', items:[
-          'Lineup slots come from ESPN: C, 1B, 2B, 3B, SS, OF, UTIL, SP, RP, Bench, IL/IR.',
-          '<b>IL/IR salary discount: {IL_DISC}%</b> off in the current year only (default 50%).'
+    { tab:'basics', title:'Salary Cap', groups: [
+        { header:'1. Salary Cap', items:[
+          'The Salary Cap is set by Jaren (starting year average).',
+          'Cap grows roughly {CAP_GROWTH}% each season but can be set manually per year.',
+          'Team rosters are locked after the final regular season game. At that point penalties will be applied for the next year\'s draft.',
+          'There will be penalties based off how much your roster exceeds the salary cap.',
+          'IL/IR slots count toward your salary cap but get a **{IL_DISC}% salary discount** in the current year only.'
         ]}
     ]},
     { tab:'contracts', title:'Contracts', groups: [
-        { header:'4. Signing a player', items:[
-          'When you sign someone to a new dynasty contract, pick a length (years).',
-          '<b>Year 0 discount: {DISC}%</b> off the player\'s MLB AAV.',
-          '4a. So a $20M MLB AAV with 12.5% off becomes <b>$17.5M</b> in year 0 of your contract.',
-          '<b>Annual escalator: {ESC}%</b> each year after year 0.',
-          '4b. That $17.5M year 0 grows to roughly $19.7M year 1, $22.2M year 2, and so on.'
+        { header:'2. Signing a player', items:[
+          'When you sign a player, you can pick a contract length in years. Contracts lock after the MLB trade deadline.',
+          'If a player signs an extension mid-season, fantasy impacts won\'t apply until the next season.',
+          '**Year 1 of any new contract gets a {DISC}% discount** off the player\'s MLB AAV.',
+          'Example: a player with a $20M MLB AAV signed to a 3-year deal costs **$17.5M** in year 1.',
+          'After year 1, the salary escalates **{ESC}% each year**.',
+          'Example: that $17.5M becomes ~$19.7M in year 2, ~$22.2M in year 3.'
         ]},
-        { header:'5. Carried contracts', items:[
-          'Contracts you didn\'t sign yourself (trades, kept from prior owners) are <b>carried</b>.',
-          '<b>No year-0 discount</b> on carried contracts — you pay full AAV with whatever escalators were already on it.',
-          'You cannot edit a carried contract\'s years or salary.'
+        { header:'3. Signing for 1 year vs multi-year', items:[
+          '**1-year deals** only use the year-1 discount. No escalator applies. This will help your team get under the salary cap if you need help.',
+          '**Multi-year deals** lock in escalators for every season after year 1. The escalator compounds.'
         ]},
-        { header:'6. Expiring contracts', items:[
-          'A contract with 0 years remaining must be <b>dropped or re-signed</b> before the season locks.',
-          'Re-signing is a brand-new contract — year-0 discount and escalators apply again.',
-          'The Contracts tab shows what each expiring player would cost to re-draft next year (their raw MLB AAV).'
+        { header:'4. Dropping a player under contract', items:[
+          'Free drops are allowed during the offseason while contracts are unlocked.',
+          'Once contracts lock (after the MLB trade deadline), dropping a contracted player creates a **dead cap hit equal to 125% of their current-year salary** for the current season.',
+          'Example: drop a player making $10M after contracts lock and you take a **$12.5M** dead cap hit that season.',
+          'Dead cap is a **one-time hit** — it does not roll over into future seasons.',
+          'Carried contracts (acquired via trade) follow the same rule when dropped.'
         ]},
-        { header:'7. Projection window', items:[
-          'The team page shows a <b>{PROJ_YRS}-year look-ahead</b> so you can plan future cap commitments.'
+        { header:'5. Expiring contracts', items:[
+          'When a player\'s contract reaches 0 years, you must drop them and they will be eligible to be drafted.'
+        ]},
+        { header:'6. Carried contracts (trades)', items:[
+          'When you trade for a player, you take on their **current contract as-is**.',
+          'Carried contracts do **not** get the year-1 discount. You pay whatever the previous owner\'s contract is paying that year. (Unless that player is in year 1 of a 1-year contract.)',
+          'You also inherit any remaining escalators.',
+          'You cannot edit a carried contract\'s years or salary. If you don\'t want it, you have to drop the player and eat the dead cap.',
+          'You can involve money in any trade (terms negotiated by teams involved).'
         ]}
     ]},
     { tab:'arb', title:'Arbitration', groups: [
-        { header:'8. Arbitration (ARB) players', items:[
-          'Pre-arb and arb-eligible MLB players cost a <b>flat ${ARB}M</b> regardless of their actual MLB pay.',
-          'A player is automatically treated as ARB if either:',
-          '8a. They are on a <b>1-year MLB contract for under $2.0M</b> (typical arb deal), OR',
-          '8b. They have no real salary listed (pre-arb rookies).',
-          'You can also <b>force-ARB</b> a player manually via <i>Settings → Edit ARB Players</i> for any edge case the auto-rule misses.',
-          'The manual ARB list syncs across all league members.'
+        { header:'7. ARB players', items:[
+          'Pre-arb and arb-eligible MLB players cost a **flat ${ARB}M** set by the league manager.',
+          'A player is ARB if they are on their rookie deal with no contract extension (or a player that doesn\'t have an MLB contract).',
+          'ARB is a **single-year designation**. Once a player signs a real multi-year MLB deal, they leave ARB on their next import.'
+        ]},
+        { header:'8. Signing an ARB player', items:[
+          'You **cannot sign an ARB player to a multi-year contract**, but you can keep them at the ARB rate for as long as they are on their rookie deal.',
+          'Once they sign a real contract or extension, they must be signed to a fantasy contract to remain on your team.',
+          'If an ARB player signs a deal mid-season, fantasy impacts won\'t apply until the next season.'
         ]}
     ]}
   ],
-  faq: [
-    { q:'My player got an extension and now they show up twice on Spotrac. What happens?',
-      a:'The app keeps the contract with the <b>later expiration year</b>. The old deal is dropped automatically on import.' },
-    { q:'I changed a player\'s AAV manually. Will the next import overwrite it?',
-      a:'No. Manual AAV overrides (set via the player card) are saved separately and re-applied after every import.' },
-    { q:'How are stats sourced?',
-      a:'Player stats come from the MLB Stats API. Use the year dropdown on Contracts, Draft, FA, or All Players to view different seasons.' },
-    { q:'Why does a 1-year veteran free-agent show up as ARB?',
-      a:'If the contract is 1-year and under $2.0M, the auto-rule flags it. Use Settings → Edit ARB Players to force them off ARB.' },
-    { q:'Can I set a custom cap for a specific season?',
-      a:'Yes. Advance (or rewind) to that season, then change the Salary Cap field in Settings. It overrides the formula for that year only.' },
-    { q:'What\'s the difference between Salary and Contract Years on the team page?',
-      a:'Salary is the player\'s MLB AAV (adjusted for ARB and any overrides). Contract Years is how many seasons remain on the dynasty deal you signed them to. They\'re independent.' }
-  ]
+  faq: []
 };
+
 var RULES_DOC = null;
 function loadRulesDoc(){
-  try{ var s=localStorage.getItem('dyn28_rules_doc'); if(s){ var p=JSON.parse(s); if(p&&p.sections) return p; } }catch(e){}
+  // V28.5.77: bumped to v3 to show corrected default rules.
+  try{ var s=localStorage.getItem('dyn28_rules_doc_v3'); if(s){ var p=JSON.parse(s); if(p&&p.sections) return p; } }catch(e){}
   return JSON.parse(JSON.stringify(DEFAULT_RULES_DOC));
 }
 function saveRulesDocLocal(){
-  try{ localStorage.setItem('dyn28_rules_doc', JSON.stringify(RULES_DOC)); }catch(e){}
+  try{ localStorage.setItem('dyn28_rules_doc_v3', JSON.stringify(RULES_DOC)); }catch(e){}
 }
 function saveRulesDocAll(){
   saveRulesDocLocal();
@@ -1663,26 +1657,57 @@ function resolveTokens(s){
   };
   return String(s).replace(/\{(\w+)\}/g, function(m,k){ return (tokens[k]!==undefined)?tokens[k]:m; });
 }
+// V28.5.76: convert **bold** -> <b>...</b> and *italic* -> <i>...</i>
+function mdToHtml(s){
+  if(!s) return '';
+  // Escape HTML first so users can't sneak script tags via the editor
+  var t = String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+  // Bold first (greedy non-greedy)
+  t = t.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  // Italic single-star, not adjacent to letters/digits
+  t = t.replace(/(^|[^*\w])\*([^*]+)\*([^*\w]|$)/g, '$1<i>$2</i>$3');
+  return t;
+}
 function renderRulesDocPane(tab){
   RULES_DOC = RULES_DOC || loadRulesDoc();
   var sec = RULES_DOC.sections.filter(function(s){return s.tab===tab;})[0];
   if(!sec) return '';
   return sec.groups.map(function(g){
-    var items = (g.items||[]).map(function(it){
-      // Items starting with a digit + letter (e.g., "2a.") render as sub-items
-      if(/^\d+[a-z]\./.test(String(it).trim())){
-        return '<ul style="margin:.1rem 0;padding-left:0;list-style:none"><li style="color:var(--dim);font-size:.8rem">'+resolveTokens(it)+'</li></ul>';
+    // Build a mixed list: top-level items are <li>, sub-items (lines like "8a.", "4b.")
+    // become indented sub-blocks under the previous <li>. Items starting with
+    // "Example:" are also rendered as muted sub-blocks.
+    var html = '';
+    var listOpen = false;
+    function openList(){if(!listOpen){html += '<ol class="lr-list">';listOpen=true;}}
+    function closeList(){if(listOpen){html += '</ol>';listOpen=false;}}
+    (g.items||[]).forEach(function(it){
+      var trimmed = String(it).trim();
+      var isSub = /^\d+[a-z]\./.test(trimmed) || /^Example[:\s]/i.test(trimmed);
+      if(isSub){
+        // Render outside the OL so numbering doesn't increment
+        closeList();
+        html += '<div class="lr-sub">'+mdToHtml(resolveTokens(it))+'</div>';
+      } else {
+        openList();
+        html += '<li>'+mdToHtml(resolveTokens(it))+'</li>';
       }
-      return '<li>'+resolveTokens(it)+'</li>';
-    }).join('');
-    return '<h3 class="lr-h">'+(g.header||'')+'</h3><ol class="lr-list">'+items+'</ol>';
+    });
+    closeList();
+    return '<h3 class="lr-h">'+(g.header||'')+'</h3>'+html;
   }).join('');
 }
 function renderRulesDocFaq(){
   RULES_DOC = RULES_DOC || loadRulesDoc();
-  return '<h3 class="lr-h">FAQ</h3>' + (RULES_DOC.faq||[]).map(function(qa){
-    return '<div class="lr-q"><b>Q: '+resolveTokens(qa.q)+'</b></div>'+
-           '<div class="lr-a">'+resolveTokens(qa.a)+'</div>';
+  var faq = RULES_DOC.faq||[];
+  if(!faq.length){
+    return '<h3 class="lr-h">FAQ</h3><div style="color:var(--dim);font-size:.78rem;padding:.5rem 0">No FAQ entries yet. Add some via Settings → Edit Rules Display Text.</div>';
+  }
+  return '<h3 class="lr-h">FAQ</h3>' + faq.map(function(qa){
+    return '<div class="lr-q"><b>Q: '+mdToHtml(resolveTokens(qa.q))+'</b></div>'+
+           '<div class="lr-a">'+mdToHtml(resolveTokens(qa.a))+'</div>';
   }).join('');
 }
 function refreshRulesDisplayPanes(){
@@ -5121,13 +5146,13 @@ setTimeout(function(){
           if(!o||!o.sections) return;
           if(JSON.stringify(o)===JSON.stringify(RULES_DOC)) return;
           RULES_DOC = o;
-          try{localStorage.setItem('dyn28_rules_doc',JSON.stringify(RULES_DOC));}catch(e){}
+          try{localStorage.setItem('dyn28_rules_doc_v3',JSON.stringify(RULES_DOC));}catch(e){}
           if(document.getElementById('leagueRulesDisplay').classList.contains('open')) refreshRulesDisplayPanes();
         });
       }
       if(window.loadRulesDocCloud){
         window.loadRulesDocCloud().then(function(o){
-          if(o&&o.sections){RULES_DOC=o;try{localStorage.setItem('dyn28_rules_doc',JSON.stringify(RULES_DOC));}catch(e){}}
+          if(o&&o.sections){RULES_DOC=o;try{localStorage.setItem('dyn28_rules_doc_v3',JSON.stringify(RULES_DOC));}catch(e){}}
         }).catch(function(e){});
       }
       // V28.5.67: cap overrides sync
@@ -6875,7 +6900,7 @@ window.toggleDebugOverlay = function(){
       <button class="lr-tab" data-tab="arb" onclick="setLeagueRulesTab('arb')">Arbitration</button>
       <button class="lr-tab" data-tab="faq" onclick="setLeagueRulesTab('faq')">FAQ</button>
     </div>
-    <div class="modal-body" style="max-height:65vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1rem 1rem 1rem .7rem">
+    <div class="modal-body" style="max-height:65vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:.75rem .6rem .75rem .5rem">
       <div id="lr-basics" class="lr-pane">
         <h3 class="lr-h">1. The basics</h3>
         <ol class="lr-list">
@@ -6985,8 +7010,8 @@ window.toggleDebugOverlay = function(){
       <button class="btn-secondary" onclick="resetRulesDocToDefault()">Reset to Default</button>
       <button class="btn-secondary" onclick="closeModal('rulesDocEditor')">Cancel</button>
     </div>
-    <div style="font-size:.7rem;color:var(--dim);padding:.4rem 1.2rem 1rem;line-height:1.5">
-      HTML allowed: &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt;. Tokens resolved at display: <b>{SEASON}</b>, <b>{CAP_AMT}</b>, <b>{CAP_GROWTH}</b>, <b>{IL_DISC}</b>, <b>{DISC}</b>, <b>{ESC}</b>, <b>{PROJ_YRS}</b>, <b>{ARB}</b>.
+    <div style="font-size:.72rem;color:var(--dim);padding:.4rem 1.2rem 1rem;line-height:1.6">
+      Wrap text in <b>**double stars**</b> for <b>bold</b>. Tokens that auto-fill with current values: <b>{SEASON}</b>, <b>{CAP_AMT}</b>, <b>{CAP_GROWTH}</b>, <b>{IL_DISC}</b>, <b>{DISC}</b>, <b>{ESC}</b>, <b>{ARB}</b>.
     </div>
   </div>
 </div>
