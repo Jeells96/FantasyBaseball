@@ -973,7 +973,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.79</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.80</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1857,36 +1857,19 @@ function removeFaqEntry(fi){
   renderRulesEditor();
 }
 function saveRulesDocFromEditor(){
-  commitEditorInputs();
-  // V28.5.79: deep copy so RULES_DOC and _RD_EDIT don't share references.
-  RULES_DOC = JSON.parse(JSON.stringify(_RD_EDIT));
-  // Mark the time of save so the Firebase listener can ignore echoes for a moment.
-  window._RD_LAST_LOCAL_SAVE = Date.now();
-  saveRulesDocAll();
-  console.log('[rulesDoc] saved', {
-    sections: RULES_DOC.sections.length,
-    items: RULES_DOC.sections.reduce(function(s,sec){return s+sec.groups.reduce(function(t,g){return t+(g.items||[]).length;},0);},0),
-    faq: (RULES_DOC.faq||[]).length,
-    bytes: JSON.stringify(RULES_DOC).length
-  });
-  // Verify the localStorage write actually landed.
   try{
-    var roundtrip = localStorage.getItem('dyn28_rules_doc_v4');
-    if(!roundtrip){
-      console.error('[rulesDoc] localStorage write returned nothing!');
-      showToast('Save failed: localStorage unavailable','red',3000);
-      return;
-    }
-    var parsed = JSON.parse(roundtrip);
-    if(JSON.stringify(parsed) !== JSON.stringify(RULES_DOC)){
-      console.error('[rulesDoc] localStorage roundtrip mismatch');
-    }
+    commitEditorInputs();
+    RULES_DOC = JSON.parse(JSON.stringify(_RD_EDIT));
+    window._RD_LAST_LOCAL_SAVE = Date.now();
+    saveRulesDocAll();
+    console.log('[rulesDoc] saved');
+    closeModal('rulesDocEditor');
+    refreshRulesDisplayPanes();
+    if(typeof showToast==='function') showToast('\u2713 Rules display saved','green',2000);
   }catch(e){
-    console.error('[rulesDoc] localStorage verify failed:', e);
+    console.error('[rulesDoc] save failed:', e);
+    if(typeof showToast==='function') showToast('Save failed: '+e.message,'red',3000);
   }
-  closeModal('rulesDocEditor');
-  refreshRulesDisplayPanes();
-  showToast('\u2713 Rules display saved','green',2000);
 }
 function resetRulesDocToDefault(){
   if(!confirm('Reset rules display to defaults? This will overwrite all custom edits.')) return;
@@ -7040,24 +7023,24 @@ window.toggleDebugOverlay = function(){
 
 <!-- V28.5.75: Rules Display Text editor (PIN-gated by Settings) -->
 <div class="modal-overlay" id="rulesDocEditor" onclick="closeModalOutside(event,'rulesDocEditor')">
-  <div class="modal-box" style="max-width:760px;width:96vw">
-    <div class="modal-header"><h2>Edit Rules Display</h2><p>Change wording, add/remove rules and FAQ entries. Tokens like {SEASON}, {CAP_AMT}, {ARB} resolve to live values.</p></div>
-    <div style="display:flex;gap:.3rem;padding:0 1rem;border-bottom:1px solid var(--bdr);overflow-x:auto;-webkit-overflow-scrolling:touch">
+  <div class="modal-box" style="max-width:760px;width:96vw;max-height:92vh;display:flex;flex-direction:column">
+    <div class="modal-header" style="flex-shrink:0"><h2>Edit Rules Display</h2><p>Change wording, add/remove rules and FAQ entries. Tokens like {SEASON}, {CAP_AMT}, {ARB} resolve to live values.</p></div>
+    <div style="display:flex;gap:.3rem;padding:0 1rem;border-bottom:1px solid var(--bdr);overflow-x:auto;-webkit-overflow-scrolling:touch;flex-shrink:0">
       <button class="lr-tab active" data-ed-tab="basics" onclick="setRulesEditorTab('basics')">Roster &amp; Cap</button>
       <button class="lr-tab" data-ed-tab="contracts" onclick="setRulesEditorTab('contracts')">Contracts</button>
       <button class="lr-tab" data-ed-tab="arb" onclick="setRulesEditorTab('arb')">Arbitration</button>
       <button class="lr-tab" data-ed-tab="faq" onclick="setRulesEditorTab('faq')">FAQ</button>
     </div>
-    <div class="modal-body" style="max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1rem">
+    <div class="modal-body" style="flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1rem;min-height:0">
       <div id="rd-editor"></div>
+      <div style="font-size:.7rem;color:var(--dim);padding:.8rem 0 0;line-height:1.6;border-top:1px solid var(--bdr);margin-top:1rem">
+        Wrap text in <b>**double stars**</b> for <b>bold</b>. Tokens that auto-fill: <b>{SEASON}</b>, <b>{CAP_AMT}</b>, <b>{CAP_GROWTH}</b>, <b>{IL_DISC}</b>, <b>{DISC}</b>, <b>{ESC}</b>, <b>{ARB}</b>, <b>{DEAD_CAP_PCT}</b>.
+      </div>
     </div>
-    <div class="modal-footer" style="flex-wrap:wrap;gap:.5rem">
-      <button class="btn-primary" onclick="saveRulesDocFromEditor()">Save</button>
-      <button class="btn-secondary" onclick="resetRulesDocToDefault()">Reset to Default</button>
-      <button class="btn-secondary" onclick="closeModal('rulesDocEditor')">Cancel</button>
-    </div>
-    <div style="font-size:.72rem;color:var(--dim);padding:.4rem 1.2rem 1rem;line-height:1.6">
-      Wrap text in <b>**double stars**</b> for <b>bold</b>. Tokens that auto-fill with current values: <b>{SEASON}</b>, <b>{CAP_AMT}</b>, <b>{CAP_GROWTH}</b>, <b>{IL_DISC}</b>, <b>{DISC}</b>, <b>{ESC}</b>, <b>{ARB}</b>, <b>{DEAD_CAP_PCT}</b>.
+    <div class="modal-footer" style="flex-wrap:wrap;gap:.5rem;flex-shrink:0;background:var(--bg);border-top:1px solid var(--bdr);position:-webkit-sticky;position:sticky;bottom:0">
+      <button type="button" class="btn-primary" onclick="saveRulesDocFromEditor()">Save</button>
+      <button type="button" class="btn-secondary" onclick="resetRulesDocToDefault()">Reset to Default</button>
+      <button type="button" class="btn-secondary" onclick="closeModal('rulesDocEditor')">Cancel</button>
     </div>
   </div>
 </div>
