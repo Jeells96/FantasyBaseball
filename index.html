@@ -942,12 +942,12 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.69</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.70</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
     <button class="nav-btn active" id="nav-league" onclick="showLeague()">League</button>
-    <button class="nav-btn" id="nav-db" onclick="showDB()">Salaries DB</button>
+    <button class="nav-btn" id="nav-db" onclick="showDB()">All Players</button>
     <button class="nav-btn" id="nav-fa" onclick="showFA()">Free Agents</button>
     <button class="nav-btn" id="nav-contracts" onclick="showContracts()">Contracts</button>
     <button class="nav-btn draft-tab-btn" id="nav-draft" onclick="showDraft()" style="display:none">Draft</button>
@@ -1023,8 +1023,8 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 <!-- SALARIES DB -->
 <div id="page-salaries-db" class="page">
   <div class="db-wrap">
-    <div class="pg-title">Salaries Database</div>
-    <div class="pg-sub" style="margin-bottom:1.25rem">MLB contracts &middot; 2026 season</div>
+    <div class="pg-title">All Players</div>
+    <div class="pg-sub" style="margin-bottom:1.25rem">League contracts &middot; MLB season stats</div>
     <div class="db-ctrl">
       <input type="text" class="db-search" id="dbSearch" placeholder="Search player&#8230;" oninput="renderDB()">
       <select class="db-sel" id="dbPos" onchange="renderDB()">
@@ -1044,6 +1044,25 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
         <option value="CHANGED">Changed Only</option>
         <option value="HIGHLIGHTED">All Highlights</option>
       </select>
+      <input type="number" id="dbMaxAAV" oninput="renderDB()" placeholder="Max AAV $M" min="0" step="0.5" class="db-sel" style="width:120px;padding-left:.5rem">
+      <select class="db-sel" id="dbYear" onchange="onDBYearChange()" style="min-width:90px"><option value="">Year</option></select>
+      <select class="db-sel" id="dbSortMLB" onchange="renderDB()" style="min-width:130px">
+        <option value="">Sort: column →</option>
+        <option value="HR">Sort: HR</option>
+        <option value="R">Sort: Runs</option>
+        <option value="RBI">Sort: RBI</option>
+        <option value="SB">Sort: SB</option>
+        <option value="AVG">Sort: AVG</option>
+        <option value="SO_hit">Sort: Hitter K</option>
+        <option value="E">Sort: Errors</option>
+        <option value="W">Sort: Wins</option>
+        <option value="SV">Sort: Saves</option>
+        <option value="BS">Sort: Blown SV</option>
+        <option value="SO_pit">Sort: Pitcher K</option>
+        <option value="ERA">Sort: ERA</option>
+        <option value="WHIP">Sort: WHIP</option>
+      </select>
+      <button class="fa-fetch-btn" onclick="refreshMLBStats();renderDB();" style="padding:.3rem .5rem;font-size:.7rem" title="Refresh MLB stats">↻ MLB</button>
       <span class="db-cnt" id="dbCnt"></span>
     </div>
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
@@ -1083,7 +1102,27 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
         <option value="ARB">ARB Only</option>
       </select>
       <input type="number" class="fa-search" id="faMaxSal" placeholder="Max AAV ($M)" oninput="renderFA()" min="0" step="0.5" style="width:130px">
+      <select class="fa-sel" id="faYear" onchange="onFAYearChange()" style="min-width:90px"><option value="">Year</option></select>
+      <select class="fa-sel" id="faSortMLB" onchange="renderFA()" style="min-width:130px">
+        <option value="">Sort: ESPN Pts</option>
+        <option value="aav">Sort: AAV</option>
+        <option value="name">Sort: Name</option>
+        <option value="HR">Sort: HR</option>
+        <option value="R">Sort: Runs</option>
+        <option value="RBI">Sort: RBI</option>
+        <option value="SB">Sort: SB</option>
+        <option value="AVG">Sort: AVG</option>
+        <option value="SO_hit">Sort: Hitter K</option>
+        <option value="E">Sort: Errors</option>
+        <option value="W">Sort: Wins</option>
+        <option value="SV">Sort: Saves</option>
+        <option value="BS">Sort: Blown SV</option>
+        <option value="SO_pit">Sort: Pitcher K</option>
+        <option value="ERA">Sort: ERA</option>
+        <option value="WHIP">Sort: WHIP</option>
+      </select>
       <button class="fa-fetch-btn" onclick="fetchFreeAgents()">&#8635; Refresh</button>
+      <button class="fa-fetch-btn" onclick="refreshMLBStats();renderFA();" title="Refresh MLB stats">↻ MLB</button>
       <span class="fa-cnt" id="faCnt"></span>
     </div>
     <div class="fa-tbl-wrap">
@@ -1093,7 +1132,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
           <th data-col="Position" onclick="sortFA('Position')">Pos <span class="sar">&#8645;</span></th>
           <th data-col="Availability" onclick="sortFA('Availability')">Status <span class="sar">&#8645;</span></th>
           <th data-col="AAV" onclick="sortFA('AAV')">AAV <span class="sar">&#8645;</span></th>
-          <th data-col="TotalPoints" onclick="sortFA('TotalPoints')">2026 Pts <span class="sar">&#8645;</span></th>
+          <th data-col="TotalPoints" onclick="sortFA('TotalPoints')">ESPN Pts <span class="sar">&#8645;</span></th>
         </tr></thead>
         <tbody id="faBody"><tr><td colspan="5" class="fa-loading">Click Refresh to load free agents from ESPN</td></tr></tbody>
       </table>
@@ -1502,8 +1541,25 @@ function toggleConsole(){consoleEnabled=!consoleEnabled;var btn=document.getElem
 function setNav(id){document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});if(id){var el=document.getElementById(id);if(el)el.classList.add('active');}}
 function showPage(pid){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});var el=document.getElementById('page-'+pid);if(el)el.classList.add('active');}
 function showLeague(){showPage('league');setNav('nav-league');renderLeague();}
-function showDB(){showPage('salaries-db');setNav('nav-db');renderDB();}
+function showDB(){showPage('salaries-db');setNav('nav-db');
+  // V28.5.70: populate year selector + fetch stats if needed
+  setTimeout(function(){
+    var el = document.getElementById('dbYear');
+    if(el){
+      var cur = STATS_SEASON;
+      var calYr = (new Date()).getFullYear();
+      var maxYr = Math.max(calYr, CURRENT_SEASON||calYr);
+      var opts = [];
+      for(var y = maxYr; y >= 2020; y--){ opts.push('<option value="'+y+'"'+(y===cur?' selected':'')+'>'+y+'</option>'); }
+      el.innerHTML = opts.join('');
+    }
+    try{ if(typeof fetchMLBStats==='function' && Object.keys(MLB_STATS).length<100){ fetchMLBStats(STATS_SEASON).then(function(){renderDB();}).catch(function(){}); } }catch(e){}
+  },0);
+  renderDB();
+}
 function showFA(){
+  // V28.5.70: populate year selector on FA page
+  setTimeout(function(){populateFAYearSelect();},0);
   // V28.5.69: ensure MLB stats are loaded so FA stat lines render
   try{ if(typeof fetchMLBStats==='function' && Object.keys(MLB_STATS).length<100){ fetchMLBStats(STATS_SEASON).then(function(){if(typeof renderFA==='function')renderFA();}).catch(function(){}); } }catch(e){}
   showPage('fa');
@@ -2098,7 +2154,122 @@ var tsel=document.getElementById('dbTeam');
 salTeams.forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t;tsel.appendChild(o);});
 var dbSort={col:'aav',dir:-1};
 function sortDB(col){dbSort=dbSort.col===col?{col:col,dir:dbSort.dir*-1}:{col:col,dir:(col==='name'||col==='pos'||col==='team')?1:-1};renderDB();}
-function renderDB(){var q=(document.getElementById('dbSearch').value||'').toLowerCase();var pos=document.getElementById('dbPos').value;var team=document.getElementById('dbTeam').value;var exp=document.getElementById('dbExp').value;var hlEl=document.getElementById('dbHighlight');var hl=hlEl?hlEl.value:'';var data=SAL.filter(function(p){if(q&&!p.name.toLowerCase().includes(q))return false;if(pos&&p.pos!==pos)return false;if(team&&p.team!==team)return false;if(exp){var ex=parseInt(p.expires)||0;if(exp==='2031+'){if(ex<2031)return false;}else if(p.expires!==exp)return false;}if(hl){var chg=(window.SAL_CHANGES||{})[p.name];if(hl==='NEW'&&chg!=='NEW')return false;if(hl==='CHANGED'&&chg!=='CHANGED')return false;if(hl==='HIGHLIGHTED'&&!chg)return false;}return true;});var col=dbSort.col,dir=dbSort.dir;data.sort(function(a,b){var av=a[col]||'',bv=b[col]||'';if(col==='aav'){return((av==='ARB'?ARB():parseFloat(av)||0)-(bv==='ARB'?ARB():parseFloat(bv)||0))*dir;}var an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return(an-bn)*dir;return av.toString().localeCompare(bv.toString())*dir;});document.getElementById('dbCnt').textContent=data.length+' contracts';document.querySelectorAll('.dbt th').forEach(function(th){th.classList.remove('srt');var ar=th.querySelector('.sar');if(ar)ar.innerHTML='&#8645;';});var sh=document.querySelector('.dbt th[data-col="'+col+'"]');if(sh){sh.classList.add('srt');var ar=sh.querySelector('.sar');if(ar)ar.innerHTML=dir===1?'&#8593;':'&#8595;';}var tbody=document.getElementById('dbBody');if(!data.length){tbody.innerHTML='<tr><td colspan="8" class="no-res">No contracts found</td></tr>';return;}tbody.innerHTML=data.slice(0,300).map(function(p, __salIdx){var n=p.aav==='ARB'?ARB():parseFloat(p.aav)||0,isA=p.aav==='ARB';var chg=(window.SAL_CHANGES||{})[p.name];var chgBadge=chg==='NEW'?' <span title="New since last import" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-left:6px;vertical-align:middle"></span>':chg==='CHANGED'?' <span title="Changed since last import" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#e8c84b;margin-left:6px;vertical-align:middle"></span>':'';return '<tr style="'+(chg?'background:rgba(232,200,75,.04)':'')+'"><td class="sal-name-cell" '+(chg==='CHANGED'?'data-salidx="'+__salIdx+'" style="color:var(--brt);font-weight:500;cursor:pointer;text-decoration:underline dotted #e8c84b"':'style="color:var(--brt);font-weight:500"')+'>'+p.name+chgBadge+(isA?'<span class="arb-tag">ARB</span>':'')+'</td><td><span class="ptag">'+(p.pos||'\u2014')+'</span></td><td style="color:var(--dim)">'+(p.team||'\u2014')+'</td><td>'+(p.age||'\u2014')+'</td><td>'+(p.signed||'\u2014')+'</td><td style="color:'+(parseInt(p.expires)<=2026?'var(--dim)':'var(--txt)')+'">'+( p.expires||'\u2014')+'</td><td>'+(p.years||'\u2014')+'</td><td style="color:'+(isA?'var(--acc)':'var(--brt)')+';font-weight:500">'+(isA?'ARB ($'+ARB().toFixed(2)+'M)':'$'+n.toFixed(2)+'M')+'</td></tr>';}).join('');if(data.length>300)tbody.innerHTML+='<tr><td colspan="8" style="text-align:center;padding:1rem;color:var(--dim);font-size:.7rem">Showing 300 of '+data.length+'</td></tr>';}
+function renderDB(){
+  var q=(document.getElementById('dbSearch').value||'').toLowerCase();
+  var pos=document.getElementById('dbPos').value;
+  var team=document.getElementById('dbTeam').value;
+  var exp=document.getElementById('dbExp').value;
+  var hlEl=document.getElementById('dbHighlight'); var hl=hlEl?hlEl.value:'';
+  var maxAavEl=document.getElementById('dbMaxAAV');
+  var maxAavF=(maxAavEl && maxAavEl.value!=='')?parseFloat(maxAavEl.value):null;
+  var data=SAL.filter(function(p){
+    if(q&&!p.name.toLowerCase().includes(q))return false;
+    if(pos&&p.pos!==pos)return false;
+    if(team&&p.team!==team)return false;
+    if(exp){var ex=parseInt(p.expires)||0;if(exp==='2031+'){if(ex<2031)return false;}else if(p.expires!==exp)return false;}
+    if(hl){var chg=(window.SAL_CHANGES||{})[p.name];if(hl==='NEW'&&chg!=='NEW')return false;if(hl==='CHANGED'&&chg!=='CHANGED')return false;if(hl==='HIGHLIGHTED'&&!chg)return false;}
+    if(maxAavF!==null && !isNaN(maxAavF)){
+      var n = (p.aav==='ARB') ? ARB() : (parseFloat(p.aav)||0);
+      if(n > maxAavF) return false;
+    }
+    return true;
+  });
+
+  // V28.5.70: MLB-stat sort overrides column-based sort when set.
+  var mlbSortEl=document.getElementById('dbSortMLB');
+  var mlbSortKey=mlbSortEl?mlbSortEl.value:'';
+  if(mlbSortKey){
+    function _dv(p,k){
+      var m=getMlbStat(p.name);if(!m)return null;
+      if(k==='E') return m.fielding?m.fielding.errors:null;
+      if(k==='SO_hit') return m.hitting?m.hitting.strikeOuts:null;
+      if(k==='SO_pit') return m.pitching?m.pitching.strikeOuts:null;
+      if(k==='HR') return m.hitting?m.hitting.homeRuns:null;
+      if(k==='R') return m.hitting?m.hitting.runs:null;
+      if(k==='RBI') return m.hitting?m.hitting.rbi:null;
+      if(k==='SB') return m.hitting?m.hitting.stolenBases:null;
+      if(k==='AVG') return m.hitting?parseFloat(m.hitting.avg):null;
+      if(k==='W') return m.pitching?m.pitching.wins:null;
+      if(k==='SV') return m.pitching?m.pitching.saves:null;
+      if(k==='BS') return m.pitching?m.pitching.blownSaves:null;
+      if(k==='ERA') return m.pitching?parseFloat(m.pitching.era):null;
+      if(k==='WHIP') return m.pitching?parseFloat(m.pitching.whip):null;
+      return null;
+    }
+    var _lower=(mlbSortKey==='ERA'||mlbSortKey==='WHIP'||mlbSortKey==='E'||mlbSortKey==='BS'||mlbSortKey==='SO_hit');
+    data.sort(function(a,b){
+      var av=_dv(a,mlbSortKey), bv=_dv(b,mlbSortKey);
+      var aBad=(av==null||(typeof av==='number'&&isNaN(av)));
+      var bBad=(bv==null||(typeof bv==='number'&&isNaN(bv)));
+      if(aBad&&bBad)return 0; if(aBad)return 1; if(bBad)return -1;
+      return _lower?(av-bv):(bv-av);
+    });
+  } else {
+    var col=dbSort.col,dir=dbSort.dir;
+    data.sort(function(a,b){
+      var av=a[col]||'',bv=b[col]||'';
+      if(col==='aav'){return((av==='ARB'?ARB():parseFloat(av)||0)-(bv==='ARB'?ARB():parseFloat(bv)||0))*dir;}
+      var an=parseFloat(av),bn=parseFloat(bv);
+      if(!isNaN(an)&&!isNaN(bn))return(an-bn)*dir;
+      return av.toString().localeCompare(bv.toString())*dir;
+    });
+  }
+
+  document.getElementById('dbCnt').textContent=data.length+' players';
+  document.querySelectorAll('.dbt th').forEach(function(th){th.classList.remove('srt');var ar=th.querySelector('.sar');if(ar)ar.innerHTML='\u21F5';});
+  if(!mlbSortKey){
+    var col2=dbSort.col;
+    var sh=document.querySelector('.dbt th[data-col="'+col2+'"]');
+    if(sh){sh.classList.add('srt');var ar=sh.querySelector('.sar');if(ar)ar.innerHTML=dbSort.dir===1?'\u2191':'\u2193';}
+  }
+  var tbody=document.getElementById('dbBody');
+  if(!data.length){tbody.innerHTML='<tr><td colspan="8" class="no-res">No players found</td></tr>';return;}
+
+  // Compute averages for stat coloring
+  var DB_AVGS = computeStatAverages();
+  function dbBit(txt, val, key, group){
+    var av = (group==='pit') ? DB_AVGS.pit[(key==='SO_pit'?'SO':key)] : DB_AVGS.hit[(key==='SO_hit'?'SO':key)];
+    var c = statColor(val, av, key);
+    return c ? '<span style="color:'+c+'">'+txt+'</span>' : '<span>'+txt+'</span>';
+  }
+
+  tbody.innerHTML=data.slice(0,300).map(function(p, __salIdx){
+    var n=p.aav==='ARB'?ARB():parseFloat(p.aav)||0, isA=p.aav==='ARB';
+    var chg=(window.SAL_CHANGES||{})[p.name];
+    var chgBadge=chg==='NEW'?' <span title="New" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-left:6px;vertical-align:middle"></span>':chg==='CHANGED'?' <span title="Changed" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#e8c84b;margin-left:6px;vertical-align:middle"></span>':'';
+    // MLB stat line below name
+    var mlb = getMlbStat(p.name);
+    var bits = [];
+    var posStr = String(p.pos||'').toUpperCase();
+    var isP = (posStr==='SP'||posStr==='RP'||posStr==='P');
+    var isRP = (posStr==='RP');
+    if(mlb){
+      if(isP && mlb.pitching){
+        var q=mlb.pitching;
+        if(typeof q.wins==='number') bits.push(dbBit(q.wins+'W', q.wins, 'W','pit'));
+        if(isRP && typeof q.saves==='number') bits.push(dbBit(q.saves+'SV', q.saves, 'SV','pit'));
+        if(isRP && typeof q.blownSaves==='number' && q.blownSaves>0) bits.push(dbBit(q.blownSaves+'BS', q.blownSaves, 'BS','pit'));
+        if(typeof q.strikeOuts==='number') bits.push(dbBit(q.strikeOuts+'K', q.strikeOuts, 'SO_pit','pit'));
+        var e2=parseFloat(q.era); if(!isNaN(e2)) bits.push(dbBit(e2.toFixed(2)+' ERA', e2, 'ERA','pit'));
+        var w2=parseFloat(q.whip); if(!isNaN(w2)) bits.push(dbBit(w2.toFixed(2)+' WHIP', w2, 'WHIP','pit'));
+      } else if(mlb.hitting){
+        var h=mlb.hitting;
+        if(typeof h.homeRuns==='number') bits.push(dbBit(h.homeRuns+'HR', h.homeRuns, 'HR','hit'));
+        if(typeof h.runs==='number') bits.push(dbBit(h.runs+'R', h.runs, 'R','hit'));
+        if(typeof h.rbi==='number') bits.push(dbBit(h.rbi+'RBI', h.rbi, 'RBI','hit'));
+        if(typeof h.stolenBases==='number' && h.stolenBases>0) bits.push(dbBit(h.stolenBases+'SB', h.stolenBases, 'SB','hit'));
+        var av3=parseFloat(h.avg); if(!isNaN(av3)) bits.push(dbBit('.'+Math.round(av3*1000), av3, 'AVG','hit'));
+        if(typeof h.strikeOuts==='number') bits.push(dbBit(h.strikeOuts+'K', h.strikeOuts, 'SO_hit','hit'));
+        if(mlb.fielding && typeof mlb.fielding.errors==='number') bits.push(dbBit(mlb.fielding.errors+'E', mlb.fielding.errors, 'E','hit'));
+      }
+    }
+    var statRow = bits.length ? '<div style="font-family:DM Mono,monospace;font-size:.58rem;color:#94a3b8;margin-top:.15rem;letter-spacing:.5px">'+bits.join(' \u00b7 ')+'</div>' : '';
+
+    var nameCellAttr = (chg==='CHANGED' ? 'data-salidx="'+__salIdx+'" style="color:var(--brt);font-weight:500;cursor:pointer;text-decoration:underline dotted #e8c84b"' : 'style="color:var(--brt);font-weight:500"');
+    return '<tr style="'+(chg?'background:rgba(232,200,75,.04)':'')+'"><td class="sal-name-cell" '+nameCellAttr+'><div>'+p.name+chgBadge+(isA?'<span class="arb-tag">ARB</span>':'')+'</div>'+statRow+'</td><td><span class="ptag">'+(p.pos||'\u2014')+'</span></td><td style="color:var(--dim)">'+(p.team||'\u2014')+'</td><td>'+(p.age||'\u2014')+'</td><td>'+(p.signed||'\u2014')+'</td><td style="color:'+(parseInt(p.expires)<=2026?'var(--dim)':'var(--txt)')+'">'+(p.expires||'\u2014')+'</td><td>'+(p.years||'\u2014')+'</td><td style="color:'+(isA?'var(--acc)':'var(--brt)')+';font-weight:500">'+(isA?'ARB ($'+ARB().toFixed(2)+'M)':'$'+n.toFixed(2)+'M')+'</td></tr>';
+  }).join('');
+  if(data.length>300) tbody.innerHTML+='<tr><td colspan="8" style="text-align:center;padding:1rem;color:var(--dim);font-size:.7rem">Showing 300 of '+data.length+'</td></tr>';
+}
 var FA_DATA=[];var FA_SORT={col:'TotalPoints',dir:-1};var FA_FETCHING=false;var LS_FA='dyn26_v3_fa';
 var POS_MAP={1:'SP',2:'C',3:'1B',4:'2B',5:'3B',6:'SS',7:'OF',8:'OF',9:'OF',10:'OF',11:'OF',14:'RP',15:'P'};
 function fetchFreeAgents(){
@@ -2224,7 +2395,7 @@ function renderFA(){var q=(document.getElementById('faSearch').value||'').toLowe
       var isArbP=(!aavRaw||aavRaw==='ARB'||aavRaw==='?'||isNaN(parseFloat(aavRaw)));
       if(status==='ARB'&&!isArbP)return false;
       if(status==='FA'&&isArbP)return false;
-    }if(maxSal!==null&&!isNaN(maxSal)){var aR2=p.AAV!==undefined&&p.AAV!==null?p.AAV:AAV_DB[p.Player];var isArb2=(!aR2||aR2==='ARB'||aR2==='?'||isNaN(parseFloat(aR2)));var aNum2=isArb2?ARB():parseFloat(aR2);if(aNum2>maxSal)return false;}return true;});var col=FA_SORT.col,dir=FA_SORT.dir;data.sort(function(a,b){if(col==='TotalPoints'||col==='AAV'){var an,bn;if(col==='AAV'){var aR=a.AAV!==undefined?a.AAV:AAV_DB[a.Player];var bR=b.AAV!==undefined?b.AAV:AAV_DB[b.Player];an=(aR==='ARB'||!aR)?ARB():parseFloat(aR)||0;bn=(bR==='ARB'||!bR)?ARB():parseFloat(bR)||0;}else{an=a[col];bn=b[col];}if(an===null&&bn===null)return 0;if(an===null)return 1;if(bn===null)return -1;return(an-bn)*dir;}return(a[col]||'').toString().localeCompare((b[col]||'').toString())*dir;});document.getElementById('faCnt').textContent=data.length+' players';document.querySelectorAll('.fat th').forEach(function(th){th.classList.remove('srt');var ar=th.querySelector('.sar');if(ar)ar.innerHTML='&#8645;';});var sh=document.querySelector('.fat th[data-col="'+col+'"]');if(sh){sh.classList.add('srt');var ar=sh.querySelector('.sar');if(ar)ar.innerHTML=dir===1?'&#8593;':'&#8595;';}var tbody=document.getElementById('faBody');if(!data.length){tbody.innerHTML='<tr><td colspan="5" class="fa-loading">No players found</td></tr>';return;}var FA_AVGS=computeStatAverages();function faBit(txt,val,key,group){var av=(group==='pit')?(FA_AVGS.pit[(key==='SO_pit'?'SO':key)]):(FA_AVGS.hit[(key==='SO_hit'?'SO':key)]);var c=statColor(val,av,key);return c?'<span style="color:'+c+'">'+txt+'</span>':'<span>'+txt+'</span>';}tbody.innerHTML=data.slice(0,500).map(function(p){var posCls=p.Position==='SS'?'ss':p.Position;var ptsNum=p.TotalPoints!==null&&p.TotalPoints!==undefined?parseFloat(p.TotalPoints):NaN;var pts=!isNaN(ptsNum)?ptsNum.toFixed(1):'\u2014';var statusCls=p.Availability==='FREEAGENT'?'FREEAGENT':'WAIVERS';var statusLabel=p.Availability==='FREEAGENT'?'FA':'W';var aavRaw=p.AAV!==undefined&&p.AAV!==null?p.AAV:AAV_DB[p.Player];var isArb=(!aavRaw||aavRaw==='ARB'||aavRaw==='?'||isNaN(parseFloat(aavRaw)));var aavDisp=isArb?'ARB':parseFloat(aavRaw).toFixed(1);var posLst=String(p.Position||'').split('/');var isP=posLst.indexOf('SP')>=0||posLst.indexOf('RP')>=0||posLst.indexOf('P')>=0;var isRP=posLst.indexOf('RP')>=0;var mlbF=getMlbStat(p.Player);var bits=[];if(mlbF){if(isP&&mlbF.pitching){var q=mlbF.pitching;if(typeof q.wins==='number')bits.push(faBit(q.wins+'W',q.wins,'W','pit'));if(isRP&&typeof q.saves==='number')bits.push(faBit(q.saves+'SV',q.saves,'SV','pit'));if(isRP&&typeof q.blownSaves==='number'&&q.blownSaves>0)bits.push(faBit(q.blownSaves+'BS',q.blownSaves,'BS','pit'));if(typeof q.strikeOuts==='number')bits.push(faBit(q.strikeOuts+' K',q.strikeOuts,'SO_pit','pit'));var era2=parseFloat(q.era);if(!isNaN(era2))bits.push(faBit(era2.toFixed(2)+' ERA',era2,'ERA','pit'));}else if(mlbF.hitting){var h=mlbF.hitting;if(typeof h.homeRuns==='number')bits.push(faBit(h.homeRuns+'HR',h.homeRuns,'HR','hit'));if(typeof h.runs==='number')bits.push(faBit(h.runs+'R',h.runs,'R','hit'));if(typeof h.rbi==='number')bits.push(faBit(h.rbi+'RBI',h.rbi,'RBI','hit'));if(typeof h.stolenBases==='number'&&h.stolenBases>0)bits.push(faBit(h.stolenBases+'SB',h.stolenBases,'SB','hit'));var avg3=parseFloat(h.avg);if(!isNaN(avg3))bits.push(faBit('.'+Math.round(avg3*1000),avg3,'AVG','hit'));if(typeof h.strikeOuts==='number')bits.push(faBit(h.strikeOuts+'K',h.strikeOuts,'SO_hit','hit'));if(mlbF.fielding&&typeof mlbF.fielding.errors==='number')bits.push(faBit(mlbF.fielding.errors+'E',mlbF.fielding.errors,'E','hit'));}}var statRow=bits.length?'<div style="font-family:DM Mono,monospace;font-size:.58rem;color:#94a3b8;margin-top:.15rem;letter-spacing:.5px">'+bits.join(' \u00b7 ')+'</div>':'';return '<tr><td style="color:var(--brt);font-weight:500;cursor:pointer" onclick="openFACard(\''+p.Player.replace(/\'/g,"\\\'")+'\')"><div>'+p.Player+'</div>'+statRow+'</td><td><span class="pos-badge '+posCls+'">'+p.Position+'</span></td><td><span class="fa-status '+statusCls+'">'+statusLabel+'</span></td><td style="color:'+(isArb?'var(--acc)':'var(--brt)')+';font-weight:500">'+aavDisp+'</td><td class="fa-pts">'+pts+'</td></tr>';}).join('');if(data.length>500)tbody.innerHTML+='<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--dim);font-size:.7rem">Showing 500 of '+data.length+'</td></tr>';}
+    }if(maxSal!==null&&!isNaN(maxSal)){var aR2=p.AAV!==undefined&&p.AAV!==null?p.AAV:AAV_DB[p.Player];var isArb2=(!aR2||aR2==='ARB'||aR2==='?'||isNaN(parseFloat(aR2)));var aNum2=isArb2?ARB():parseFloat(aR2);if(aNum2>maxSal)return false;}return true;});var mlbSortEl=document.getElementById('faSortMLB');var mlbSortKey=mlbSortEl?mlbSortEl.value:'';if(mlbSortKey){function _mv(p,k){var m=getMlbStat(p.Player);if(!m)return null;if(k==='aav'){var ar=p.AAV!==undefined?p.AAV:AAV_DB[p.Player];return (ar==='ARB'||!ar||isNaN(parseFloat(ar)))?ARB():parseFloat(ar);}if(k==='name')return p.Player;if(k==='E')return m.fielding?m.fielding.errors:null;if(k==='SO_hit')return m.hitting?m.hitting.strikeOuts:null;if(k==='SO_pit')return m.pitching?m.pitching.strikeOuts:null;if(k==='HR')return m.hitting?m.hitting.homeRuns:null;if(k==='R')return m.hitting?m.hitting.runs:null;if(k==='RBI')return m.hitting?m.hitting.rbi:null;if(k==='SB')return m.hitting?m.hitting.stolenBases:null;if(k==='AVG')return m.hitting?parseFloat(m.hitting.avg):null;if(k==='W')return m.pitching?m.pitching.wins:null;if(k==='SV')return m.pitching?m.pitching.saves:null;if(k==='BS')return m.pitching?m.pitching.blownSaves:null;if(k==='ERA')return m.pitching?parseFloat(m.pitching.era):null;if(k==='WHIP')return m.pitching?parseFloat(m.pitching.whip):null;return null;}var _lower=(mlbSortKey==='ERA'||mlbSortKey==='WHIP'||mlbSortKey==='E'||mlbSortKey==='BS'||mlbSortKey==='SO_hit'||mlbSortKey==='aav');data.sort(function(a,b){var av=_mv(a,mlbSortKey),bv=_mv(b,mlbSortKey);if(mlbSortKey==='name')return String(av||'').localeCompare(String(bv||''));var aBad=(av==null||(typeof av==='number'&&isNaN(av)));var bBad=(bv==null||(typeof bv==='number'&&isNaN(bv)));if(aBad&&bBad)return 0;if(aBad)return 1;if(bBad)return -1;return _lower?(av-bv):(bv-av);});}else{var col=FA_SORT.col,dir=FA_SORT.dir;data.sort(function(a,b){if(col==='TotalPoints'||col==='AAV'){var an,bn;if(col==='AAV'){var aR=a.AAV!==undefined?a.AAV:AAV_DB[a.Player];var bR=b.AAV!==undefined?b.AAV:AAV_DB[b.Player];an=(aR==='ARB'||!aR)?ARB():parseFloat(aR)||0;bn=(bR==='ARB'||!bR)?ARB():parseFloat(bR)||0;}else{an=a[col];bn=b[col];}if(an===null&&bn===null)return 0;if(an===null)return 1;if(bn===null)return -1;return(an-bn)*dir;}return(a[col]||'').toString().localeCompare((b[col]||'').toString())*dir;});}document.getElementById('faCnt').textContent=data.length+' players';document.querySelectorAll('.fat th').forEach(function(th){th.classList.remove('srt');var ar=th.querySelector('.sar');if(ar)ar.innerHTML='&#8645;';});var sh=document.querySelector('.fat th[data-col="'+col+'"]');if(sh){sh.classList.add('srt');var ar=sh.querySelector('.sar');if(ar)ar.innerHTML=dir===1?'&#8593;':'&#8595;';}var tbody=document.getElementById('faBody');if(!data.length){tbody.innerHTML='<tr><td colspan="5" class="fa-loading">No players found</td></tr>';return;}var FA_AVGS=computeStatAverages();function faBit(txt,val,key,group){var av=(group==='pit')?(FA_AVGS.pit[(key==='SO_pit'?'SO':key)]):(FA_AVGS.hit[(key==='SO_hit'?'SO':key)]);var c=statColor(val,av,key);return c?'<span style="color:'+c+'">'+txt+'</span>':'<span>'+txt+'</span>';}tbody.innerHTML=data.slice(0,500).map(function(p){var posCls=p.Position==='SS'?'ss':p.Position;var ptsNum=p.TotalPoints!==null&&p.TotalPoints!==undefined?parseFloat(p.TotalPoints):NaN;var pts=!isNaN(ptsNum)?ptsNum.toFixed(1):'\u2014';var statusCls=p.Availability==='FREEAGENT'?'FREEAGENT':'WAIVERS';var statusLabel=p.Availability==='FREEAGENT'?'FA':'W';var aavRaw=p.AAV!==undefined&&p.AAV!==null?p.AAV:AAV_DB[p.Player];var isArb=(!aavRaw||aavRaw==='ARB'||aavRaw==='?'||isNaN(parseFloat(aavRaw)));var aavDisp=isArb?'ARB':parseFloat(aavRaw).toFixed(1);var posLst=String(p.Position||'').split('/');var isP=posLst.indexOf('SP')>=0||posLst.indexOf('RP')>=0||posLst.indexOf('P')>=0;var isRP=posLst.indexOf('RP')>=0;var mlbF=getMlbStat(p.Player);var bits=[];if(mlbF){if(isP&&mlbF.pitching){var q=mlbF.pitching;if(typeof q.wins==='number')bits.push(faBit(q.wins+'W',q.wins,'W','pit'));if(isRP&&typeof q.saves==='number')bits.push(faBit(q.saves+'SV',q.saves,'SV','pit'));if(isRP&&typeof q.blownSaves==='number'&&q.blownSaves>0)bits.push(faBit(q.blownSaves+'BS',q.blownSaves,'BS','pit'));if(typeof q.strikeOuts==='number')bits.push(faBit(q.strikeOuts+' K',q.strikeOuts,'SO_pit','pit'));var era2=parseFloat(q.era);if(!isNaN(era2))bits.push(faBit(era2.toFixed(2)+' ERA',era2,'ERA','pit'));}else if(mlbF.hitting){var h=mlbF.hitting;if(typeof h.homeRuns==='number')bits.push(faBit(h.homeRuns+'HR',h.homeRuns,'HR','hit'));if(typeof h.runs==='number')bits.push(faBit(h.runs+'R',h.runs,'R','hit'));if(typeof h.rbi==='number')bits.push(faBit(h.rbi+'RBI',h.rbi,'RBI','hit'));if(typeof h.stolenBases==='number'&&h.stolenBases>0)bits.push(faBit(h.stolenBases+'SB',h.stolenBases,'SB','hit'));var avg3=parseFloat(h.avg);if(!isNaN(avg3))bits.push(faBit('.'+Math.round(avg3*1000),avg3,'AVG','hit'));if(typeof h.strikeOuts==='number')bits.push(faBit(h.strikeOuts+'K',h.strikeOuts,'SO_hit','hit'));if(mlbF.fielding&&typeof mlbF.fielding.errors==='number')bits.push(faBit(mlbF.fielding.errors+'E',mlbF.fielding.errors,'E','hit'));}}var statRow=bits.length?'<div style="font-family:DM Mono,monospace;font-size:.58rem;color:#94a3b8;margin-top:.15rem;letter-spacing:.5px">'+bits.join(' \u00b7 ')+'</div>':'';return '<tr><td style="color:var(--brt);font-weight:500;cursor:pointer" onclick="openFACard(\''+p.Player.replace(/\'/g,"\\\'")+'\')"><div>'+p.Player+'</div>'+statRow+'</td><td><span class="pos-badge '+posCls+'">'+p.Position+'</span></td><td><span class="fa-status '+statusCls+'">'+statusLabel+'</span></td><td style="color:'+(isArb?'var(--acc)':'var(--brt)')+';font-weight:500">'+aavDisp+'</td><td class="fa-pts">'+pts+'</td></tr>';}).join('');if(data.length>500)tbody.innerHTML+='<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--dim);font-size:.7rem">Showing 500 of '+data.length+'</td></tr>';}
 var isFetching=false;
 function refreshRosters(silent){if(isFetching)return;isFetching=true;var btn=document.getElementById('refreshBtn');if(btn)btn.classList.add('spinning');if(!silent)showToast('Fetching live rosters\u2026','yellow',8000);var teamNames=Object.keys(TEAMS_CONFIG);var done=0;var errors=0;var newRoster={};var q=loadQueries();teamNames.forEach(function(teamName){var teamId=TEAMS_CONFIG[teamName];var qk='team_'+teamName.replace(/ /g,'_');var def='https://lm-api-reads.fantasy.espn.com/apis/v3/games/flb/seasons/2026/segments/0/leagues/'+LEAGUE_ID+'?forTeamId='+teamId+'&view=mRoster&view=mTeam&view=kona_player_info';var url=(q[qk]&&q[qk].value)?q[qk].value:def;fetch(url).then(function(r){return r.json();}).then(function(data){var entries=data.teams[0].roster.entries;var players=[];entries.forEach(function(e){var slotId=e.lineupSlotId;var slot=SLOT_MAP[slotId]||'Bench';var p=e.playerPoolEntry.player;var name=p.fullName;var aav=AAV_DB[name]||'ARB';var injured=(p.injuryStatus&&p.injuryStatus!=='ACTIVE'&&p.injuryStatus!=='NORMAL')?p.injuryStatus:'';var salE=SAL_MAP[name];var age2=salE&&salE.age?salE.age:'?';
 // V28.5.25: capture stats for this rostered player
@@ -2672,6 +2843,64 @@ function ensureMLBStatsLoaded(){
     buildContractsTab();
   }).catch(function(e){ if(s) s.textContent='Stats load failed'; });
 }
+// V28.5.70: helpers for Draft + FA year selectors
+function populateDraftYearSelect(){
+  var el = document.getElementById('draftYear');
+  if(!el) return;
+  var cur = STATS_SEASON;
+  var calYr = (new Date()).getFullYear();
+  var maxYr = Math.max(calYr, CURRENT_SEASON||calYr);
+  var yrs = [];
+  for(var y = maxYr; y >= 2020; y--) yrs.push(y);
+  el.innerHTML = yrs.map(function(y){ return '<option value="'+y+'"'+(y===cur?' selected':'')+'>'+y+'</option>'; }).join('');
+}
+function populateFAYearSelect(){
+  var el = document.getElementById('faYear');
+  if(!el) return;
+  var cur = STATS_SEASON;
+  var calYr = (new Date()).getFullYear();
+  var maxYr = Math.max(calYr, CURRENT_SEASON||calYr);
+  var yrs = [];
+  for(var y = maxYr; y >= 2020; y--) yrs.push(y);
+  el.innerHTML = yrs.map(function(y){ return '<option value="'+y+'"'+(y===cur?' selected':'')+'>'+y+'</option>'; }).join('');
+}
+function onDraftYearChange(){
+  var el=document.getElementById('draftYear'); if(!el)return;
+  var y=parseInt(el.value,10); if(isNaN(y))return;
+  STATS_SEASON=y;
+  try{localStorage.setItem('dyn28_stats_season',String(y));}catch(e){}
+  loadMLBStatsCache(y);
+  if(Object.keys(MLB_STATS).length>100){ buildDraftPage(); return; }
+  fetchMLBStats(y).then(function(){buildDraftPage();}).catch(function(){});
+  // Sync the other year selectors so they don't drift
+  var c=document.getElementById('ctrYear'); if(c){c.value=String(y);}
+  var f=document.getElementById('faYear'); if(f){f.value=String(y);}
+  var db=document.getElementById('dbYear'); if(db){db.value=String(y);}
+}
+function onFAYearChange(){
+  var el=document.getElementById('faYear'); if(!el)return;
+  var y=parseInt(el.value,10); if(isNaN(y))return;
+  STATS_SEASON=y;
+  try{localStorage.setItem('dyn28_stats_season',String(y));}catch(e){}
+  loadMLBStatsCache(y);
+  if(Object.keys(MLB_STATS).length>100){ renderFA(); return; }
+  fetchMLBStats(y).then(function(){renderFA();}).catch(function(){});
+  var c=document.getElementById('ctrYear'); if(c){c.value=String(y);}
+  var d=document.getElementById('draftYear'); if(d){d.value=String(y);}
+  var db=document.getElementById('dbYear'); if(db){db.value=String(y);}
+}
+function onDBYearChange(){
+  var el=document.getElementById('dbYear'); if(!el)return;
+  var y=parseInt(el.value,10); if(isNaN(y))return;
+  STATS_SEASON=y;
+  try{localStorage.setItem('dyn28_stats_season',String(y));}catch(e){}
+  loadMLBStatsCache(y);
+  if(Object.keys(MLB_STATS).length>100){ renderDB(); return; }
+  fetchMLBStats(y).then(function(){renderDB();}).catch(function(){});
+  var c=document.getElementById('ctrYear'); if(c){c.value=String(y);}
+  var d=document.getElementById('draftYear'); if(d){d.value=String(y);}
+  var f=document.getElementById('faYear'); if(f){f.value=String(y);}
+}
 function refreshMLBStats(){
   var s=document.getElementById('ctrStatus'); if(s) s.textContent='Fetching MLB stats…';
   fetchMLBStats(STATS_SEASON, true).then(function(){
@@ -2989,7 +3218,7 @@ function buildContractsTab(){
         // V28.5.67: expiring players show RAW AAV (re-draft cost), not discounted salary
         rightHtml = '<div class="cr-aav" style="color:'+accentColor+'">'+p.rawAavStr+'</div><div class="cr-detail">re-draft AAV</div>';
       } else if(p.pts && p.pts>0){
-        rightHtml = '<div class="cr-aav" style="color:#e8c84b">'+p.pts.toFixed(1)+'</div><div class="cr-detail">'+(p.avg?p.avg.toFixed(1)+' /gm':'ESPN pts')+'</div>';
+        rightHtml = '<div class="cr-aav" style="color:#e8c84b">'+p.pts.toFixed(1)+'</div><div class="cr-detail">'+(p.avg?'ESPN · '+p.avg.toFixed(1)+' /gm':'ESPN Pts')+'</div>';
       } else {
         rightHtml = '<div class="cr-aav" style="color:'+accentColor+'">'+p.salStr+'</div><div class="cr-detail">'+detail+'</div>';
       }
@@ -3515,6 +3744,8 @@ function getCurrentPickIndex(){
 }
 
 function showDraft(){
+  // V28.5.70: populate year selector
+  setTimeout(function(){populateDraftYearSelect();},0);
   // V28.5.69: ensure MLB stats are loaded so draft stat lines render
   try{ if(typeof fetchMLBStats==='function' && Object.keys(MLB_STATS).length<100){ fetchMLBStats(STATS_SEASON).then(function(){if(typeof buildDraftPage==='function')buildDraftPage();}).catch(function(){}); } }catch(e){}
   showPage('draft');setNav('nav-draft');
@@ -3653,8 +3884,28 @@ function renderDraftPool(){
     return true;
   });
 
+  // V28.5.70: support sort by MLB stats (HR, R, RBI, ..., ERA, WHIP)
   var sortBy=DRAFT_VIEW_PREFS.sortBy||'pts';
   var dir=DRAFT_VIEW_PREFS.sortDir==='asc'?1:-1;
+  var mlbStatKeys = {HR:1,R:1,RBI:1,SB:1,AVG:1,SO_hit:1,E:1,W:1,SV:1,BS:1,SO_pit:1,ERA:1,WHIP:1};
+  function getMlbVal(p, key){
+    var m = getMlbStat(p.name);
+    if(!m) return null;
+    if(key==='E') return m.fielding ? m.fielding.errors : null;
+    if(key==='SO_hit') return m.hitting ? m.hitting.strikeOuts : null;
+    if(key==='SO_pit') return m.pitching ? m.pitching.strikeOuts : null;
+    if(key==='HR') return m.hitting ? m.hitting.homeRuns : null;
+    if(key==='R') return m.hitting ? m.hitting.runs : null;
+    if(key==='RBI') return m.hitting ? m.hitting.rbi : null;
+    if(key==='SB') return m.hitting ? m.hitting.stolenBases : null;
+    if(key==='AVG') return m.hitting ? parseFloat(m.hitting.avg) : null;
+    if(key==='W') return m.pitching ? m.pitching.wins : null;
+    if(key==='SV') return m.pitching ? m.pitching.saves : null;
+    if(key==='BS') return m.pitching ? m.pitching.blownSaves : null;
+    if(key==='ERA') return m.pitching ? parseFloat(m.pitching.era) : null;
+    if(key==='WHIP') return m.pitching ? parseFloat(m.pitching.whip) : null;
+    return null;
+  }
   pool.sort(function(a,b){
     var av,bv;
     if(sortBy==='pts'){av=a.pts||0;bv=b.pts||0;}
@@ -3662,6 +3913,20 @@ function renderDraftPool(){
     else if(sortBy==='age'){av=parseInt(a.age)||0;bv=parseInt(b.age)||0;}
     else if(sortBy==='name'){return (a.name>b.name?1:-1)*dir;}
     else if(sortBy==='pos'){return ((a.pos||'')>(b.pos||'')?1:-1)*dir;}
+    else if(mlbStatKeys[sortBy]){
+      av = getMlbVal(a, sortBy); bv = getMlbVal(b, sortBy);
+      // For lower-is-better stats, flip direction of "missing" -> push to end
+      var lower = (sortBy==='ERA'||sortBy==='WHIP'||sortBy==='E'||sortBy==='BS'||sortBy==='SO_hit');
+      // Push null/NaN to the end regardless of sort direction
+      var aBad = (av==null || (typeof av==='number' && isNaN(av)));
+      var bBad = (bv==null || (typeof bv==='number' && isNaN(bv)));
+      if(aBad && bBad) return 0;
+      if(aBad) return 1;
+      if(bBad) return -1;
+      // Override direction so lower-better stats default to ascending when desc selected
+      if(lower) return (av-bv)*(dir*-1);
+      return (av-bv)*dir;
+    }
     else {av=a.pts||0;bv=b.pts||0;}
     return (av-bv)*dir;
   });
@@ -3715,7 +3980,7 @@ function renderDraftPool(){
     }
     var statLineStr = statBits.join(' · ');
     var safeName=p.name.replace(/'/g,"\\'");
-    var avgStr=(p.avg && p.avg>0)?p.avg.toFixed(1)+' /gm':'—';var rightCol='<div class="cr-right"><div class="cr-aav" style="color:#e8c84b">'+(p.pts?p.pts.toFixed(1):'—')+'</div><div class="cr-detail">'+avgStr+'</div></div>';
+    var avgStr=(p.avg && p.avg>0)?'ESPN · '+p.avg.toFixed(1)+' /gm':'ESPN Pts';var rightCol='<div class="cr-right"><div class="cr-aav" style="color:#e8c84b">'+(p.pts?p.pts.toFixed(1):'—')+'</div><div class="cr-detail">'+avgStr+'</div></div>';
     var statHtml = statLineStr ? '<div class="cr-stat-line" style="font-family:\'DM Mono\',monospace;font-size:.6rem;color:#94a3b8;margin-top:.15rem;letter-spacing:.5px">'+statLineStr+'</div>' : '';
     return '<div class="draft-player-card" onclick="openDraftConfirm(\''+safeName+'\')">'+
       '<div class="cr-slot-wrap"><span class="slot '+sk+'">'+p.pos+'</span></div>'+
@@ -5649,6 +5914,8 @@ function undoSalaryImport(){
         <option>C</option><option>1B</option><option>2B</option><option>3B</option>
         <option>SS</option><option>OF</option><option>SP</option><option>RP</option>
       </select>
+      <select id="draftYear" onchange="onDraftYearChange()" class="db-sel" style="min-width:90px;font-size:.7rem"><option value="">Year</option></select>
+      <button class="hdr-btn" onclick="refreshMLBStats(); buildDraftPage();" style="white-space:nowrap;padding:.4rem .55rem" title="Refresh MLB stats">↻</button>
       <button class="hdr-btn" onclick="toggleDraftViewMenu()" style="white-space:nowrap;padding:.4rem .65rem">⚙ View</button>
     </div>
     <div id="draftViewMenu" style="display:none;background:#111318;border:1px solid #252a35;border-radius:10px;padding:.85rem 1rem;margin:0 1rem .5rem">
@@ -5662,6 +5929,20 @@ function undoSalaryImport(){
           <option value="age">Age</option>
           <option value="name">Name</option>
           <option value="pos">Position</option>
+          <option disabled>— MLB stats —</option>
+          <option value="HR">HR</option>
+          <option value="R">Runs</option>
+          <option value="RBI">RBI</option>
+          <option value="SB">SB</option>
+          <option value="AVG">AVG</option>
+          <option value="SO_hit">Hitter K</option>
+          <option value="E">Errors</option>
+          <option value="W">Wins</option>
+          <option value="SV">Saves</option>
+          <option value="BS">Blown SV</option>
+          <option value="SO_pit">Pitcher K</option>
+          <option value="ERA">ERA</option>
+          <option value="WHIP">WHIP</option>
         </select>
         <select class="field-input" id="dvSortDir" onchange="setDraftViewPref('sortDir',this.value)" style="font-size:16px;width:130px">
           <option value="desc">Highest first</option>
