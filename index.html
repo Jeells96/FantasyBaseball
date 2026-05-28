@@ -651,6 +651,19 @@ input,select,textarea,input[type="text"],input[type="number"],input[type="email"
 
 /* V28.4: ARB visual distinction in projection table */
 .arb-marker{display:inline-block;background:rgba(75,143,232,.15);color:#4b8fe8;border:1px solid rgba(75,143,232,.3);font-family:"Barlow Condensed",sans-serif;font-size:.5rem;font-weight:700;letter-spacing:.5px;padding:0 .25rem;border-radius:3px;margin-left:.2rem;vertical-align:middle}
+
+/* V28.5.74: League Rules display modal */
+.lr-tab{background:transparent;border:none;color:var(--dim);font-family:'Barlow Condensed',sans-serif;font-size:.78rem;letter-spacing:.5px;padding:.6rem .8rem;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0}
+.lr-tab.active{color:#e8c84b;border-bottom-color:#e8c84b}
+.lr-pane{font-size:.85rem;line-height:1.55;color:var(--txt)}
+.lr-pane h3.lr-h{font-family:'Barlow Condensed',sans-serif;font-size:.95rem;letter-spacing:1.5px;color:#e8c84b;margin:1rem 0 .3rem;text-transform:uppercase}
+.lr-pane h3.lr-h:first-child{margin-top:0}
+.lr-pane .lr-list{padding-left:1.2rem;margin:.3rem 0 .8rem}
+.lr-pane .lr-list>li{margin-bottom:.4rem}
+.lr-pane .lr-list ul{padding-left:1.1rem;margin:.3rem 0;list-style-type:none;color:var(--dim);font-size:.8rem}
+.lr-pane .lr-list ul li{margin-bottom:.2rem}
+.lr-q{margin-top:.9rem;color:var(--brt);font-size:.85rem}
+.lr-a{color:var(--dim);font-size:.8rem;margin:.2rem 0 .5rem;line-height:1.5;padding-left:.4rem;border-left:2px solid var(--bdr)}
 </style>
 <!-- Firebase SDK -->
 <script type="module">
@@ -942,7 +955,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.73</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.74</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -961,6 +974,9 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 <div id="page-league" class="page active">
   <div class="pg-wrap">
     <div class="pg-title">League Overview</div>
+    <div style="display:flex;gap:.5rem;margin:.3rem 0 .6rem">
+      <button class="set-btn accent" onclick="openLeagueRulesDisplay()" style="font-size:.7rem;padding:.4rem .7rem">☰ League Rules</button>
+    </div>
     <div class="pg-sub" id="leagueSub">2026 Season &middot; Tap any team to manage contracts</div>
     <div class="last-updated" id="lastUpdated"></div>
     <div id="teamCardsContainer" class="tcards"></div>
@@ -1534,7 +1550,7 @@ function showToast(msg,cls,dur){var t=document.getElementById('toast');if(!t)ret
 function openModal(id){var el=document.getElementById(id);if(el)el.classList.add('open');}
 function closeModal(id){var el=document.getElementById(id);if(el)el.classList.remove('open');}
 // V28.5.73: League Rules modal
-function openLeagueRulesModal(){
+function openLeagueRulesDisplay(){
   function setText(id,v){var el=document.getElementById(id);if(el)el.textContent=String(v);}
   setText('lr-season', CURRENT_SEASON);
   setText('lr-current-cap', CURRENT_SEASON);
@@ -1546,7 +1562,7 @@ function openLeagueRulesModal(){
   setText('lr-projyrs', RULES.projYears);
   setText('lr-arb', RULES.arb.toFixed(2));
   setLeagueRulesTab('basics');
-  openModal('leagueRulesModal');
+  openModal('leagueRulesDisplay');
 }
 function setLeagueRulesTab(tab){
   ['basics','contracts','arb','faq'].forEach(function(t){
@@ -6554,5 +6570,107 @@ window.toggleDebugOverlay = function(){
   }
 };
 </script>
+
+<!-- V28.5.74: League Rules display modal -->
+<div class="modal-overlay" id="leagueRulesDisplay" onclick="closeModalOutside(event,'leagueRulesDisplay')">
+  <div class="modal-box" style="max-width:680px;width:96vw">
+    <div class="modal-header"><h2>League Rules</h2><p>Quick reference for how this league works</p></div>
+    <div style="display:flex;gap:.3rem;padding:0 1rem;border-bottom:1px solid var(--bdr);overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <button class="lr-tab active" data-tab="basics" onclick="setLeagueRulesTab('basics')">Roster &amp; Cap</button>
+      <button class="lr-tab" data-tab="contracts" onclick="setLeagueRulesTab('contracts')">Contracts</button>
+      <button class="lr-tab" data-tab="arb" onclick="setLeagueRulesTab('arb')">Arbitration</button>
+      <button class="lr-tab" data-tab="faq" onclick="setLeagueRulesTab('faq')">FAQ</button>
+    </div>
+    <div class="modal-body" style="max-height:65vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1rem 1.2rem">
+      <div id="lr-basics" class="lr-pane">
+        <h3 class="lr-h">1. The basics</h3>
+        <ol class="lr-list">
+          <li><b>8 teams</b>, dynasty format.</li>
+          <li><b>25 players per roster</b> (configurable in Settings).</li>
+          <li>Current season is <b id="lr-season"></b>. Use the <i>Advance Season</i> button when the league rolls over.</li>
+        </ol>
+        <h3 class="lr-h">2. Salary cap</h3>
+        <ol class="lr-list">
+          <li>The <b><span id="lr-current-cap"></span></b> cap is <b>$<span id="lr-cap-amt"></span>M</b>.</li>
+          <li>Cap grows <b><span id="lr-cap-growth"></span>%</b> per year.
+            <ul>
+              <li>2a. You can override the cap for a specific season by editing the Salary Cap field in Settings while viewing that season.</li>
+            </ul>
+          </li>
+          <li>You can go over the cap on paper but you must be cap-compliant before opening day.</li>
+        </ol>
+        <h3 class="lr-h">3. Roster positions</h3>
+        <ol class="lr-list">
+          <li>Lineup slots come from ESPN: C, 1B, 2B, 3B, SS, OF, UTIL, SP, RP, Bench, IL/IR.</li>
+          <li><b>IL/IR salary discount: <span id="lr-il-disc"></span>%</b> off in the current year only (default 50%).</li>
+        </ol>
+      </div>
+      <div id="lr-contracts" class="lr-pane" style="display:none">
+        <h3 class="lr-h">4. Signing a player</h3>
+        <ol class="lr-list">
+          <li>When you sign someone to a new dynasty contract, pick a length (years).</li>
+          <li><b>Year 0 discount: <span id="lr-disc"></span>%</b> off the player's MLB AAV.
+            <ul>
+              <li>4a. So a $20M MLB AAV with 12.5% off becomes <b>$17.5M</b> in year 0 of your contract.</li>
+            </ul>
+          </li>
+          <li><b>Annual escalator: <span id="lr-esc"></span>%</b> each year after year 0.
+            <ul>
+              <li>4b. That $17.5M year 0 grows to roughly $19.7M year 1, $22.2M year 2, and so on.</li>
+            </ul>
+          </li>
+        </ol>
+        <h3 class="lr-h">5. Carried contracts</h3>
+        <ol class="lr-list">
+          <li>Contracts you didn't sign yourself (trades, kept from prior owners) are <b>carried</b>.</li>
+          <li><b>No year-0 discount</b> on carried contracts — you pay full AAV with whatever escalators were already on it.</li>
+          <li>You cannot edit a carried contract's years or salary.</li>
+        </ol>
+        <h3 class="lr-h">6. Expiring contracts</h3>
+        <ol class="lr-list">
+          <li>A contract with 0 years remaining must be <b>dropped or re-signed</b> before the season locks.</li>
+          <li>Re-signing is a brand-new contract — year-0 discount and escalators apply again.</li>
+          <li>The Contracts tab shows what each expiring player would cost to re-draft next year (their raw MLB AAV).</li>
+        </ol>
+        <h3 class="lr-h">7. Projection window</h3>
+        <ol class="lr-list">
+          <li>The team page shows a <b><span id="lr-projyrs"></span>-year look-ahead</b> so you can plan future cap commitments.</li>
+        </ol>
+      </div>
+      <div id="lr-arb" class="lr-pane" style="display:none">
+        <h3 class="lr-h">8. Arbitration (ARB) players</h3>
+        <ol class="lr-list">
+          <li>Pre-arb and arb-eligible MLB players cost a <b>flat $<span id="lr-arb"></span>M</b> regardless of their actual MLB pay.</li>
+          <li>A player is automatically treated as ARB if either:
+            <ul>
+              <li>8a. They are on a <b>1-year MLB contract for under $2.0M</b> (typical arb deal), OR</li>
+              <li>8b. They have no real salary listed (pre-arb rookies).</li>
+            </ul>
+          </li>
+          <li>You can also <b>force-ARB</b> a player manually via <i>Settings → Edit ARB Players</i> for any edge case the auto-rule misses.</li>
+          <li>The manual ARB list syncs across all league members.</li>
+        </ol>
+      </div>
+      <div id="lr-faq" class="lr-pane" style="display:none">
+        <h3 class="lr-h">FAQ</h3>
+        <div class="lr-q"><b>Q: My player got an extension and now they show up twice on Spotrac. What happens?</b></div>
+        <div class="lr-a">The app keeps the contract with the <b>later expiration year</b>. The old deal is dropped automatically on import.</div>
+        <div class="lr-q"><b>Q: I changed a player's AAV manually. Will the next import overwrite it?</b></div>
+        <div class="lr-a">No. Manual AAV overrides (set via the player card) are saved separately and re-applied after every import.</div>
+        <div class="lr-q"><b>Q: How are stats sourced?</b></div>
+        <div class="lr-a">Player stats come from the MLB Stats API. Use the year dropdown on Contracts, Draft, FA, or All Players to view different seasons.</div>
+        <div class="lr-q"><b>Q: Why does a 1-year veteran free-agent show up as ARB?</b></div>
+        <div class="lr-a">If the contract is 1-year and under $2.0M, the auto-rule flags it. Use Settings → Edit ARB Players to force them off ARB.</div>
+        <div class="lr-q"><b>Q: Can I set a custom cap for a specific season?</b></div>
+        <div class="lr-a">Yes. Advance (or rewind) to that season, then change the Salary Cap field in Settings. It overrides the formula for that year only. Other seasons keep using the growth formula.</div>
+        <div class="lr-q"><b>Q: What's the difference between Salary and Contract Years on the team page?</b></div>
+        <div class="lr-a">Salary is the player's MLB AAV (adjusted for ARB and any overrides). Contract Years is how many seasons remain on the dynasty deal you signed them to. They're independent.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('leagueRulesDisplay')">Close</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
