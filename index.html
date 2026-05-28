@@ -942,7 +942,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.70</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.71</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -2967,7 +2967,10 @@ function fetchMLBStats(season, force){
   }
   var base = 'https://statsapi.mlb.com/api/v1/stats?stats=season&playerPool=All&limit=2000&sportIds=1&season='+season;
   function go(grp){ return fetch(base+'&group='+grp).then(function(r){return r.json();}).catch(function(e){console.warn('[mlb '+grp+'] fetch failed',e);return null;}); }
-  _mlbFetchPromise = Promise.all([go('hitting'), go('pitching'), go('fielding')]).then(function(res){
+  // V28.5.71: also fetch player roster for currentAge / birthDate
+  var playersUrl = 'https://statsapi.mlb.com/api/v1/sports/1/players?season='+season;
+  function goPeople(){ return fetch(playersUrl).then(function(r){return r.json();}).catch(function(e){console.warn('[mlb people] failed',e);return null;}); }
+  _mlbFetchPromise = Promise.all([go('hitting'), go('pitching'), go('fielding'), goPeople()]).then(function(res){
     var byName = {};
     function ingest(blob, key){
       if(!blob||!blob.stats) return;
@@ -2977,7 +2980,6 @@ function fetchMLBStats(season, force){
           if(!nm) return;
           var k = normName(nm);
           if(!byName[k]) byName[k] = {name:nm};
-          // Merge fielding errors: pick the MAX (each position is a row; total = sum)
           if(key==='fielding'){
             if(!byName[k].fielding) byName[k].fielding = {errors:0,assists:0,putOuts:0,games:0};
             var f=byName[k].fielding;
@@ -2996,11 +2998,25 @@ function fetchMLBStats(season, force){
     ingest(res[0],'hitting');
     ingest(res[1],'pitching');
     ingest(res[2],'fielding');
+    // V28.5.71: ingest people data for age + birthDate
+    if(res[3] && res[3].people && Array.isArray(res[3].people)){
+      res[3].people.forEach(function(pl){
+        var nm = pl.fullName || pl.fullFMLName;
+        if(!nm) return;
+        var k = normName(nm);
+        if(!byName[k]) byName[k] = {name:nm};
+        if(pl.currentAge !== undefined) byName[k].age = pl.currentAge;
+        if(pl.birthDate) byName[k].birthDate = pl.birthDate;
+        if(pl.id) byName[k].mlbId = pl.id;
+      });
+    }
     MLB_STATS = byName;
     STATS_SEASON = season;
     saveMLBStatsCache(season);
     try{localStorage.setItem('dyn28_stats_season', String(season));}catch(e){}
     console.log('[mlb] loaded '+Object.keys(MLB_STATS).length+' players for '+season);
+    // V28.5.71: propagate MLB ages into SAL/ROSTER
+    try{ if(typeof applyMlbAges==='function') applyMlbAges(); }catch(e){console.warn(e);}
     _mlbFetchPromise = null;
     return MLB_STATS;
   }).catch(function(e){ console.error('[mlb] fetch failed',e); _mlbFetchPromise=null; throw e; });
@@ -3214,15 +3230,15 @@ function buildContractsTab(){
       }
       var statHtml = statBits.length ? '<div style="font-family:DM Mono,monospace;font-size:.6rem;color:#94a3b8;margin-top:.15rem;letter-spacing:.5px">'+statBits.join(' · ')+'</div>' : '';
       var rightHtml;
-      if(showRawAav){
-        // V28.5.67: expiring players show RAW AAV (re-draft cost), not discounted salary
-        rightHtml = '<div class="cr-aav" style="color:'+accentColor+'">'+p.rawAavStr+'</div><div class="cr-detail">re-draft AAV</div>';
-      } else if(p.pts && p.pts>0){
+      // V28.5.71: Always show ESPN points on the right when available (across all
+      // contract sections). Re-draft AAV moves into the meta line below the name
+      // for the expiring section.
+      if(p.pts && p.pts>0){
         rightHtml = '<div class="cr-aav" style="color:#e8c84b">'+p.pts.toFixed(1)+'</div><div class="cr-detail">'+(p.avg?'ESPN · '+p.avg.toFixed(1)+' /gm':'ESPN Pts')+'</div>';
       } else {
-        rightHtml = '<div class="cr-aav" style="color:'+accentColor+'">'+p.salStr+'</div><div class="cr-detail">'+detail+'</div>';
+        rightHtml = '<div class="cr-aav" style="color:'+accentColor+'">'+(showRawAav?p.rawAavStr:p.salStr)+'</div><div class="cr-detail">'+(showRawAav?'re-draft AAV':detail)+'</div>';
       }
-      var teamLine = showRawAav ? (p.team+' · '+p.rawAavStr+' AAV · '+detail) : (p.team+' · '+p.salStr+' · '+detail);
+      var teamLine = showRawAav ? (p.team+' · '+p.rawAavStr+' re-draft · '+detail) : (p.team+' · '+p.salStr+' · '+detail);
       return '<div class="contract-row" onclick="showTeam(\''+p.team.replace(/\\'/g,'')+'\')">'+
         '<div class="cr-slot-wrap"><span class="slot '+sk+'">'+slotDisp+'</span></div>'+
         '<div class="cr-info">'+
@@ -5253,6 +5269,66 @@ function updateHighlightsButton(){
 // Deduplicates by name (keeps last occurrence — newest contract on Spotrac is listed last),
 // rebuilds SAL/SAL_MAP/AAV_DB, propagates new AAV/age/expires to every ROSTER player,
 // re-renders all visible pages.
+// V28.5.71: Pull MLB age (currentAge) for a player by name. Returns a number or null.
+function getMlbAge(name){
+  var m = getMlbStat(name);
+  if(m && typeof m.age==='number') return m.age;
+  // Compute from birthDate if currentAge missing
+  if(m && m.birthDate){
+    try{
+      var bd = new Date(m.birthDate);
+      if(!isNaN(bd.getTime())){
+        var now = new Date();
+        var a = now.getFullYear() - bd.getFullYear();
+        var mDiff = now.getMonth() - bd.getMonth();
+        if(mDiff < 0 || (mDiff===0 && now.getDate()<bd.getDate())) a--;
+        return a;
+      }
+    }catch(e){}
+  }
+  return null;
+}
+// Returns a string for display: MLB age if available, else the fallback.
+function displayAge(name, fallback){
+  var a = getMlbAge(name);
+  if(a !== null && a !== undefined && !isNaN(a)) return String(a);
+  return fallback ? String(fallback) : '?';
+}
+// Walk SAL and ROSTER and overwrite age fields with MLB ages where available.
+function applyMlbAges(){
+  var updates = 0;
+  if(typeof SAL !== 'undefined' && SAL){
+    SAL.forEach(function(p){
+      var a = getMlbAge(p.name);
+      if(a !== null && a !== undefined && !isNaN(a)){
+        var s = String(a);
+        if(p.age !== s){ p.age = s; updates++; }
+        if(SAL_MAP[p.name]) SAL_MAP[p.name].age = s;
+      }
+    });
+  }
+  if(typeof ROSTER !== 'undefined' && ROSTER){
+    Object.keys(ROSTER).forEach(function(tn){
+      (ROSTER[tn]||[]).forEach(function(p){
+        var a = getMlbAge(p.name);
+        if(a !== null && a !== undefined && !isNaN(a)){
+          var s = String(a);
+          if(p.age !== s){ p.age = s; updates++; }
+        }
+      });
+    });
+    try{ localStorage.setItem('dyn26_v3_roster', JSON.stringify(ROSTER)); }catch(e){}
+  }
+  if(updates > 0){
+    console.log('[mlb-age] updated '+updates+' player ages from MLB');
+    // Trigger re-renders for currently visible pages
+    try{ if(currentTeam && typeof teamBuilt!=='undefined'){ teamBuilt[currentTeam]=false; var rb=document.getElementById('rosterBody'); if(rb) rb.innerHTML=''; if(typeof buildTeamTable==='function') buildTeamTable(currentTeam); if(typeof updateTeamCells==='function') updateTeamCells(currentTeam); if(typeof buildSimpleRoster==='function') buildSimpleRoster(currentTeam);} }catch(e){}
+    try{ var dPg=document.getElementById('page-contracts'); if(dPg&&dPg.classList.contains('active')&&typeof buildContractsTab==='function') buildContractsTab(); }catch(e){}
+    try{ var fPg=document.getElementById('page-fa'); if(fPg&&fPg.classList.contains('active')&&typeof renderFA==='function') renderFA(); }catch(e){}
+    try{ var drPg=document.getElementById('page-draft'); if(drPg&&drPg.classList.contains('active')&&typeof buildDraftPage==='function') buildDraftPage(); }catch(e){}
+    try{ var sPg=document.getElementById('page-salaries-db'); if(sPg&&sPg.classList.contains('active')&&typeof renderDB==='function') renderDB(); }catch(e){}
+  }
+}
 // V28.5.66: Manual ARB override list (names always treated as ARB).
 // Synced via Firebase league/manualArb; cached in localStorage.
 var MANUAL_ARB = [];
@@ -5383,6 +5459,7 @@ function applySalariesToState(rawSalaries){
     if(dPg && dPg.classList.contains('active') && typeof buildDraftPage === 'function') buildDraftPage();
   }catch(e){}
   try{ if(typeof updateSalDbStatus === 'function') updateSalDbStatus(); }catch(e){}
+  try{ if(typeof applyMlbAges === 'function') applyMlbAges(); }catch(e){}
 
   return deduped;
 }
