@@ -973,7 +973,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.86</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.87</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1561,18 +1561,61 @@ function ckey(tn,i){var p=(ROSTER[tn]||[])[i];return p?'player|'+p.name:'player|
 function getC(tn,i){var k=ckey(tn,i);var e=CONTRACTS[k];if(!e)return '';if(e.cleared)return '';return e.years===0?'0':String(e.years||'');}
 function getEntry(tn,i){return CONTRACTS[ckey(tn,i)]||null;}
 function isCarried(tn,i){var e=getEntry(tn,i);return e&&e.carried===true;}
-function setC(tn,i,v){var k=ckey(tn,i);var p=(ROSTER[tn]||[])[i];var nm=p?p.name:'?';if(v===''||v===null||v===undefined){var prev=CONTRACTS[k];delete CONTRACTS[k];if(typeof logAction==='function') logAction('contract','setC('+tn+','+i+',null) — delete CONTRACTS["+k+"]', {player:nm, prevYears:(prev?prev.years:null)});}else{CONTRACTS[k]={years:parseInt(v)||0,carried:false,cleared:false};if(typeof logAction==='function') logAction('contract','setC('+tn+','+i+','+v+') — CONTRACTS["+k+"] = {years:'+v+', carried:false}', {player:nm});}saveContracts();}
-function calcSal(aav,contract,yi,carried,onIR){
+function setC(tn,i,v){
+  var k=ckey(tn,i);
+  var p=(ROSTER[tn]||[])[i];
+  var nm=p?p.name:'?';
+  if(v===''||v===null||v===undefined){
+    var prev=CONTRACTS[k];
+    delete CONTRACTS[k];
+    if(typeof logAction==='function') logAction('contract','setC('+tn+','+i+',null) — delete CONTRACTS['+k+']', {player:nm, prevYears:(prev?prev.years:null)});
+  }else{
+    // V28.5.87: capture signedYear + lockedAav on first sign. Preserve them on
+    // subsequent edits (so the contract math stays consistent).
+    var existing = CONTRACTS[k];
+    var aavNum = p ? parseFloat(p.aav) : NaN;
+    var aavForLock = (!isNaN(aavNum) && aavNum>0) ? aavNum : (p && p.aav ? p.aav : null);
+    var entry = {
+      years: parseInt(v)||0,
+      carried: false,
+      cleared: false,
+      signedYear: (existing && existing.signedYear) ? existing.signedYear : CURRENT_SEASON,
+      lockedAav: (existing && existing.lockedAav !== undefined && existing.lockedAav !== null) ? existing.lockedAav : aavForLock
+    };
+    CONTRACTS[k] = entry;
+    if(typeof logAction==='function') logAction('contract','setC('+tn+','+i+','+v+') — CONTRACTS['+k+'] = '+JSON.stringify(entry), {player:nm});
+  }
+  saveContracts();
+}
+function calcSal(aav,contract,yi,carried,onIR,signedYear,lockedAav){
+  // V28.5.87: If this is a carried contract WITH a known signedYear + lockedAav,
+  // compute salary from that locked state so subsequent AAV imports + season
+  // advances don't break the math. Otherwise fall back to legacy behavior.
   var isArb=(!aav||aav==='ARB'||aav==='?'||isNaN(parseFloat(aav)));
   var base=isArb?ARB():parseFloat(aav);if(isNaN(base))return null;
   var c=(contract===''||contract===null||contract===undefined)?0:parseInt(contract);
-  // No contract entered — show base salary (with IL discount if applicable)
   if(isNaN(c)||c<1)return yi===0?(onIR?base*RULES.irDiscount:base):null;
   if(isArb)return yi<c?(onIR&&yi===0?ARB()*RULES.irDiscount:ARB()):null;
+  // Carried contract with locked AAV + signedYear: use locked AAV as base and
+  // count escalator power from signing year, NOT from current-season offset.
+  if(carried && lockedAav!==undefined && lockedAav!==null && !isNaN(parseFloat(lockedAav)) && signedYear){
+    var lAav = parseFloat(lockedAav);
+    var contractYear = (CURRENT_SEASON + yi) - parseInt(signedYear);
+    if(contractYear < 0) return null;
+    if(yi >= c) return null;
+    // Year 0 of the contract (signing year): year-0 discount applies. All other
+    // years compound the escalator from yr-0 base.
+    var yr0Locked = lAav * RULES.discount;
+    var sal;
+    if(contractYear === 0) sal = yr0Locked;
+    else sal = yr0Locked * Math.pow(RULES.escalator, contractYear);
+    return (onIR && yi === 0) ? sal * RULES.irDiscount : sal;
+  }
+  // Legacy path: no signedYear/lockedAav
   if(yi===0){var yr0=carried?base:base*RULES.discount;return onIR?yr0*RULES.irDiscount:yr0;}
   if(yi>=c)return null;return base*Math.pow(RULES.escalator,yi);
 }
-function playerSals(tn,p,i){var c=getC(tn,i);var carried=isCarried(tn,i);var onIR=(p.slot==='IL'||p.slot==='IR'||p.slotId===17||p.slotId===18);return YRS.map(function(_,yi){return calcSal(p.aav,c,yi,carried,onIR);});}
+function playerSals(tn,p,i){var c=getC(tn,i);var carried=isCarried(tn,i);var entry=getEntry(tn,i);var signedYear=entry?entry.signedYear:null;var lockedAav=entry?entry.lockedAav:null;var onIR=(p.slot==='IL'||p.slot==='IR'||p.slotId===17||p.slotId===18);return YRS.map(function(_,yi){return calcSal(p.aav,c,yi,carried,onIR,signedYear,lockedAav);});}
 function teamTotals(tn){return YRS.map(function(_,yi){var base=(ROSTER[tn]||[]).reduce(function(s,p,i){var v=playerSals(tn,p,i)[yi];return v!==null?s+v:s;},0);var dc=(typeof deadCapForYear==='function')?deadCapForYear(tn,yi):0;var tc=(typeof tradeCashForYear==='function')?tradeCashForYear(tn,yi):0;return base+dc+tc;});}
 function capY(yi){var season=CURRENT_SEASON+yi;var ov=CAP_OVERRIDES[String(season)];if(ov!==undefined&&ov!==null&&!isNaN(parseFloat(ov)))return parseFloat(ov);return getBaseCap()*Math.pow(1+RULES.capGrowth,yi);}
 function fs(v){if(v===null||v===undefined)return '\u2014';var n=parseFloat(v);if(isNaN(n)||n===0)return '\u2014';return n.toFixed(1);}
@@ -2259,14 +2302,14 @@ function resignPlayer(){if(_pcTeam===null||_pcIdx===null)return;var k=ckey(_pcTe
 function advanceSeason(){var next=CURRENT_SEASON+1;document.getElementById('advFrom').textContent=String(CURRENT_SEASON);document.getElementById('advTo').textContent=String(next);document.getElementById('advNewEnd').textContent=String(next+RULES.projYears-1);openModal('advanceModal');}
 function doAdvanceSeason(){
   closeModal('advanceModal');var next=CURRENT_SEASON+1;var newC={};
-  Object.keys(CONTRACTS).forEach(function(k){var e=CONTRACTS[k];if(!e||e.cleared)return;var yrs=parseInt(e.years)||0;newC[k]={years:Math.max(0,yrs-1),carried:true};});
+  Object.keys(CONTRACTS).forEach(function(k){var e=CONTRACTS[k];if(!e||e.cleared)return;var yrs=parseInt(e.years)||0;newC[k]={years:Math.max(0,yrs-1),carried:true,signedYear:e.signedYear,lockedAav:e.lockedAav};});
   Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p,i){var k=ckey(tn,i);if(!newC[k])newC[k]={years:0,carried:true};});});
   CONTRACTS=newC;try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
   if(typeof logAction==='function') logAction('season','advanceSeason() — CURRENT_SEASON '+CURRENT_SEASON+' → '+next+'. All contracts marked carried:true, years--.', {contractCount:Object.keys(CONTRACTS).length});
   CURRENT_SEASON=next;localStorage.setItem('dyn26_season',String(CURRENT_SEASON));YRS=buildYRS();
   teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateSeasonUI();showToast('\u2713 Advanced to '+CURRENT_SEASON,'green',3000);
 }
-function undoAdvanceSeason(){if(CURRENT_SEASON<=2026){showToast('Already at 2026','red',2000);return;}Object.keys(CONTRACTS).forEach(function(k){var e=CONTRACTS[k];if(e&&e.carried){e.years=(parseInt(e.years)||0)+1;e.carried=false;}});try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}CURRENT_SEASON--;localStorage.setItem('dyn26_season',String(CURRENT_SEASON));YRS=buildYRS();teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateSeasonUI();showToast('\u21A9 Reverted to '+CURRENT_SEASON,'yellow',3000);}
+function undoAdvanceSeason(){if(CURRENT_SEASON<=2026){showToast('Already at 2026','red',2000);return;}Object.keys(CONTRACTS).forEach(function(k){var e=CONTRACTS[k];if(e&&e.carried){e.years=(parseInt(e.years)||0)+1;e.carried=false;/* preserve signedYear + lockedAav */}});try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}CURRENT_SEASON--;localStorage.setItem('dyn26_season',String(CURRENT_SEASON));YRS=buildYRS();teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateSeasonUI();showToast('\u21A9 Reverted to '+CURRENT_SEASON,'yellow',3000);}
 var RULE_DEFS=[{key:'arb',label:'ARB Salary',sub:'Flat rate for ARB players ($M)',step:'0.01'},{key:'discount',label:'Year-0 Discount',sub:'Multiplier for new contract yr 0 (e.g. 0.875)',step:'0.001'},{key:'escalator',label:'Annual Escalator',sub:'Salary multiplier per year after yr 0',step:'0.001'},{key:'irDiscount',label:'IL/IR Discount',sub:'Current-year salary multiplier for IL/IR slot players (e.g. 0.5 = 50%)',step:'0.01'},{key:'baseCap',label:'Base Cap ($M)',sub:'Salary cap starting in 2026',step:'1'},{key:'capGrowth',label:'Cap Growth Rate',sub:'Annual increase e.g. 0.021 = 2.1%',step:'0.001'},{key:'projYears',label:'Projection Years',sub:'Number of salary columns',step:'1'},{key:'rosterMax',label:'Max Roster Size',sub:'Rows parsed per team from Excel',step:'1'},{key:'deadCapPenalty',label:'Dead Cap Penalty',sub:'Multiplier on current-year salary when dropping a contracted player while contracts are locked (e.g. 2.0 = 200%)',step:'0.05'}];
 function buildRulesFields(){var el=document.getElementById('rulesFields');if(!el)return;el.innerHTML=RULE_DEFS.map(function(d){
   var val=RULES[d.key];var lbl=d.label;var sub=d.sub;
@@ -6932,7 +6975,7 @@ function undoSalaryImport(){
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-primary" onclick="saveAAV()">Save AAV</button>
+      <button class="btn-primary" onclick="requirePin(function(){saveAAV();})">Save AAV</button>
       <button class="btn-secondary" onclick="closeModal('aavModal')">Cancel</button>
     </div>
   </div>
