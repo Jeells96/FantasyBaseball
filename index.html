@@ -973,7 +973,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.82</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.83</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1009,6 +1009,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <!-- TEAM PAGE -->
 <div id="page-team" class="page">
+  <div id="contractsLockedBanner" style="display:none;background:linear-gradient(90deg,rgba(75,143,232,.18),rgba(75,143,232,.06));border:1px solid #4b8fe8;border-radius:8px;padding:.55rem .85rem;margin:0 1rem .8rem;display:none;align-items:center;gap:.5rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;color:#9fc3ff;font-size:.78rem;font-weight:600;text-transform:uppercase"><span style="font-size:1.1rem">🔒</span><span>Contracts Locked — Editing disabled</span></div>
   <div class="team-hdr">
     <div>
       <div style="display:-webkit-flex;display:flex;gap:.4rem;-webkit-align-items:center;align-items:center;-webkit-flex-wrap:wrap;flex-wrap:wrap;margin-bottom:.4rem">
@@ -3758,6 +3759,9 @@ function buildSimpleRoster(tn){
       '</div>';
   }).join('');
   // No input force-color needed — buttons don't need it
+
+  // V28.5.83: re-apply lock UI so banner shows on team open
+  try{ if(typeof applyContractsLockUI==="function") applyContractsLockUI(); }catch(e){}
 }
 
 function onCSimple(tn,i){
@@ -4620,6 +4624,9 @@ function applyContractsLockUI(){
     if(CONTRACTS_LOCKED){btn.style.opacity='.5';btn.style.pointerEvents='none';}
     else {btn.style.opacity='';btn.style.pointerEvents='';}
   });
+  // V28.5.83: show prominent lock banner on team page
+  var banner=document.getElementById('contractsLockedBanner');
+  if(banner) banner.style.display = CONTRACTS_LOCKED ? 'flex' : 'none';
 }
 
 function loadContractsLockUI(){
@@ -4640,6 +4647,11 @@ function patchSetCForLock(){
   _origSetCForLock=setC;
   setC=function(tn,i,v){
     if(CONTRACTS_LOCKED){showToast('Contracts are locked','yellow',1500);return;}
+    // V28.5.83: carried contracts (from prior seasons) are always read-only.
+    if(typeof isCarried==='function' && isCarried(tn,i)){
+      showToast('Carried contract — cannot edit','yellow',2000);
+      return;
+    }
     return _origSetCForLock(tn,i,v);
   };
 }
@@ -4722,6 +4734,17 @@ function checkForDrops(){
         droppedAt:Date.now()
       });
       saveDeadCap();
+      // V28.5.83: wipe the player's contract by NAME so if anyone re-acquires
+      // them, they come back as a free agent with no inherited contract.
+      try{
+        var cKey = 'player|'+pp.name;
+        if(CONTRACTS[cKey]){
+          delete CONTRACTS[cKey];
+          try{ localStorage.setItem(LS_C, JSON.stringify(CONTRACTS)); }catch(e){}
+          try{ if(window.saveContractsCloud) window.saveContractsCloud(CONTRACTS); }catch(e){}
+          console.log('[dead-cap] cleared CONTRACTS entry for '+pp.name);
+        }
+      }catch(e){console.warn('[dead-cap] contract-wipe failed:',e);}
       showToast('Dead cap: '+pp.name+' → $'+hit.toFixed(1)+'M ('+tn+')','yellow',3000);
     });
   });
@@ -4788,7 +4811,7 @@ function updateDeadCapDisplay(tn){
         '</div>'+
         '<div style="display:flex;align-items:center">'+
         '<span class="deadcap-hit">$'+e.hit.toFixed(1)+'M</span>'+
-        '<button class="deadcap-clear-btn" onclick="requirePin(function(){clearDeadCapEntry(\''+tn.replace(/\'/g,"\\'")+'\',\''+e.name.replace(/\'/g,"\\'")+'\','+e.season+');})">✕</button>'+
+        '<button class="deadcap-clear-btn" onclick="clearDeadCapEntry(\''+tn.replace(/\'/g,"\\'")+'\',\''+e.name.replace(/\'/g,"\\'")+'\','+e.season+')">✕</button>'+
         '</div>'+
         '</div>';
     }).join('');
