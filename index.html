@@ -973,7 +973,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.83</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.84</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -4660,9 +4660,13 @@ function patchSetCForLock(){
 
 // ══════ V28.3: DEAD CAP STATE ══════
 var DEAD_CAP = JSON.parse(localStorage.getItem('dyn28_dead_cap')||'{}');
+// V28.5.84: on load, clean up any stale CONTRACTS for players already in dead cap.
+setTimeout(function(){try{if(typeof wipeContractsForDeadCappedPlayers==='function'){var n=wipeContractsForDeadCappedPlayers();if(n>0)console.log('[dead-cap cleanup] swept '+n+' stale contracts on load');}}catch(e){}}, 1500);
 function saveDeadCap(){
   localStorage.setItem('dyn28_dead_cap',JSON.stringify(DEAD_CAP));
   if(window.saveDeadCapCloud)window.saveDeadCapCloud(DEAD_CAP);
+  // V28.5.84: any time DEAD_CAP changes, run a cleanup pass on CONTRACTS.
+  try{ if(typeof wipeContractsForDeadCappedPlayers==='function') wipeContractsForDeadCappedPlayers(); }catch(e){}
 }
 
 // Returns total dead-cap hit for a team in a specific year offset
@@ -4722,7 +4726,19 @@ function checkForDrops(){
       var baseSal=parseFloat(pp.sal0)||0;
       if(baseSal<=0)return;
       var hit=baseSal*(RULES.deadCapPenalty||2.0);
-      // Already in dead cap? Don't duplicate
+      // V28.5.84: Always wipe the contract for a dropped contracted player,
+      // even if a dead-cap entry already exists (handles legacy entries created
+      // before contract-wipe was implemented).
+      try{
+        var cKey = 'player|'+pp.name;
+        if(CONTRACTS[cKey]){
+          delete CONTRACTS[cKey];
+          try{ localStorage.setItem(LS_C, JSON.stringify(CONTRACTS)); }catch(e){}
+          try{ if(window.saveContractsCloud) window.saveContractsCloud(CONTRACTS); }catch(e){}
+          console.log('[dead-cap] cleared CONTRACTS entry for '+pp.name);
+        }
+      }catch(e){console.warn('[dead-cap] contract-wipe failed:',e);}
+      // Already in dead cap? Don't duplicate the entry, but contract is wiped above
       if(!DEAD_CAP[tn])DEAD_CAP[tn]=[];
       var exists=DEAD_CAP[tn].some(function(e){return e.name===pp.name && e.season===CURRENT_SEASON;});
       if(exists)return;
@@ -4734,17 +4750,6 @@ function checkForDrops(){
         droppedAt:Date.now()
       });
       saveDeadCap();
-      // V28.5.83: wipe the player's contract by NAME so if anyone re-acquires
-      // them, they come back as a free agent with no inherited contract.
-      try{
-        var cKey = 'player|'+pp.name;
-        if(CONTRACTS[cKey]){
-          delete CONTRACTS[cKey];
-          try{ localStorage.setItem(LS_C, JSON.stringify(CONTRACTS)); }catch(e){}
-          try{ if(window.saveContractsCloud) window.saveContractsCloud(CONTRACTS); }catch(e){}
-          console.log('[dead-cap] cleared CONTRACTS entry for '+pp.name);
-        }
-      }catch(e){console.warn('[dead-cap] contract-wipe failed:',e);}
       showToast('Dead cap: '+pp.name+' → $'+hit.toFixed(1)+'M ('+tn+')','yellow',3000);
     });
   });
@@ -4781,6 +4786,29 @@ function clearDeadCapEntry(tn,name,season){
 }
 
 // Clear all dead cap for a season (called on season advance)
+// V28.5.84: One-shot cleanup. For every player in current-season DEAD_CAP,
+// remove their CONTRACTS entry by name. Safe to call repeatedly.
+function wipeContractsForDeadCappedPlayers(){
+  if(typeof DEAD_CAP === 'undefined' || !DEAD_CAP) return 0;
+  var wiped = 0;
+  Object.keys(DEAD_CAP).forEach(function(tn){
+    (DEAD_CAP[tn]||[]).forEach(function(e){
+      if(e.season !== CURRENT_SEASON) return;
+      var cKey = 'player|'+e.name;
+      if(CONTRACTS[cKey]){
+        delete CONTRACTS[cKey];
+        wiped++;
+        console.log('[dead-cap cleanup] wiped contract for '+e.name);
+      }
+    });
+  });
+  if(wiped > 0){
+    try{ localStorage.setItem(LS_C, JSON.stringify(CONTRACTS)); }catch(e){}
+    try{ if(window.saveContractsCloud) window.saveContractsCloud(CONTRACTS); }catch(e){}
+  }
+  return wiped;
+}
+
 function clearDeadCapForSeason(season){
   Object.keys(DEAD_CAP).forEach(function(tn){
     DEAD_CAP[tn]=(DEAD_CAP[tn]||[]).filter(function(e){return e.season!==season;});
