@@ -973,7 +973,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.81</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.82</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1180,7 +1180,13 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 <div id="page-settings" class="page">
   <div class="set-wrap">
     <div class="pg-title">Settings</div>
-    <div class="pg-sub" style="margin-bottom:1.5rem">Configure data sources and queries</div>
+    <div class="pg-sub" style="margin-bottom:1rem">Configure data sources and queries</div>
+
+    <div class="set-section">
+      <div class="set-section-title">Roster Sync</div>
+      <button class="set-btn accent" onclick="refreshRosters(false)">↻ Refresh Team Rosters from ESPN</button>
+      <p style="font-size:.7rem;color:#6b7280;line-height:1.5;margin-top:.4rem">Pulls the latest roster for every team. If a contracted player was dropped, a dead-cap hit is recorded.</p>
+    </div>
 
     <div class="set-section">
       <div class="set-section-title">Contract Lock</div>
@@ -1191,7 +1197,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
           <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#252a35;border:1px solid #1e2433;border-radius:26px;transition:.2s"></span>
         </label>
       </div>
-      <p style="font-size:.7rem;color:#6b7280;line-height:1.5">When locked, contract years can’t be changed. Dropping a player keeps a 1.25x dead-cap hit for the current season.</p>
+      <p style="font-size:.7rem;color:#6b7280;line-height:1.5">When locked, contract years can’t be changed. Dropping a contracted player triggers a dead-cap hit (see Dead Cap Penalty in League Rules) for the current season.</p>
     </div>
 
     <div class="set-section">
@@ -2812,7 +2818,7 @@ if(rStats[0] && rStats[0].stats){
   else{sl.HR=raw['5'];sl.R=raw['20'];sl.RBI=raw['21'];sl.SB=raw['23'];sl.AVG=raw['2'];sl.K=raw['27'];sl.E=raw['18'];}
   ROSTERED_PLAYER_STATS[name]={statLine:sl,isPitcher:isPit,pts:rStats[0].appliedTotal||null,avg:rStats[0].appliedAverage||null};
 }
-players.push({slot:slot,name:name,aav:aav,age:age2,injured:injured,slotId:slotId,fa:salE&&salE.expires?salE.expires:'?'});});players.sort(function(a,b){return a.slotId-b.slotId;});newRoster[teamName]=players;}).catch(function(){errors++;if(ROSTER[teamName])newRoster[teamName]=ROSTER[teamName];}).finally(function(){done++;if(done===teamNames.length){isFetching=false;try{localStorage.setItem('dyn28_rostered_stats',JSON.stringify(ROSTERED_PLAYER_STATS));}catch(e){}if(typeof checkForDrops==='function'){try{checkForDrops();}catch(e){}}if(btn)btn.classList.remove('spinning');if(Object.keys(newRoster).length){ROSTER=newRoster;saveCachedRoster();teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateLastUpdated();if(errors===0)showToast('\u2713 Rosters updated from ESPN','green',2500);else showToast('\u26A0 Updated '+(teamNames.length-errors)+'/'+teamNames.length+' teams','yellow',3000);}else showToast('Failed to fetch rosters','red',3000);}});});}
+players.push({slot:slot,name:name,aav:aav,age:age2,injured:injured,slotId:slotId,fa:salE&&salE.expires?salE.expires:'?'});});players.sort(function(a,b){return a.slotId-b.slotId;});newRoster[teamName]=players;}).catch(function(){errors++;if(ROSTER[teamName])newRoster[teamName]=ROSTER[teamName];}).finally(function(){done++;if(done===teamNames.length){isFetching=false;try{localStorage.setItem('dyn28_rostered_stats',JSON.stringify(ROSTERED_PLAYER_STATS));}catch(e){}if(btn)btn.classList.remove('spinning');if(Object.keys(newRoster).length){ROSTER=newRoster;saveCachedRoster();/* V28.5.82: run drop detection AFTER ROSTER is updated, so the snapshot diff sees what's gone */if(typeof checkForDrops==='function'){try{checkForDrops();}catch(e){console.warn('[checkForDrops] failed:',e);}}teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateLastUpdated();if(errors===0)showToast('\u2713 Rosters updated from ESPN','green',2500);else showToast('\u26A0 Updated '+(teamNames.length-errors)+'/'+teamNames.length+' teams','yellow',3000);}else showToast('Failed to fetch rosters','red',3000);}});});}
 var _aavSelectedName=null;
 // V28.5.25: Stats cache for rostered players keyed by name
 var ROSTERED_PLAYER_STATS = JSON.parse(localStorage.getItem('dyn28_rostered_stats')||'{}');
@@ -4597,6 +4603,9 @@ function toggleContractsLocked(on){
   CONTRACTS_LOCKED=on;
   localStorage.setItem('dyn28_contracts_locked',String(on));
   if(window.saveContractsLockedCloud)window.saveContractsLockedCloud(on);
+  // V28.5.82: when contracts lock, snapshot the current state so subsequent
+  // drops can be detected against this baseline.
+  if(on && typeof saveRosterSnapshot==='function'){try{saveRosterSnapshot();}catch(e){}}
   var slider=document.querySelector('#contractsLockedToggle + .toggle-slider');
   if(slider){
     if(on){slider.style.background='#4b8fe8';slider.style.borderColor='#4b8fe8';}
@@ -4720,18 +4729,21 @@ function checkForDrops(){
 }
 
 function saveRosterSnapshot(){
+  // V28.5.82: snapshot captures each player's contract years + year-0 salary at
+  // the moment of snapshot. Used to detect drops on the next ESPN refresh.
   var snap={};
   Object.keys(ROSTER||{}).forEach(function(tn){
     snap[tn]=(ROSTER[tn]||[]).map(function(p,i){
+      var sals=[]; try{sals=playerSals(tn,p,i);}catch(e){sals=[0];}
       return {
         name:p.name,
         cval:getC(tn,i),
-        sal0:playerSals(tn,p,i)[0]
+        sal0:sals[0]||0
       };
     });
   });
   _prevRosterSnapshot=snap;
-  localStorage.setItem('dyn28_prev_roster',JSON.stringify(snap));
+  try{ localStorage.setItem('dyn28_prev_roster',JSON.stringify(snap)); }catch(e){}
 }
 
 // Manually clear a dead cap entry (in case of error)
