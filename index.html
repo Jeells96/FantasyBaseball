@@ -667,6 +667,9 @@ input,select,textarea,input[type="text"],input[type="number"],input[type="email"
 .lr-pane .lr-list ul li{margin-bottom:.2rem}
 .lr-q{margin-top:.9rem;color:var(--brt);font-size:.85rem}
 .lr-a{color:var(--dim);font-size:.8rem;margin:.2rem 0 .5rem;line-height:1.5;padding-left:.4rem;border-left:2px solid var(--bdr)}
+
+/* V28.5.88: eligible positions chip */
+.elig-pos{display:inline-block;background:rgba(75,143,232,.12);border:1px solid rgba(75,143,232,.3);color:#9fc3ff;font-family:"Barlow Condensed",sans-serif;font-size:.6rem;font-weight:600;letter-spacing:.6px;padding:.05rem .35rem;border-radius:4px;margin-left:.35rem;vertical-align:middle;text-transform:uppercase;white-space:nowrap}
 </style>
 <!-- Firebase SDK -->
 <script type="module">
@@ -973,7 +976,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.87</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.89</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1570,20 +1573,25 @@ function setC(tn,i,v){
     delete CONTRACTS[k];
     if(typeof logAction==='function') logAction('contract','setC('+tn+','+i+',null) — delete CONTRACTS['+k+']', {player:nm, prevYears:(prev?prev.years:null)});
   }else{
-    // V28.5.87: capture signedYear + lockedAav on first sign. Preserve them on
-    // subsequent edits (so the contract math stays consistent).
+    // V28.5.89: ARB players never get lockedAav/signedYear since they roll on live ARB.
+    var isArbP = (typeof isArbPlayer==='function' && p) ? isArbPlayer(p) : false;
     var existing = CONTRACTS[k];
-    var aavNum = p ? parseFloat(p.aav) : NaN;
-    var aavForLock = (!isNaN(aavNum) && aavNum>0) ? aavNum : (p && p.aav ? p.aav : null);
-    var entry = {
-      years: parseInt(v)||0,
-      carried: false,
-      cleared: false,
-      signedYear: (existing && existing.signedYear) ? existing.signedYear : CURRENT_SEASON,
-      lockedAav: (existing && existing.lockedAav !== undefined && existing.lockedAav !== null) ? existing.lockedAav : aavForLock
-    };
+    var entry;
+    if(isArbP){
+      entry = { years: parseInt(v)||0, carried:false, cleared:false };
+    } else {
+      var aavNum = p ? parseFloat(p.aav) : NaN;
+      var aavForLock = (!isNaN(aavNum) && aavNum>0) ? aavNum : (p && p.aav ? p.aav : null);
+      entry = {
+        years: parseInt(v)||0,
+        carried: false,
+        cleared: false,
+        signedYear: (existing && existing.signedYear) ? existing.signedYear : CURRENT_SEASON,
+        lockedAav: (existing && existing.lockedAav !== undefined && existing.lockedAav !== null) ? existing.lockedAav : aavForLock
+      };
+    }
     CONTRACTS[k] = entry;
-    if(typeof logAction==='function') logAction('contract','setC('+tn+','+i+','+v+') — CONTRACTS['+k+'] = '+JSON.stringify(entry), {player:nm});
+    if(typeof logAction==='function') logAction('contract','setC('+tn+','+i+','+v+') — CONTRACTS['+k+'] = '+JSON.stringify(entry), {player:nm, isArb:isArbP});
   }
   saveContracts();
 }
@@ -1614,6 +1622,26 @@ function calcSal(aav,contract,yi,carried,onIR,signedYear,lockedAav){
   // Legacy path: no signedYear/lockedAav
   if(yi===0){var yr0=carried?base:base*RULES.discount;return onIR?yr0*RULES.irDiscount:yr0;}
   if(yi>=c)return null;return base*Math.pow(RULES.escalator,yi);
+}
+// V28.5.88: Return a string like "1B/3B/OF" of all eligible positions for a player.
+// Falls back to lineup slot if positions[] is missing (older cached data).
+function eligiblePosStr(p){
+  if(p && Array.isArray(p.positions) && p.positions.length){
+    return p.positions.join('/');
+  }
+  if(p && p.slot && p.slot!=='Bench' && p.slot!=='BN' && p.slot!=='IL' && p.slot!=='IR' && p.slot!=='UTIL'){
+    return p.slot;
+  }
+  // Fall back to SAL_MAP position
+  if(p && p.name && typeof SAL_MAP!=='undefined' && SAL_MAP[p.name] && SAL_MAP[p.name].pos){
+    return SAL_MAP[p.name].pos;
+  }
+  return '';
+}
+function eligiblePosArr(p){
+  if(p && Array.isArray(p.positions) && p.positions.length) return p.positions.slice();
+  var s = eligiblePosStr(p);
+  return s ? s.split('/') : [];
 }
 function playerSals(tn,p,i){var c=getC(tn,i);var carried=isCarried(tn,i);var entry=getEntry(tn,i);var signedYear=entry?entry.signedYear:null;var lockedAav=entry?entry.lockedAav:null;var onIR=(p.slot==='IL'||p.slot==='IR'||p.slotId===17||p.slotId===18);return YRS.map(function(_,yi){return calcSal(p.aav,c,yi,carried,onIR,signedYear,lockedAav);});}
 function teamTotals(tn){return YRS.map(function(_,yi){var base=(ROSTER[tn]||[]).reduce(function(s,p,i){var v=playerSals(tn,p,i)[yi];return v!==null?s+v:s;},0);var dc=(typeof deadCapForYear==='function')?deadCapForYear(tn,yi):0;var tc=(typeof tradeCashForYear==='function')?tradeCashForYear(tn,yi):0;return base+dc+tc;});}
@@ -2225,7 +2253,7 @@ function buildTeamTable(tn){
     var lockIcon=carried&&cNum>0?'<span class="lock-icon">\ud83d\udd12</span>':'';
     var yearCells=YRS.map(function(_,yi){return '<td class="yval muted" id="y-'+tn+'-'+i+'-'+yi+'">&mdash;</td>';}).join('');
     var inputEl=carried?'<div class="ci-carried" id="ci-'+tn+'-'+i+'">'+(cNum>0?cNum:'&mdash;')+'</div>':'<button type="button" class="ci-btn" id="ci-'+tn+'-'+i+'" onclick="openYearsPicker(\''+tn+'\','+i+')">'+(cval===''?'\u2014':cval)+'</button>';
-    return '<tr class="'+(needsDrop?'row-drop':'')+'">'+'<td><span class="slot '+sk+'">'+(p.slot==='Bench'||p.slot==='BN'?'BN':p.slot)+'</span></td>'+'<td>'+(p.age||'?')+'</td>'+'<td class="pname"><span style="'+nameStyle+';cursor:pointer" onclick="openPlayerCard(\''+tn+'\','+i+')">'+p.name+'</span>'+(arb?'<span class="arb-tag">ARB</span>':'')+dropBadge+lockIcon+injTag+'</td>'+'<td>'+aavDisp+'</td>'+'<td>'+inputEl+'</td>'+yearCells+'</tr>';
+    return '<tr class="'+(needsDrop?'row-drop':'')+'">'+'<td><span class="slot '+sk+'">'+(p.slot==='Bench'||p.slot==='BN'?'BN':p.slot)+'</span></td>'+'<td>'+(p.age||'?')+'</td>'+'<td class="pname"><span style="'+nameStyle+';cursor:pointer" onclick="openPlayerCard(\''+tn+'\','+i+')">'+p.name+'</span>'+(function(){var ps=eligiblePosStr(p);return ps&&ps!==p.slot?' <span class="elig-pos">'+ps+'</span>':'';})()+(arb?'<span class="arb-tag">ARB</span>':'')+dropBadge+lockIcon+injTag+'</td>'+'<td>'+aavDisp+'</td>'+'<td>'+inputEl+'</td>'+yearCells+'</tr>';
   }).join('');
   var totCells=YRS.map(function(_,yi){return '<td id="tt-'+tn+'-'+yi+'"></td>';}).join('');
   var capCells=YRS.map(function(_,yi){return '<td style="font-size:.30rem;text-align:center;color:#6b7280">'+fsN(capY(yi))+'</td>';}).join('');
@@ -2258,7 +2286,9 @@ function openPlayerCard(tn,i){
   var _entry=getEntry(tn,i);var _cleared=_entry&&_entry.cleared;var needsDrop=_entry&&!_cleared&&(cNum===0);
   var sal=SAL_MAP[p.name]||{};var nameEl=document.getElementById('pcName');
   nameEl.textContent=p.name;nameEl.style.color=needsDrop?'var(--red)':'var(--brt)';nameEl.style.textDecoration=needsDrop?'line-through':'none';
-  document.getElementById('pcPos').textContent=(sal.pos||p.slot||'')+(sal.team?' \u00b7 '+sal.team:'');
+  // V28.5.88: prefer eligible positions list, fall back to SAL/lineup slot
+var _posTxt = (function(){var ps=eligiblePosStr(p);if(ps) return ps;return sal.pos||p.slot||'';})();
+document.getElementById('pcPos').textContent=_posTxt+(sal.team?' \u00b7 '+sal.team:'');
   document.getElementById('pcAge').textContent=sal.age||p.age||'\u2014';
   var isArb=isArbPlayer(p);var aavNum=parseFloat(sal.aav||p.aav);
   document.getElementById('pcSalary').textContent=isArb?'ARB ($'+ARB().toFixed(2)+'M)':('$'+(isNaN(aavNum)?'?':aavNum.toFixed(2))+'M');
@@ -2302,8 +2332,37 @@ function resignPlayer(){if(_pcTeam===null||_pcIdx===null)return;var k=ckey(_pcTe
 function advanceSeason(){var next=CURRENT_SEASON+1;document.getElementById('advFrom').textContent=String(CURRENT_SEASON);document.getElementById('advTo').textContent=String(next);document.getElementById('advNewEnd').textContent=String(next+RULES.projYears-1);openModal('advanceModal');}
 function doAdvanceSeason(){
   closeModal('advanceModal');var next=CURRENT_SEASON+1;var newC={};
-  Object.keys(CONTRACTS).forEach(function(k){var e=CONTRACTS[k];if(!e||e.cleared)return;var yrs=parseInt(e.years)||0;newC[k]={years:Math.max(0,yrs-1),carried:true,signedYear:e.signedYear,lockedAav:e.lockedAav};});
-  Object.keys(ROSTER).forEach(function(tn){(ROSTER[tn]||[]).forEach(function(p,i){var k=ckey(tn,i);if(!newC[k])newC[k]={years:0,carried:true};});});
+  // V28.5.89: build a quick lookup of which contract keys belong to ARB players.
+  // ARB players never carry contracts — their entry stays editable so they
+  // continue showing in the 10-year lookahead via the live ARB rate.
+  var arbKeys = {};
+  Object.keys(ROSTER||{}).forEach(function(tn){
+    (ROSTER[tn]||[]).forEach(function(p,i){
+      if(typeof isArbPlayer==='function' && isArbPlayer(p)){
+        arbKeys[ckey(tn,i)] = true;
+      }
+    });
+  });
+  Object.keys(CONTRACTS).forEach(function(k){
+    var e=CONTRACTS[k];
+    if(!e||e.cleared)return;
+    if(arbKeys[k]){
+      // Keep ARB contracts as-is, NOT carried, NOT decremented. They roll on live ARB.
+      newC[k] = {years:parseInt(e.years)||0, carried:false, cleared:false};
+      return;
+    }
+    var yrs=parseInt(e.years)||0;
+    newC[k]={years:Math.max(0,yrs-1),carried:true,signedYear:e.signedYear,lockedAav:e.lockedAav};
+  });
+  Object.keys(ROSTER).forEach(function(tn){
+    (ROSTER[tn]||[]).forEach(function(p,i){
+      var k=ckey(tn,i);
+      if(newC[k]) return;
+      // No prior contract entry. ARB players still get no entry (clean state).
+      if(arbKeys[k]) return;
+      newC[k]={years:0,carried:true};
+    });
+  });
   CONTRACTS=newC;try{localStorage.setItem(LS_C,JSON.stringify(CONTRACTS));}catch(e){}
   if(typeof logAction==='function') logAction('season','advanceSeason() — CURRENT_SEASON '+CURRENT_SEASON+' → '+next+'. All contracts marked carried:true, years--.', {contractCount:Object.keys(CONTRACTS).length});
   CURRENT_SEASON=next;localStorage.setItem('dyn26_season',String(CURRENT_SEASON));YRS=buildYRS();
@@ -2992,7 +3051,13 @@ if(rStats[0] && rStats[0].stats){
   else{sl.HR=raw['5'];sl.R=raw['20'];sl.RBI=raw['21'];sl.SB=raw['23'];sl.AVG=raw['2'];sl.K=raw['27'];sl.E=raw['18'];}
   ROSTERED_PLAYER_STATS[name]={statLine:sl,isPitcher:isPit,pts:rStats[0].appliedTotal||null,avg:rStats[0].appliedAverage||null};
 }
-players.push({slot:slot,name:name,aav:aav,age:age2,injured:injured,slotId:slotId,fa:salE&&salE.expires?salE.expires:'?'});});players.sort(function(a,b){return a.slotId-b.slotId;});newRoster[teamName]=players;}).catch(function(){errors++;if(ROSTER[teamName])newRoster[teamName]=ROSTER[teamName];}).finally(function(){done++;if(done===teamNames.length){isFetching=false;try{localStorage.setItem('dyn28_rostered_stats',JSON.stringify(ROSTERED_PLAYER_STATS));}catch(e){}if(btn)btn.classList.remove('spinning');if(Object.keys(newRoster).length){ROSTER=newRoster;saveCachedRoster();/* V28.5.82: run drop detection AFTER ROSTER is updated, so the snapshot diff sees what's gone */if(typeof checkForDrops==='function'){try{checkForDrops();}catch(e){console.warn('[checkForDrops] failed:',e);}}teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateLastUpdated();if(errors===0)showToast('\u2713 Rosters updated from ESPN','green',2500);else showToast('\u26A0 Updated '+(teamNames.length-errors)+'/'+teamNames.length+' teams','yellow',3000);}else showToast('Failed to fetch rosters','red',3000);}});});}
+// V28.5.88: capture eligible positions from ESPN
+var _eligIds=p.eligibleSlots||[];
+var _ELIG={0:'C',1:'1B',2:'2B',3:'3B',4:'SS',5:'OF',8:'OF',9:'OF',10:'OF',11:'UTIL',12:'UTIL',14:'SP',15:'RP'};
+var _posList=[];
+_eligIds.forEach(function(s){var ab=_ELIG[s];if(ab&&_posList.indexOf(ab)<0)_posList.push(ab);});
+if(!_posList.length){var _d=(typeof POS_MAP!=='undefined')?POS_MAP[p.defaultPositionId]:null;if(_d)_posList.push(_d);}
+players.push({slot:slot,name:name,aav:aav,age:age2,injured:injured,slotId:slotId,fa:salE&&salE.expires?salE.expires:'?',positions:_posList});});players.sort(function(a,b){return a.slotId-b.slotId;});newRoster[teamName]=players;}).catch(function(){errors++;if(ROSTER[teamName])newRoster[teamName]=ROSTER[teamName];}).finally(function(){done++;if(done===teamNames.length){isFetching=false;try{localStorage.setItem('dyn28_rostered_stats',JSON.stringify(ROSTERED_PLAYER_STATS));}catch(e){}if(btn)btn.classList.remove('spinning');if(Object.keys(newRoster).length){ROSTER=newRoster;saveCachedRoster();/* V28.5.82: run drop detection AFTER ROSTER is updated, so the snapshot diff sees what's gone */if(typeof checkForDrops==='function'){try{checkForDrops();}catch(e){console.warn('[checkForDrops] failed:',e);}}teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateLastUpdated();if(errors===0)showToast('\u2713 Rosters updated from ESPN','green',2500);else showToast('\u26A0 Updated '+(teamNames.length-errors)+'/'+teamNames.length+' teams','yellow',3000);}else showToast('Failed to fetch rosters','red',3000);}});});}
 var _aavSelectedName=null;
 // V28.5.25: Stats cache for rostered players keyed by name
 var ROSTERED_PLAYER_STATS = JSON.parse(localStorage.getItem('dyn28_rostered_stats')||'{}');
@@ -3827,7 +3892,7 @@ function buildContractsTab(){
       var _ageStr = (_ageVal!==null && _ageVal!==undefined && !isNaN(_ageVal)) ? ('Age '+_ageVal) : ((p.age && p.age!='?' && p.age!=='') ? ('Age '+p.age) : '');
       var teamLine = (_ageStr?_ageStr+' · ':'') + (showRawAav ? (p.team+' · '+p.rawAavStr+' re-draft · '+detail) : (p.team+' · '+p.salStr+' · '+detail));
       return '<div class="contract-row" onclick="showTeam(\''+p.team.replace(/\\'/g,'')+'\')">'+
-        '<div class="cr-slot-wrap"><span class="slot '+sk+'">'+slotDisp+'</span></div>'+
+        '<div class="cr-slot-wrap"><span class="slot '+sk+'">'+slotDisp+'</span>'+(function(){var rp=(ROSTER[tn]||[])[i];var ps=rp?eligiblePosStr(rp):'';return ps&&ps!==slotDisp?' <span class="elig-pos">'+ps+'</span>':'';})()+'</div>'+
         '<div class="cr-info">'+
         '<div class="cr-name">'+p.name+'</div>'+
         '<div class="cr-team">'+teamLine+'</div>'+
@@ -3920,6 +3985,7 @@ function buildSimpleRoster(tn){
       '<div class="spcard-name">'+p.name+'</div>'+
       '<div class="spcard-meta">'+
       (ageStr?ageStr:'')+
+      (function(){var ps=eligiblePosStr(p);return ps&&ps!==p.slot?(ageStr?'<span style="opacity:.5">\u00b7</span>':'')+'<span class="elig-pos">'+ps+'</span>':'';})()+
       (ageStr&&tags?'<span style="opacity:.5">\u00b7</span>':'')+
       tags+
       '</div>'+
@@ -6154,6 +6220,31 @@ function applySalariesToState(rawSalaries){
   try{ if(typeof applyMlbAges === 'function') applyMlbAges(); }catch(e){}
 
   return deduped;
+
+  // V28.5.89: After applying new salaries, sweep ARB players' contract entries
+  // and remove carried/lockedAav/signedYear so they keep rolling on live ARB.
+  try{
+    if(typeof CONTRACTS!=='undefined' && CONTRACTS){
+      var cleaned = 0;
+      Object.keys(ROSTER||{}).forEach(function(tn){
+        (ROSTER[tn]||[]).forEach(function(p,i){
+          if(typeof isArbPlayer==='function' && isArbPlayer(p)){
+            var k = ckey(tn,i);
+            var e = CONTRACTS[k];
+            if(e && (e.carried || e.lockedAav !== undefined || e.signedYear !== undefined)){
+              CONTRACTS[k] = { years: parseInt(e.years)||0, carried:false, cleared:false };
+              cleaned++;
+            }
+          }
+        });
+      });
+      if(cleaned > 0){
+        try{ localStorage.setItem(LS_C, JSON.stringify(CONTRACTS)); }catch(e){}
+        try{ if(window.saveContractsCloud) window.saveContractsCloud(CONTRACTS); }catch(e){}
+        if(typeof logAction==='function') logAction('contract','ARB sweep cleared carried/locked from '+cleaned+' entries');
+      }
+    }
+  }catch(e){console.warn('[arb sweep] failed:',e);}
 }
 
 function parseSalaryPaste(){
