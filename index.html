@@ -973,7 +973,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.80</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.81</span></span>
     <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
   </div>
   <div class="nav-grid" id="navGrid">
@@ -1635,11 +1635,28 @@ function loadRulesDoc(){
   return JSON.parse(JSON.stringify(DEFAULT_RULES_DOC));
 }
 function saveRulesDocLocal(){
-  try{ localStorage.setItem('dyn28_rules_doc_v4', JSON.stringify(RULES_DOC)); }catch(e){}
+  // V28.5.81: do NOT swallow errors — we need to know if localStorage failed
+  // so we can rely on Firebase as the source of truth on Safari quota issues.
+  var s = JSON.stringify(RULES_DOC);
+  localStorage.setItem('dyn28_rules_doc_v4', s);
+  // Verify the write actually landed (Safari/quota check)
+  var roundtrip = localStorage.getItem('dyn28_rules_doc_v4');
+  if(!roundtrip || roundtrip.length !== s.length){
+    throw new Error('localStorage roundtrip failed');
+  }
 }
 function saveRulesDocAll(){
-  saveRulesDocLocal();
-  try{ if(window.saveRulesDocCloud) window.saveRulesDocCloud(RULES_DOC); }catch(e){}
+  // Returns a promise so caller can await both local and cloud writes.
+  var localOk = false;
+  try{ saveRulesDocLocal(); localOk = true; }catch(e){ console.warn('[rulesDoc] local save failed:', e); }
+  var cloudP = Promise.resolve();
+  try{
+    if(window.saveRulesDocCloud) cloudP = window.saveRulesDocCloud(RULES_DOC);
+  }catch(e){ console.warn('[rulesDoc] cloud save threw:', e); }
+  return Promise.resolve(cloudP).then(function(){ return {localOk:localOk}; }).catch(function(e){
+    console.warn('[rulesDoc] cloud save rejected:', e);
+    return {localOk:localOk};
+  });
 }
 // Replace {TOKEN} placeholders with live values from RULES.
 function resolveTokens(s){
@@ -1724,19 +1741,46 @@ function refreshRulesDisplayPanes(){
 
 // V28.5.73: League Rules modal
 function openLeagueRulesDisplay(){
+  // V28.5.81: open with local copy, then refresh from cloud if available.
   RULES_DOC = loadRulesDoc();
   refreshRulesDisplayPanes();
   setLeagueRulesTab('basics');
   openModal('leagueRulesDisplay');
+  if(window.loadRulesDocCloud){
+    window.loadRulesDocCloud().then(function(o){
+      if(!o || !o.sections) return;
+      if(JSON.stringify(o) !== JSON.stringify(RULES_DOC)){
+        console.log('[rulesDoc] display refreshed from cloud');
+        RULES_DOC = JSON.parse(JSON.stringify(o));
+        try{ localStorage.setItem('dyn28_rules_doc_v4', JSON.stringify(o)); }catch(e){}
+        refreshRulesDisplayPanes();
+      }
+    }).catch(function(e){});
+  }
 }
 // V28.5.75: rules-display editor
 var _RD_EDIT = null;
 var _RD_TAB = 'basics';
 function openRulesDocEditor(){
+  // V28.5.81: prefer cloud copy when available; fall back to local cache.
+  // This avoids stale-localStorage issues on iOS Safari where writes can fail.
   _RD_EDIT = JSON.parse(JSON.stringify(loadRulesDoc()));
   _RD_TAB = 'basics';
   renderRulesEditor();
   openModal('rulesDocEditor');
+  if(window.loadRulesDocCloud){
+    window.loadRulesDocCloud().then(function(o){
+      if(!o || !o.sections) return;
+      // If cloud has newer/different data, swap it in.
+      if(JSON.stringify(o) !== JSON.stringify(_RD_EDIT)){
+        console.log('[rulesDoc] editor refreshed from cloud');
+        _RD_EDIT = JSON.parse(JSON.stringify(o));
+        RULES_DOC = JSON.parse(JSON.stringify(o));
+        try{ localStorage.setItem('dyn28_rules_doc_v4', JSON.stringify(o)); }catch(e){}
+        renderRulesEditor();
+      }
+    }).catch(function(e){console.warn('[rulesDoc] cloud fetch failed in editor open:', e);});
+  }
 }
 function setRulesEditorTab(t){
   // Commit visible inputs back to _RD_EDIT before switching
@@ -1860,12 +1904,19 @@ function saveRulesDocFromEditor(){
   try{
     commitEditorInputs();
     RULES_DOC = JSON.parse(JSON.stringify(_RD_EDIT));
-    window._RD_LAST_LOCAL_SAVE = Date.now();
-    saveRulesDocAll();
-    console.log('[rulesDoc] saved');
+    var faqCount = (RULES_DOC.faq||[]).length;
+    var itemCount = RULES_DOC.sections.reduce(function(s,sec){return s+sec.groups.reduce(function(t,g){return t+(g.items||[]).length;},0);},0);
+    console.log('[rulesDoc] saving: ' + RULES_DOC.sections.length + ' sections, ' + itemCount + ' items, ' + faqCount + ' faq');
     closeModal('rulesDocEditor');
     refreshRulesDisplayPanes();
-    if(typeof showToast==='function') showToast('\u2713 Rules display saved','green',2000);
+    if(typeof showToast==='function') showToast('Saving\u2026','yellow',1500);
+    saveRulesDocAll().then(function(r){
+      console.log('[rulesDoc] save complete', r);
+      if(typeof showToast==='function'){
+        if(r.localOk) showToast('\u2713 Rules display saved','green',2000);
+        else showToast('Saved to cloud only — local storage was full','yellow',3500);
+      }
+    });
   }catch(e){
     console.error('[rulesDoc] save failed:', e);
     if(typeof showToast==='function') showToast('Save failed: '+e.message,'red',3000);
@@ -5152,35 +5203,19 @@ setTimeout(function(){
       if(window.startRulesDocListener){
         window.startRulesDocListener(function(o){
           if(!o||!o.sections) return;
-          // V28.5.79: ignore listener echo within 5s of a local save
-          if(window._RD_LAST_LOCAL_SAVE && (Date.now()-window._RD_LAST_LOCAL_SAVE)<5000){
-            console.log('[rulesDoc] ignoring listener echo (within 5s of local save)');
-            return;
-          }
           if(JSON.stringify(o)===JSON.stringify(RULES_DOC)) return;
-          console.log('[rulesDoc] applying remote update from listener');
+          console.log('[rulesDoc] applying update from cloud');
           RULES_DOC = o;
           try{localStorage.setItem('dyn28_rules_doc_v4',JSON.stringify(RULES_DOC));}catch(e){}
-          if(document.getElementById('leagueRulesDisplay').classList.contains('open')) refreshRulesDisplayPanes();
+          var disp=document.getElementById('leagueRulesDisplay');
+          if(disp && disp.classList.contains('open')) refreshRulesDisplayPanes();
         });
       }
       if(window.loadRulesDocCloud){
         window.loadRulesDocCloud().then(function(o){
           if(!o||!o.sections) return;
-          // V28.5.79: if there's a local save newer than cloud, prefer local.
-          var localStr=null; try{localStr=localStorage.getItem('dyn28_rules_doc_v4');}catch(e){}
-          if(localStr){
-            try{
-              var localObj=JSON.parse(localStr);
-              if(localObj && localObj.sections && JSON.stringify(localObj)!==JSON.stringify(o)){
-                console.log('[rulesDoc] local copy differs from cloud, pushing local up');
-                RULES_DOC = localObj;
-                if(window.saveRulesDocCloud) window.saveRulesDocCloud(RULES_DOC);
-                return;
-              }
-            }catch(e){}
-          }
-          RULES_DOC = o;
+          // V28.5.81: cloud is the source of truth; always sync local to cloud.
+          RULES_DOC = JSON.parse(JSON.stringify(o));
           try{localStorage.setItem('dyn28_rules_doc_v4',JSON.stringify(RULES_DOC));}catch(e){}
         }).catch(function(e){});
       }
