@@ -1997,8 +1997,7 @@ function openRulesDocEditor(){
         renderRulesEditor();
       }
     }).catch(function(e){console.warn('[rulesDoc] cloud fetch failed in editor open:', e);});
-  }
-}
+  }}
 function setRulesEditorTab(t){
   // Commit visible inputs back to _RD_EDIT before switching
   commitEditorInputs();
@@ -3997,8 +3996,7 @@ function buildSimpleRoster(tn){
     var carried=isCarried(tn,i);
     var onIR=(p.slot==='IL'||p.slot==='IR'||p.slotId===17||p.slotId===18);
     var _entry=getEntry(tn,i);
-    var _cleared=_entry&&_entry.cleared;
-    var needsDrop=_entry&&!_cleared&&(cNum===0);
+    var _cleared=_entry&&_entry.cleared;var needsDrop=_entry&&!_cleared&&(cNum===0);
     var isArb=isArbPlayer(p);
     var sals=playerSals(tn,p,i);
     var sal0=sals[0];
@@ -5997,8 +5995,7 @@ function showSalaryChange(name){
   var cur = SAL_MAP[name];
   var prev = (window.SAL_PREV || {})[name];
   console.log('[showSalaryChange] cur=', !!cur, 'prev=', !!prev, 'SAL_PREV keys:', Object.keys(window.SAL_PREV||{}).length);
-  if(!cur){ showToast('Player "'+name+'" not in SAL_MAP', 'yellow', 2500); return; }
-  if(!prev){
+  if(!cur){ showToast('Player "'+name+'" not in SAL_MAP', 'yellow', 2500); return; } if(!prev){
     // Maybe it was a NEW player, not CHANGED — show current state only
     var changeType = (window.SAL_CHANGES||{})[name];
     if(changeType === 'NEW'){
