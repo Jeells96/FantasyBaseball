@@ -976,8 +976,12 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.90</span></span>
-    <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.91</span></span>
+    <div style="display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem">
+      <button class="nav-ident" id="navIdentityBtn" onclick="openIdentityPicker()" title="Who are you?" style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#94a3b8;background:#181c24;border:1px solid #252a35;border-radius:8px;padding:.32rem .55rem;cursor:pointer;-webkit-appearance:none;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis">I am …</button>
+      <button class="nav-inbox" id="navInboxBtn" onclick="openTradeInbox()" title="Trade offers" style="position:relative;font-size:1.05rem;line-height:1;padding:.4rem .55rem;background:#181c24;border:1px solid #252a35;border-radius:8px;color:#94a3b8;cursor:pointer;-webkit-appearance:none">&#128233;<span id="navInboxBadge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;line-height:16px;text-align:center;font-family:'DM Mono',monospace;font-size:.6rem;font-weight:600;color:#0a0c10;background:#e84b4b;border-radius:9px;padding:0 3px"></span></button>
+      <button class="nav-gear" id="nav-settings" onclick="showSettings()" aria-label="Settings">&#9881;</button>
+    </div>
   </div>
   <div class="nav-grid" id="navGrid">
     <button class="nav-btn active" id="nav-league" onclick="showLeague()">League</button>
@@ -1020,6 +1024,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
         <button class="hdr-btn hdr-btn-gold" onclick="requirePin(exportTeam)">&#8659; Export</button>
         <button class="hdr-btn" onclick="requirePin(openAddPlayer)">+ Player</button>
         <button class="hdr-btn hdr-btn-red" onclick="requirePin(clearTeamContracts)">&#10005; Clear</button>
+        <button class="hdr-btn" id="teamTradeBtn" onclick="openProposeTrade()" style="color:#9fc3ff;border-color:rgba(75,143,232,.4);background:rgba(75,143,232,.08)">&#128228; Trade</button>
         <input type="file" class="hidden-file" id="teamXlsxImport" accept=".xlsx,.xls" onchange="importRosterExcel(this)">
       </div>
       <div class="team-title" id="teamTitle"></div>
@@ -3094,7 +3099,7 @@ var _ELIG={0:'C',1:'1B',2:'2B',3:'3B',4:'SS',5:'OF',8:'OF',9:'OF',10:'OF',14:'SP
 var _posList=[];
 _eligIds.forEach(function(s){var ab=_ELIG[s];if(ab&&_posList.indexOf(ab)<0)_posList.push(ab);});
 if(!_posList.length){var _d=(typeof POS_MAP!=='undefined')?POS_MAP[p.defaultPositionId]:null;if(_d)_posList.push(_d);}
-players.push({slot:slot,name:name,aav:aav,age:age2,injured:injured,slotId:slotId,fa:salE&&salE.expires?salE.expires:'?',positions:_posList});});players.sort(function(a,b){return a.slotId-b.slotId;});newRoster[teamName]=players;}).catch(function(){errors++;if(ROSTER[teamName])newRoster[teamName]=ROSTER[teamName];}).finally(function(){done++;if(done===teamNames.length){isFetching=false;try{localStorage.setItem('dyn28_rostered_stats',JSON.stringify(ROSTERED_PLAYER_STATS));}catch(e){}if(btn)btn.classList.remove('spinning');if(Object.keys(newRoster).length){ROSTER=newRoster;saveCachedRoster();/* V28.5.82: run drop detection AFTER ROSTER is updated, so the snapshot diff sees what's gone */if(typeof checkForDrops==='function'){try{checkForDrops();}catch(e){console.warn('[checkForDrops] failed:',e);}}teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateLastUpdated();if(errors===0)showToast('\u2713 Rosters updated from ESPN','green',2500);else showToast('\u26A0 Updated '+(teamNames.length-errors)+'/'+teamNames.length+' teams','yellow',3000);}else showToast('Failed to fetch rosters','red',3000);}});});}
+players.push({slot:slot,name:name,aav:aav,age:age2,injured:injured,slotId:slotId,fa:salE&&salE.expires?salE.expires:'?',positions:_posList});});players.sort(function(a,b){return a.slotId-b.slotId;});newRoster[teamName]=players;}).catch(function(){errors++;if(ROSTER[teamName])newRoster[teamName]=ROSTER[teamName];}).finally(function(){done++;if(done===teamNames.length){isFetching=false;try{localStorage.setItem('dyn28_rostered_stats',JSON.stringify(ROSTERED_PLAYER_STATS));}catch(e){}if(btn)btn.classList.remove('spinning');if(Object.keys(newRoster).length){ROSTER=newRoster;saveCachedRoster();/* V28.5.82: run drop detection AFTER ROSTER is updated, so the snapshot diff sees what's gone */if(typeof checkForDrops==='function'){try{checkForDrops();}catch(e){console.warn('[checkForDrops] failed:',e);}}if(typeof checkTradeCompletion==='function'){try{checkTradeCompletion();}catch(e){console.warn('[checkTradeCompletion] failed:',e);}}teamBuilt={};document.getElementById('rosterBody').innerHTML='';renderLeague();updateLastUpdated();if(errors===0)showToast('\u2713 Rosters updated from ESPN','green',2500);else showToast('\u26A0 Updated '+(teamNames.length-errors)+'/'+teamNames.length+' teams','yellow',3000);}else showToast('Failed to fetch rosters','red',3000);}});});}
 var _aavSelectedName=null;
 // V28.5.25: Stats cache for rostered players keyed by name
 var ROSTERED_PLAYER_STATS = JSON.parse(localStorage.getItem('dyn28_rostered_stats')||'{}');
@@ -4423,10 +4428,19 @@ function getDraftPickAssignments(){
   for(var r=1;r<=DRAFT_SETTINGS.rounds;r++){
     var order=DRAFT_SETTINGS.order.slice();
     if(DRAFT_SETTINGS.type==='snake' && r%2===0) order.reverse();
-    order.forEach(function(tn){
+    order.forEach(function(origTeam){
       pickNum++;
+      // V28.5.91: a pick's slot belongs to its ORIGINAL owner, but a traded
+      // pick is now drafted by its current owner. pickOwner() resolves who
+      // controls this (season, round, original-team) pick; falls back to the
+      // original team when untraded or when the helper isn't loaded yet.
+      var owner = origTeam;
+      try{ if(typeof pickOwner==='function'){ owner = pickOwner(CURRENT_SEASON, r, origTeam) || origTeam; } }catch(e){}
+      var tradedFrom = (owner!==origTeam) ? origTeam : null;
       var skipped=false, reason='';
-      var teamSkipCount=skips[tn]||0;
+      // Penalty is keyed to the OWNER who would actually use the pick. Since
+      // owner===origTeam for every untraded pick, this is backward-compatible.
+      var teamSkipCount=skips[owner]||0;
       // Penalty tier 3 = all picks
       // Tier 1 = first 1 round
       // Tier 2 = first 2 rounds
@@ -4434,7 +4448,7 @@ function getDraftPickAssignments(){
       if(teamSkipCount===3){skipped=true;reason='Forfeit (cap penalty)';}
       else if(teamSkipCount===1 && r<=(CAP_PENALTIES.t1Count||1)){skipped=true;reason='Forfeit round '+r+' (cap penalty)';}
       else if(teamSkipCount===2 && r<=(CAP_PENALTIES.t2Count||2)){skipped=true;reason='Forfeit round '+r+' (cap penalty)';}
-      assignments.push({round:r, pickNum:pickNum, team:tn, skipped:skipped, reason:reason});
+      assignments.push({round:r, pickNum:pickNum, team:owner, originalTeam:origTeam, tradedFrom:tradedFrom, skipped:skipped, reason:reason});
     });
   }
   return assignments;
@@ -7487,5 +7501,899 @@ window.toggleDebugOverlay = function(){
     </div>
   </div>
 </div>
+<!-- ══════════════ V28.5.91: IDENTITY + DRAFT-PICK TRADING + TRADE REQUESTS ══════════════ -->
+
+<!-- V28.5.91: Identity picker modal -->
+<div class="modal-overlay" id="identityModal" onclick="closeModalOutside(event,'identityModal')">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-header" style="text-align:center">
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:2px">Who Are You?</h2>
+      <p style="font-size:.72rem;color:var(--dim);margin-top:.3rem">Pick your team so trade offers reach you. You can change this anytime from the top bar.</p>
+    </div>
+    <div class="modal-body">
+      <div id="identityOptions" style="display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;gap:.4rem"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" style="flex:1" onclick="closeModal('identityModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- V28.5.91: Trade inbox modal -->
+<div class="modal-overlay" id="tradeInboxModal" onclick="closeModalOutside(event,'tradeInboxModal')">
+  <div class="modal-box" style="max-width:560px;width:96vw;max-height:92vh;display:flex;flex-direction:column">
+    <div class="modal-header" style="flex-shrink:0">
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px">Trade Offers</h2>
+      <p style="font-size:.7rem;color:var(--dim);margin-top:.2rem" id="tradeInboxSub">Offers involving your team</p>
+    </div>
+    <div class="modal-body" style="flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:.6rem 1rem;min-height:0">
+      <div id="tradeInboxBody"></div>
+    </div>
+    <div class="modal-footer" style="flex-shrink:0">
+      <button class="btn-secondary" onclick="closeModal('tradeInboxModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- V28.5.91: Propose / counter trade modal -->
+<div class="modal-overlay" id="proposeTradeModal" onclick="closeModalOutside(event,'proposeTradeModal')">
+  <div class="modal-box" style="max-width:640px;width:96vw;max-height:94vh;display:flex;flex-direction:column">
+    <div class="modal-header" style="flex-shrink:0">
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px" id="ptTitle">Propose Trade</h2>
+      <p style="font-size:.7rem;color:var(--dim);margin-top:.2rem" id="ptSub">Build an offer between two teams</p>
+    </div>
+    <div class="modal-body" style="flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:.75rem 1rem;min-height:0">
+      <div id="ptWarn" style="display:none;background:rgba(232,200,75,.1);border:1px solid rgba(232,200,75,.3);border-radius:8px;padding:.5rem .7rem;margin-bottom:.7rem;font-size:.72rem;color:#e8c84b"></div>
+
+      <div style="display:-webkit-flex;display:flex;gap:.5rem;margin-bottom:.6rem">
+        <div style="flex:1">
+          <label class="field-label">Your Team</label>
+          <select class="field-input" id="ptTeamA" onchange="onProposeTeamChange()" style="font-size:16px"></select>
+        </div>
+        <div style="flex:1">
+          <label class="field-label">Other Team</label>
+          <select class="field-input" id="ptTeamB" onchange="onProposeTeamChange()" style="font-size:16px"></select>
+        </div>
+      </div>
+
+      <div style="display:-webkit-flex;display:flex;gap:.6rem;-webkit-flex-wrap:wrap;flex-wrap:wrap">
+        <div style="flex:1;min-width:240px;background:#0e1117;border:1px solid #252a35;border-radius:10px;padding:.6rem .7rem">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9fc3ff;margin-bottom:.4rem" id="ptSideALbl">Your Team sends</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;letter-spacing:.5px;color:#6b7280;margin-bottom:.2rem">Players</div>
+          <div id="ptPlayersA" style="margin-bottom:.5rem"></div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;letter-spacing:.5px;color:#6b7280;margin-bottom:.2rem">Draft Picks</div>
+          <div id="ptPicksA"></div>
+        </div>
+        <div style="flex:1;min-width:240px;background:#0e1117;border:1px solid #252a35;border-radius:10px;padding:.6rem .7rem">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#9fc3ff;margin-bottom:.4rem" id="ptSideBLbl">Other Team sends</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;letter-spacing:.5px;color:#6b7280;margin-bottom:.2rem">Players</div>
+          <div id="ptPlayersB" style="margin-bottom:.5rem"></div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;letter-spacing:.5px;color:#6b7280;margin-bottom:.2rem">Draft Picks</div>
+          <div id="ptPicksB"></div>
+        </div>
+      </div>
+
+      <label class="field-label" style="margin-top:.7rem">Note (optional)</label>
+      <input type="text" class="field-input" id="ptNote" placeholder="e.g. need pitching depth" style="font-size:16px">
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:.5rem;flex-shrink:0">
+      <button class="btn-secondary" onclick="closeModal('proposeTradeModal')" style="flex:1">Cancel</button>
+      <button class="btn-primary" id="ptSendBtn" onclick="submitProposeTrade()" style="flex:1">Send Offer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════ V28.5.91 FEATURE SCRIPT ══════════════
+// Self-contained: identity layer, tradeable draft picks (by round + original
+// owner), and a trade-request workflow (propose / counter / accept / decline /
+// cancel / auto-complete). Uses its OWN namespace and Firebase docs so it never
+// touches the existing salary-cash TRADES ledger or cap math.
+(function(){
+'use strict';
+
+// ---- localStorage keys ----
+var LS_IDENTITY   = 'dyn28_identity';
+var LS_PICKS_OWNED= 'dyn28_draft_picks_owned';
+var LS_TRADE_REQS = 'dyn28_trade_requests';
+
+// ---- state ----
+var IDENTITY = null;
+try{ IDENTITY = localStorage.getItem(LS_IDENTITY) || null; }catch(e){ IDENTITY = null; }
+window.IDENTITY = IDENTITY;
+
+// DRAFT_PICKS_OWNED: overrides for traded picks.
+// Shape: { "<season>|<round>|<originalTeam>": "<currentOwnerTeam>" }
+var DRAFT_PICKS_OWNED = {};
+try{ DRAFT_PICKS_OWNED = JSON.parse(localStorage.getItem(LS_PICKS_OWNED)||'{}')||{}; }catch(e){ DRAFT_PICKS_OWNED = {}; }
+window.DRAFT_PICKS_OWNED = DRAFT_PICKS_OWNED;
+
+// TRADE_REQUESTS: array of offer objects.
+// {id, fromTeam, toTeam, status:'pending'|'accepted'|'completed'|'declined'|'cancelled',
+//  give:{players:[name], picks:[{season,round,originalTeam}]},
+//  get:{players:[name], picks:[...]},
+//  acceptedFrom:bool, acceptedTo:bool, note, created, updated, lastEditBy}
+var TRADE_REQUESTS = [];
+try{ TRADE_REQUESTS = JSON.parse(localStorage.getItem(LS_TRADE_REQS)||'[]')||[]; }catch(e){ TRADE_REQUESTS = []; }
+if(!Array.isArray(TRADE_REQUESTS)) TRADE_REQUESTS = [];
+window.TRADE_REQUESTS = TRADE_REQUESTS;
+
+// How many future seasons of picks are tradeable.
+var PICK_HORIZON_YEARS = 3;
+
+// ---- helpers: escaping ----
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s){ return esc(s).replace(/'/g,'&#39;'); }
+function teamList(){ try{ return Object.keys(TEAMS_CONFIG||{}); }catch(e){ return []; } }
+
+// ---- persistence ----
+function saveIdentity(){
+  try{ if(IDENTITY) localStorage.setItem(LS_IDENTITY, IDENTITY); else localStorage.removeItem(LS_IDENTITY); }catch(e){}
+  window.IDENTITY = IDENTITY;
+}
+function saveDraftPicksOwned(){
+  try{ localStorage.setItem(LS_PICKS_OWNED, JSON.stringify(DRAFT_PICKS_OWNED)); }catch(e){}
+  window.DRAFT_PICKS_OWNED = DRAFT_PICKS_OWNED;
+  try{ if(window.saveDraftPicksOwnedCloud) window.saveDraftPicksOwnedCloud(DRAFT_PICKS_OWNED); }catch(e){}
+}
+function saveTradeRequests(){
+  try{ localStorage.setItem(LS_TRADE_REQS, JSON.stringify(TRADE_REQUESTS)); }catch(e){}
+  window.TRADE_REQUESTS = TRADE_REQUESTS;
+  try{ if(window.saveTradeRequestsCloud) window.saveTradeRequestsCloud(TRADE_REQUESTS); }catch(e){}
+}
+
+// ════════ DRAFT PICK OWNERSHIP ════════
+function pickKey(season, round, originalTeam){ return season + '|' + round + '|' + originalTeam; }
+
+// Resolve who currently owns a (season, round, originalTeam) pick.
+// Returns the current owner team name; defaults to originalTeam when untraded.
+function pickOwner(season, round, originalTeam){
+  var k = pickKey(season, round, originalTeam);
+  var o = DRAFT_PICKS_OWNED[k];
+  return (o && teamList().indexOf(o)>=0) ? o : originalTeam;
+}
+window.pickOwner = pickOwner;
+
+// Move a pick to a new owner (used on trade completion). Records override unless
+// it returns to the original owner, in which case the override is removed.
+function movePick(season, round, originalTeam, newOwner){
+  var k = pickKey(season, round, originalTeam);
+  if(newOwner === originalTeam){ delete DRAFT_PICKS_OWNED[k]; }
+  else { DRAFT_PICKS_OWNED[k] = newOwner; }
+}
+
+// Build the list of picks a given team currently controls, across the horizon.
+// Each entry: {season, round, originalTeam, label}. Rounds come from DRAFT_SETTINGS.
+function picksControlledBy(team){
+  var rounds = 4;
+  try{ rounds = parseInt(DRAFT_SETTINGS.rounds)||4; }catch(e){}
+  var startSeason = (typeof CURRENT_SEASON!=='undefined') ? CURRENT_SEASON : (new Date()).getFullYear();
+  var teams = teamList();
+  var out = [];
+  for(var yr = startSeason; yr < startSeason + PICK_HORIZON_YEARS; yr++){
+    for(var r = 1; r <= rounds; r++){
+      // A team controls its OWN original picks (unless traded away) plus any
+      // picks it acquired from others.
+      teams.forEach(function(orig){
+        if(pickOwner(yr, r, orig) === team){
+          out.push({ season:yr, round:r, originalTeam:orig, label:pickLabel(yr, r, orig) });
+        }
+      });
+    }
+  }
+  return out;
+}
+
+// Display label for a pick. After the season's draft order is set, refine to
+// slot notation (e.g. "2027 1.2"); otherwise "2027 R1 (Jaren)".
+function pickLabel(season, round, originalTeam){
+  var slot = pickSlotInOrder(season, round, originalTeam);
+  if(slot){ return season + ' ' + round + '.' + slot; }
+  // No order set for this season yet — show round + original owner.
+  return season + ' R' + round + (originalTeam ? ' (' + originalTeam + ')' : '');
+}
+
+// If a manual draft order is set AND applies to this season, return the 1-based
+// slot of originalTeam within that order; else null.
+function pickSlotInOrder(season, round, originalTeam){
+  try{
+    // Order only refines the CURRENT season's draft (the one the order was set
+    // for). For future seasons the order isn't known yet.
+    if(season !== CURRENT_SEASON) return null;
+    var order = (DRAFT_SETTINGS && Array.isArray(DRAFT_SETTINGS.order)) ? DRAFT_SETTINGS.order : [];
+    if(!order.length) return null;
+    var idx = order.indexOf(originalTeam);
+    if(idx < 0) return null;
+    return idx + 1;
+  }catch(e){ return null; }
+}
+
+// ════════ TRADE REQUEST WORKFLOW ════════
+function genId(){ return 'treq_' + Date.now() + '_' + Math.floor(Math.random()*99999); }
+
+function getTradeReq(id){ for(var i=0;i<TRADE_REQUESTS.length;i++){ if(TRADE_REQUESTS[i].id===id) return TRADE_REQUESTS[i]; } return null; }
+
+function pendingForMe(){
+  if(!IDENTITY) return [];
+  return TRADE_REQUESTS.filter(function(t){
+    return t.status==='pending' && t.toTeam===IDENTITY && !t.acceptedTo;
+  });
+}
+
+// Count of offers needing my attention (incoming pending I haven't accepted,
+// OR offers I'm part of that the other side just edited).
+function inboxCount(){
+  if(!IDENTITY) return 0;
+  return TRADE_REQUESTS.filter(function(t){
+    if(t.status!=='pending') return false;
+    if(t.toTeam===IDENTITY && !t.acceptedTo) return true;
+    if(t.fromTeam===IDENTITY && !t.acceptedFrom) return true;
+    return false;
+  }).length;
+}
+
+function updateInboxBadge(){
+  var badge = document.getElementById('navInboxBadge');
+  if(!badge) return;
+  var n = inboxCount();
+  if(n>0){ badge.textContent = String(n); badge.style.display=''; }
+  else { badge.style.display='none'; }
+}
+
+// Mutual-accept resolution. If both sides accepted:
+//  - picks transfer immediately
+//  - if there are players, status -> 'accepted' (await ESPN roster match)
+//  - if pick-only, status -> 'completed'
+function resolveIfBothAccepted(t){
+  if(t.status!=='pending') return;
+  if(!(t.acceptedFrom && t.acceptedTo)) return;
+  // Transfer picks immediately (both directions).
+  (t.give.picks||[]).forEach(function(p){ movePick(p.season, p.round, p.originalTeam, t.toTeam); });
+  (t.get.picks||[]).forEach(function(p){ movePick(p.season, p.round, p.originalTeam, t.fromTeam); });
+  saveDraftPicksOwned();
+  var hasPlayers = ((t.give.players||[]).length + (t.get.players||[]).length) > 0;
+  if(hasPlayers){
+    t.status = 'accepted';
+    if(typeof showToast==='function') showToast('\u2713 Trade accepted \u2014 move players in ESPN','green',3500);
+  } else {
+    t.status = 'completed';
+    t.completed = Date.now();
+    if(typeof showToast==='function') showToast('\u2713 Pick trade complete','green',3000);
+  }
+  t.updated = Date.now();
+}
+
+// Does the live ESPN roster reflect this player-trade? True once every player
+// the offer moves sits on the receiving team's roster.
+function tradePlayersSettled(t){
+  try{
+    var ok = true;
+    // Players FROM the proposer go to toTeam.
+    (t.give.players||[]).forEach(function(nm){ if(!rosterHas(t.toTeam, nm)) ok=false; });
+    // Players FROM the recipient go to fromTeam.
+    (t.get.players||[]).forEach(function(nm){ if(!rosterHas(t.fromTeam, nm)) ok=false; });
+    return ok;
+  }catch(e){ return false; }
+}
+function rosterHas(team, name){
+  try{
+    var arr = (ROSTER && ROSTER[team]) ? ROSTER[team] : [];
+    for(var i=0;i<arr.length;i++){ if(arr[i].name===name) return true; }
+  }catch(e){}
+  return false;
+}
+
+// Called from refreshRosters().finally — read-only. Promotes any 'accepted'
+// player-trade to 'completed' once both rosters reflect the swap.
+function checkTradeCompletion(){
+  var changed = false;
+  TRADE_REQUESTS.forEach(function(t){
+    if(t.status==='accepted'){
+      if(tradePlayersSettled(t)){
+        t.status='completed';
+        t.completed=Date.now();
+        t.updated=Date.now();
+        changed=true;
+        if(typeof showToast==='function') showToast('\u2713 Trade auto-completed: rosters match','green',3000);
+      }
+    }
+  });
+  if(changed) saveTradeRequests();
+  updateInboxBadge();
+}
+window.checkTradeCompletion = checkTradeCompletion;
+
+// ════════ IDENTITY UI ════════
+function refreshIdentityBadge(){
+  var btn = document.getElementById('navIdentityBtn');
+  if(!btn) return;
+  btn.textContent = IDENTITY ? ('I am ' + IDENTITY) : 'I am \u2026';
+  btn.style.color = IDENTITY ? '#e8c84b' : '#94a3b8';
+  btn.style.borderColor = IDENTITY ? 'rgba(232,200,75,.4)' : '#252a35';
+}
+function openIdentityPicker(){
+  var host = document.getElementById('identityOptions');
+  if(host){
+    host.innerHTML = teamList().map(function(tn){
+      var active = (tn===IDENTITY);
+      return '<button onclick="setIdentity(\''+escAttr(tn)+'\')" style="display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between;width:100%;font-family:\'Inter\',sans-serif;font-size:.9rem;font-weight:500;color:'+(active?'#e8c84b':'#f0f2f6')+';background:'+(active?'rgba(232,200,75,.1)':'#181c24')+';border:1px solid '+(active?'rgba(232,200,75,.4)':'#252a35')+';border-radius:10px;padding:.7rem .9rem;cursor:pointer;-webkit-appearance:none;text-align:left">'+
+        '<span>'+esc(tn)+'</span>'+(active?'<span style="font-size:.7rem;color:#e8c84b">\u2713 you</span>':'')+
+        '</button>';
+    }).join('');
+  }
+  openModal('identityModal');
+}
+function setIdentity(tn){
+  IDENTITY = tn;
+  saveIdentity();
+  refreshIdentityBadge();
+  updateInboxBadge();
+  closeModal('identityModal');
+  if(typeof showToast==='function') showToast('\u2713 You are '+tn,'green',1800);
+}
+function ensureIdentity(){
+  if(!IDENTITY){
+    // Defer so the rest of the app finishes booting first.
+    setTimeout(function(){ if(!IDENTITY) openIdentityPicker(); }, 800);
+  }
+  refreshIdentityBadge();
+}
+
+// expose UI entry points used by inline onclick handlers
+window.openIdentityPicker = openIdentityPicker;
+window.setIdentity = setIdentity;
+
+// ════════ TRADE INBOX UI ════════
+function tradeSummaryHtml(t){
+  function side(label, pkg, team){
+    var players = (pkg.players||[]).map(function(n){ return '<span style="color:#f0f2f6">'+esc(n)+'</span>'; });
+    var picks = (pkg.picks||[]).map(function(p){ return '<span style="color:#9fc3ff">'+esc(pickLabel(p.season,p.round,p.originalTeam))+'</span>'; });
+    var items = players.concat(picks);
+    var inner = items.length ? items.join(', ') : '<span style="color:#6b7280">nothing</span>';
+    return '<div style="font-size:.72rem;margin:.15rem 0"><span style="font-family:\'Barlow Condensed\',sans-serif;letter-spacing:.5px;color:#6b7280;text-transform:uppercase">'+esc(team)+'</span> sends: '+inner+'</div>';
+  }
+  return side('give', t.give, t.fromTeam) + side('get', t.get, t.toTeam);
+}
+
+function statusPill(t){
+  var map = {
+    pending:['Pending','#e8c84b','rgba(232,200,75,.12)'],
+    accepted:['Accepted \u2014 move in ESPN','#4be87a','rgba(75,232,122,.1)'],
+    completed:['Completed','#4be87a','rgba(75,232,122,.1)'],
+    declined:['Declined','#e84b4b','rgba(232,75,75,.1)'],
+    cancelled:['Cancelled','#6b7280','rgba(148,163,184,.1)']
+  };
+  var m = map[t.status]||['?','#6b7280','#181c24'];
+  return '<span style="font-family:\'Barlow Condensed\',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:'+m[1]+';background:'+m[2]+';border:1px solid '+m[1]+'33;border-radius:20px;padding:.13rem .45rem">'+m[0]+'</span>';
+}
+
+function renderTradeInbox(){
+  var el = document.getElementById('tradeInboxBody');
+  if(!el) return;
+  var sub = document.getElementById('tradeInboxSub');
+  if(!IDENTITY){
+    el.innerHTML = '<div class="empty-state"><span class="empty-state-icon">\uD83D\uDC64</span>Set who you are first (top bar) to see your offers.</div>';
+    if(sub) sub.textContent = 'No identity set';
+    return;
+  }
+  if(sub) sub.textContent = 'Offers involving ' + IDENTITY;
+  var mine = TRADE_REQUESTS.filter(function(t){ return t.fromTeam===IDENTITY || t.toTeam===IDENTITY; })
+    .sort(function(a,b){ return (b.updated||b.created||0) - (a.updated||a.created||0); });
+  if(!mine.length){
+    el.innerHTML = '<div class="empty-state"><span class="empty-state-icon">\u2709</span>No trade offers yet. Open a team page and tap \uD83D\uDCE4 Trade to start one.</div>';
+    return;
+  }
+  el.innerHTML = mine.map(function(t){
+    var iAmFrom = (t.fromTeam===IDENTITY);
+    var other = iAmFrom ? t.toTeam : t.fromTeam;
+    var myAccepted = iAmFrom ? t.acceptedFrom : t.acceptedTo;
+    var theirAccepted = iAmFrom ? t.acceptedTo : t.acceptedFrom;
+    var acceptLine = '';
+    if(t.status==='pending'){
+      acceptLine = '<div style="font-size:.62rem;color:#6b7280;margin-top:.3rem">You: '+(myAccepted?'\u2713 accepted':'\u2014')+' \u00b7 '+esc(other)+': '+(theirAccepted?'\u2713 accepted':'\u2014')+'</div>';
+    }
+    var note = t.note ? '<div style="font-size:.66rem;color:#94a3b8;font-style:italic;margin-top:.25rem">\u201C'+esc(t.note)+'\u201D</div>' : '';
+    var btns = '';
+    if(t.status==='pending'){
+      btns += '<button onclick="tradeAccept(\''+escAttr(t.id)+'\')" style="font-family:\'Barlow Condensed\',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#0a0c10;background:#4be87a;border:none;border-radius:7px;padding:.4rem .7rem;cursor:pointer;-webkit-appearance:none">'+(myAccepted?'Re-accepted':'Accept')+'</button>';
+      btns += '<button onclick="tradeCounter(\''+escAttr(t.id)+'\')" style="font-family:\'Barlow Condensed\',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9fc3ff;background:rgba(75,143,232,.1);border:1px solid rgba(75,143,232,.3);border-radius:7px;padding:.4rem .7rem;cursor:pointer;-webkit-appearance:none">Counter</button>';
+      if(iAmFrom){
+        btns += '<button onclick="tradeCancel(\''+escAttr(t.id)+'\')" style="font-family:\'Barlow Condensed\',sans-serif;font-size:.68rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:#6b7280;background:none;border:1px solid #252a35;border-radius:7px;padding:.4rem .7rem;cursor:pointer;-webkit-appearance:none">Cancel</button>';
+      } else {
+        btns += '<button onclick="tradeDecline(\''+escAttr(t.id)+'\')" style="font-family:\'Barlow Condensed\',sans-serif;font-size:.68rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:#e84b4b;background:rgba(232,75,75,.08);border:1px solid rgba(232,75,75,.3);border-radius:7px;padding:.4rem .7rem;cursor:pointer;-webkit-appearance:none">Decline</button>';
+      }
+    }
+    var btnRow = btns ? '<div style="display:-webkit-flex;display:flex;gap:.4rem;-webkit-flex-wrap:wrap;flex-wrap:wrap;margin-top:.5rem">'+btns+'</div>' : '';
+    return '<div style="background:#111318;border:1px solid #252a35;border-radius:12px;padding:.75rem .85rem;margin-bottom:.6rem">'+
+      '<div style="display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center;margin-bottom:.4rem">'+
+        '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:1.05rem;letter-spacing:1px;color:#f0f2f6">'+esc(t.fromTeam)+' \u2194 '+esc(t.toTeam)+'</div>'+
+        statusPill(t)+
+      '</div>'+
+      tradeSummaryHtml(t)+
+      note+
+      acceptLine+
+      btnRow+
+    '</div>';
+  }).join('');
+}
+
+function openTradeInbox(){
+  renderTradeInbox();
+  openModal('tradeInboxModal');
+}
+window.openTradeInbox = openTradeInbox;
+
+// ---- accept / decline / cancel ----
+function tradeAccept(id){
+  var t = getTradeReq(id);
+  if(!t || t.status!=='pending') return;
+  if(!IDENTITY){ if(typeof showToast==='function') showToast('Set who you are first','red',2200); return; }
+  if(t.fromTeam===IDENTITY) t.acceptedFrom = true;
+  else if(t.toTeam===IDENTITY) t.acceptedTo = true;
+  else { if(typeof showToast==='function') showToast('This offer isn\u2019t yours','yellow',2200); return; }
+  t.updated = Date.now();
+  resolveIfBothAccepted(t);
+  saveTradeRequests();
+  renderTradeInbox();
+  updateInboxBadge();
+  refreshTeamTradeSection();
+}
+function tradeDecline(id){
+  var t = getTradeReq(id);
+  if(!t || t.status!=='pending') return;
+  t.status = 'declined';
+  t.updated = Date.now();
+  saveTradeRequests();
+  renderTradeInbox();
+  updateInboxBadge();
+  if(typeof showToast==='function') showToast('Offer declined','yellow',1800);
+}
+function tradeCancel(id){
+  var t = getTradeReq(id);
+  if(!t || t.status!=='pending') return;
+  t.status = 'cancelled';
+  t.updated = Date.now();
+  saveTradeRequests();
+  renderTradeInbox();
+  updateInboxBadge();
+  if(typeof showToast==='function') showToast('Offer cancelled','yellow',1800);
+}
+window.tradeAccept = tradeAccept;
+window.tradeDecline = tradeDecline;
+window.tradeCancel = tradeCancel;
+
+// ════════ PROPOSE / COUNTER UI ════════
+var _ptEditingId = null;   // when countering, the offer being replaced
+var _ptSelG = { players:{}, picks:{} };  // selections for side A (fromTeam)
+var _ptSelB = { players:{}, picks:{} };  // selections for side B (toTeam)
+
+function openProposeTrade(){
+  _ptEditingId = null;
+  document.getElementById('ptTitle').textContent = 'Propose Trade';
+  document.getElementById('ptSub').textContent = 'Build an offer between two teams';
+  document.getElementById('ptSendBtn').textContent = 'Send Offer';
+  document.getElementById('ptNote').value = '';
+  _ptSelG = { players:{}, picks:{} };
+  _ptSelB = { players:{}, picks:{} };
+  var teams = teamList();
+  var selA = document.getElementById('ptTeamA');
+  var selB = document.getElementById('ptTeamB');
+  selA.innerHTML = teams.map(function(t){ return '<option value="'+escAttr(t)+'">'+esc(t)+'</option>'; }).join('');
+  selB.innerHTML = teams.map(function(t){ return '<option value="'+escAttr(t)+'">'+esc(t)+'</option>'; }).join('');
+  // Default A = my team (or current team), B = current team if different, else first other.
+  var defA = IDENTITY || (typeof currentTeam!=='undefined' && currentTeam) || teams[0];
+  selA.value = defA;
+  var defB = (typeof currentTeam!=='undefined' && currentTeam && currentTeam!==defA) ? currentTeam : teams.filter(function(t){return t!==defA;})[0];
+  if(defB) selB.value = defB;
+  onProposeTeamChange();
+  var warn = document.getElementById('ptWarn');
+  if(warn) warn.style.display='none';
+  openModal('proposeTradeModal');
+}
+window.openProposeTrade = openProposeTrade;
+
+function onProposeTeamChange(){
+  var a = document.getElementById('ptTeamA').value;
+  var b = document.getElementById('ptTeamB').value;
+  var warn = document.getElementById('ptWarn');
+  if(a===b){
+    if(warn){ warn.style.display=''; warn.textContent='Pick two different teams.'; }
+  } else {
+    if(warn) warn.style.display='none';
+  }
+  document.getElementById('ptSideALbl').textContent = a + ' sends';
+  document.getElementById('ptSideBLbl').textContent = b + ' sends';
+  // Reset selections that no longer belong to the chosen teams.
+  _ptSelG = { players:{}, picks:{} };
+  _ptSelB = { players:{}, picks:{} };
+  renderProposeSide('A', a);
+  renderProposeSide('B', b);
+}
+window.onProposeTeamChange = onProposeTeamChange;
+
+function rosterPlayers(team){
+  try{ return ((ROSTER && ROSTER[team]) ? ROSTER[team] : []).map(function(p){ return p.name; }); }catch(e){ return []; }
+}
+
+function renderProposeSide(side, team){
+  var sel = (side==='A') ? _ptSelG : _ptSelB;
+  var pHost = document.getElementById(side==='A' ? 'ptPlayersA' : 'ptPlayersB');
+  var kHost = document.getElementById(side==='A' ? 'ptPicksA'   : 'ptPicksB');
+  // players
+  var players = rosterPlayers(team);
+  if(pHost){
+    pHost.innerHTML = players.length ? players.map(function(nm){
+      var on = !!sel.players[nm];
+      return '<label style="display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem;font-size:.76rem;color:#e2e8f0;padding:.18rem 0;cursor:pointer">'+
+        '<input type="checkbox" '+(on?'checked':'')+' onchange="togglePropose(\''+side+'\',\'player\',\''+escAttr(nm)+'\',this.checked)"> '+esc(nm)+
+      '</label>';
+    }).join('') : '<div style="font-size:.7rem;color:#6b7280">No players</div>';
+  }
+  // picks
+  var picks = picksControlledBy(team);
+  if(kHost){
+    kHost.innerHTML = picks.length ? picks.map(function(pk){
+      var id = pk.season+'|'+pk.round+'|'+pk.originalTeam;
+      var on = !!sel.picks[id];
+      return '<label style="display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem;font-size:.76rem;color:#9fc3ff;padding:.18rem 0;cursor:pointer">'+
+        '<input type="checkbox" '+(on?'checked':'')+' onchange="togglePropose(\''+side+'\',\'pick\',\''+escAttr(id)+'\',this.checked)"> '+esc(pk.label)+
+      '</label>';
+    }).join('') : '<div style="font-size:.7rem;color:#6b7280">No tradeable picks</div>';
+  }
+}
+
+function togglePropose(side, kind, key, on){
+  var sel = (side==='A') ? _ptSelG : _ptSelB;
+  var bucket = (kind==='player') ? sel.players : sel.picks;
+  if(on) bucket[key] = true; else delete bucket[key];
+}
+window.togglePropose = togglePropose;
+
+function selToPackage(sel){
+  var players = Object.keys(sel.players);
+  var picks = Object.keys(sel.picks).map(function(id){
+    var parts = id.split('|');
+    return { season: parseInt(parts[0],10), round: parseInt(parts[1],10), originalTeam: parts[2] };
+  });
+  return { players:players, picks:picks };
+}
+
+function submitProposeTrade(){
+  var a = document.getElementById('ptTeamA').value;
+  var b = document.getElementById('ptTeamB').value;
+  var note = document.getElementById('ptNote').value || '';
+  if(!a || !b || a===b){ if(typeof showToast==='function') showToast('Pick two different teams','red',2200); return; }
+  var give = selToPackage(_ptSelG);
+  var get = selToPackage(_ptSelB);
+  var total = give.players.length + give.picks.length + get.players.length + get.picks.length;
+  if(total===0){ if(typeof showToast==='function') showToast('Add at least one player or pick','red',2200); return; }
+
+  if(_ptEditingId){
+    // Countering: any edit replaces the offer and RESETS both acceptances,
+    // requiring both sides to re-accept.
+    var t = getTradeReq(_ptEditingId);
+    if(t){
+      t.fromTeam = a; t.toTeam = b;
+      t.give = give; t.get = get;
+      t.note = note;
+      t.acceptedFrom = false; t.acceptedTo = false;
+      t.status = 'pending';
+      t.updated = Date.now();
+      t.lastEditBy = IDENTITY || a;
+      saveTradeRequests();
+      closeModal('proposeTradeModal');
+      if(typeof showToast==='function') showToast('\u2713 Counter sent \u2014 both must re-accept','green',2600);
+      renderTradeInbox();
+      updateInboxBadge();
+      refreshTeamTradeSection();
+      return;
+    }
+  }
+
+  var offer = {
+    id: genId(),
+    fromTeam: a,
+    toTeam: b,
+    status: 'pending',
+    give: give,
+    get: get,
+    acceptedFrom: (IDENTITY===a),   // proposer implicitly accepts their own offer
+    acceptedTo: false,
+    note: note,
+    created: Date.now(),
+    updated: Date.now(),
+    lastEditBy: IDENTITY || a
+  };
+  TRADE_REQUESTS.push(offer);
+  saveTradeRequests();
+  closeModal('proposeTradeModal');
+  if(typeof showToast==='function') showToast('\u2713 Offer sent to '+b,'green',2400);
+  updateInboxBadge();
+  refreshTeamTradeSection();
+}
+window.submitProposeTrade = submitProposeTrade;
+
+function tradeCounter(id){
+  var t = getTradeReq(id);
+  if(!t) return;
+  openProposeTrade();
+  _ptEditingId = id;
+  document.getElementById('ptTitle').textContent = 'Counter Offer';
+  document.getElementById('ptSub').textContent = 'Editing resets both acceptances';
+  document.getElementById('ptSendBtn').textContent = 'Send Counter';
+  document.getElementById('ptNote').value = t.note || '';
+  // Preselect from the existing offer.
+  document.getElementById('ptTeamA').value = t.fromTeam;
+  document.getElementById('ptTeamB').value = t.toTeam;
+  _ptSelG = { players:{}, picks:{} };
+  _ptSelB = { players:{}, picks:{} };
+  (t.give.players||[]).forEach(function(n){ _ptSelG.players[n]=true; });
+  (t.give.picks||[]).forEach(function(p){ _ptSelG.picks[p.season+'|'+p.round+'|'+p.originalTeam]=true; });
+  (t.get.players||[]).forEach(function(n){ _ptSelB.players[n]=true; });
+  (t.get.picks||[]).forEach(function(p){ _ptSelB.picks[p.season+'|'+p.round+'|'+p.originalTeam]=true; });
+  document.getElementById('ptSideALbl').textContent = t.fromTeam + ' sends';
+  document.getElementById('ptSideBLbl').textContent = t.toTeam + ' sends';
+  renderProposeSide('A', t.fromTeam);
+  renderProposeSide('B', t.toTeam);
+  closeModal('tradeInboxModal');
+  openModal('proposeTradeModal');
+}
+window.tradeCounter = tradeCounter;
+
+// ════════ TEAM-PAGE INJECTIONS ════════
+// Mirrors the dead-cap / updateTradesDisplay injection pattern: a Draft Picks
+// section and a Trade Requests section, inserted after the existing sections.
+function updateDraftPicksDisplay(tn){
+  var hdr = document.querySelector('.team-hdr');
+  if(!hdr) return;
+  var existing = document.getElementById('draftPicksSection');
+  if(existing) existing.remove();
+  var picks = picksControlledBy(tn);
+  var section = document.createElement('div');
+  section.className = 'trades-section';
+  section.id = 'draftPicksSection';
+  var body = '';
+  if(!picks.length){
+    body = '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.65rem;color:#6b7280;padding:.4rem 0;letter-spacing:.5px">No draft picks</div>';
+  } else {
+    // group by season
+    var bySeason = {};
+    picks.forEach(function(p){ (bySeason[p.season]=bySeason[p.season]||[]).push(p); });
+    body = Object.keys(bySeason).sort().map(function(yr){
+      var chips = bySeason[yr].sort(function(a,b){return a.round-b.round;}).map(function(p){
+        var traded = (p.originalTeam!==tn);
+        return '<span style="display:-webkit-inline-flex;display:inline-flex;-webkit-align-items:center;align-items:center;font-family:\'DM Mono\',monospace;font-size:.68rem;color:'+(traded?'#9fc3ff':'#e2e8f0')+';background:'+(traded?'rgba(75,143,232,.1)':'#181c24')+';border:1px solid '+(traded?'rgba(75,143,232,.3)':'#252a35')+';border-radius:6px;padding:.18rem .45rem;margin:.15rem .3rem .15rem 0">'+esc(p.label)+(traded?' <span style="color:#6b7280;font-size:.6rem;margin-left:.25rem">via '+esc(p.originalTeam)+'</span>':'')+'</span>';
+      }).join('');
+      return '<div style="margin-bottom:.3rem"><span style="font-family:\'Barlow Condensed\',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:1px;color:#6b7280;margin-right:.4rem">'+esc(yr)+'</span>'+chips+'</div>';
+    }).join('');
+  }
+  section.innerHTML = '<div class="trades-title-row"><div class="trades-title">Draft Picks</div></div>' + body;
+  // Insert after trades section if present, else after dead-cap / badge / hdr.
+  var anchor = document.getElementById('tradesSection') || document.getElementById('deadCapSection') || document.getElementById('penaltyBadge') || hdr;
+  anchor.parentNode.insertBefore(section, anchor.nextSibling);
+}
+
+function updateTradeRequestsDisplay(tn){
+  var hdr = document.querySelector('.team-hdr');
+  if(!hdr) return;
+  var existing = document.getElementById('tradeReqSection');
+  if(existing) existing.remove();
+  var rel = TRADE_REQUESTS.filter(function(t){ return (t.fromTeam===tn || t.toTeam===tn) && (t.status==='pending' || t.status==='accepted'); })
+    .sort(function(a,b){ return (b.updated||b.created||0)-(a.updated||a.created||0); });
+  var section = document.createElement('div');
+  section.className = 'trades-section';
+  section.id = 'tradeReqSection';
+  var head = '<div class="trades-title-row"><div class="trades-title">Trade Offers</div>'+
+    '<button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button></div>';
+  var body = '';
+  if(!rel.length){
+    body = '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.65rem;color:#6b7280;padding:.4rem 0;letter-spacing:.5px">No active offers</div>';
+  } else {
+    body = rel.map(function(t){
+      var other = (t.fromTeam===tn) ? t.toTeam : t.fromTeam;
+      return '<div class="trade-card" onclick="openTradeInbox()">'+
+        '<div class="trade-card-top">'+
+          '<div class="trade-card-dir">'+esc(t.fromTeam)+' \u2194 '+esc(t.toTeam)+'</div>'+
+          statusPill(t)+
+        '</div>'+
+        '<div style="font-family:\'DM Mono\',monospace;font-size:.62rem;color:#6b7280;margin-top:.25rem">'+tradeShortLine(t)+'</div>'+
+      '</div>';
+    }).join('');
+  }
+  section.innerHTML = head + body;
+  var anchor = document.getElementById('draftPicksSection') || document.getElementById('tradesSection') || document.getElementById('deadCapSection') || document.getElementById('penaltyBadge') || hdr;
+  anchor.parentNode.insertBefore(section, anchor.nextSibling);
+}
+
+function tradeShortLine(t){
+  function cnt(pkg){ return (pkg.players||[]).length + (pkg.picks||[]).length; }
+  return esc(t.fromTeam)+': '+cnt(t.give)+' \u00b7 '+esc(t.toTeam)+': '+cnt(t.get);
+}
+
+function refreshTeamTradeSection(){
+  try{
+    if(typeof currentTeam!=='undefined' && currentTeam){
+      updateDraftPicksDisplay(currentTeam);
+      updateTradeRequestsDisplay(currentTeam);
+    }
+  }catch(e){}
+}
+window.updateDraftPicksDisplay = updateDraftPicksDisplay;
+window.updateTradeRequestsDisplay = updateTradeRequestsDisplay;
+
+// ════════ PATCH WRAPPERS ════════
+// Wrap the FINAL showTeam (after all existing v28.x patches) so our sections
+// render on every team open.
+var _origShowTeam_v91 = null;
+function patchShowTeamForV91(){
+  if(_origShowTeam_v91) return;
+  if(typeof showTeam!=='function') { setTimeout(patchShowTeamForV91, 300); return; }
+  _origShowTeam_v91 = showTeam;
+  showTeam = function(tn){
+    _origShowTeam_v91(tn);
+    try{ updateDraftPicksDisplay(tn); }catch(e){}
+    try{ updateTradeRequestsDisplay(tn); }catch(e){}
+  };
+}
+
+// Wrap saveTeamNames so renames re-key identity + pick/trade ownership.
+var _origSaveTeamNames_v91 = null;
+function patchSaveTeamNamesForV91(){
+  if(_origSaveTeamNames_v91) return;
+  if(typeof saveTeamNames!=='function') { setTimeout(patchSaveTeamNamesForV91, 300); return; }
+  _origSaveTeamNames_v91 = saveTeamNames;
+  saveTeamNames = function(){
+    // Capture the rename map BEFORE the original mutates TEAMS_CONFIG.
+    var renames = [];
+    try{
+      Object.keys(TEAMS_CONFIG).forEach(function(oldName){
+        var id = TEAMS_CONFIG[oldName];
+        var inp = document.getElementById('tname-'+id);
+        var newName = inp ? inp.value.trim() : oldName;
+        if(newName && newName!==oldName) renames.push({oldName:oldName, newName:newName});
+      });
+    }catch(e){}
+    _origSaveTeamNames_v91();
+    if(!renames.length) return;
+    var map = {};
+    renames.forEach(function(r){ map[r.oldName]=r.newName; });
+    function remap(name){ return map[name] || name; }
+    // identity
+    if(IDENTITY && map[IDENTITY]){ IDENTITY = map[IDENTITY]; saveIdentity(); refreshIdentityBadge(); }
+    // draft pick ownership (both the owner value AND the originalTeam in the key)
+    var newOwned = {};
+    Object.keys(DRAFT_PICKS_OWNED).forEach(function(k){
+      var parts = k.split('|');
+      var season = parts[0], round = parts[1], orig = parts[2];
+      var newOrig = remap(orig);
+      var newOwner = remap(DRAFT_PICKS_OWNED[k]);
+      newOwned[season+'|'+round+'|'+newOrig] = newOwner;
+    });
+    DRAFT_PICKS_OWNED = newOwned;
+    saveDraftPicksOwned();
+    // trade requests
+    TRADE_REQUESTS.forEach(function(t){
+      t.fromTeam = remap(t.fromTeam);
+      t.toTeam = remap(t.toTeam);
+      ['give','get'].forEach(function(side){
+        (t[side].picks||[]).forEach(function(p){ p.originalTeam = remap(p.originalTeam); });
+      });
+    });
+    saveTradeRequests();
+    updateInboxBadge();
+    refreshTeamTradeSection();
+  };
+}
+
+// ════════ FIREBASE SYNC ════════
+// New docs: league/tradeRequests, league/draftPicksOwned. Saved via the module's
+// window._fs* refs. Listeners + a polling fallback keep devices in sync.
+function fbReady(){ return !!(window._db && window._fsDoc && window._fsSetDoc && window._fsOnSnapshot); }
+
+window.saveTradeRequestsCloud = function(arr){
+  if(!fbReady()) return;
+  try{ window._fsSetDoc(window._fsDoc(window._db,'league','tradeRequests'), { data: JSON.stringify(arr||[]), updated: new Date().toISOString() }); }
+  catch(e){ console.warn('[v91] tradeRequests save failed', e); }
+};
+window.saveDraftPicksOwnedCloud = function(obj){
+  if(!fbReady()) return;
+  try{ window._fsSetDoc(window._fsDoc(window._db,'league','draftPicksOwned'), { data: JSON.stringify(obj||{}), updated: new Date().toISOString() }); }
+  catch(e){ console.warn('[v91] draftPicksOwned save failed', e); }
+};
+
+function startV91Listeners(){
+  if(!fbReady()){ setTimeout(startV91Listeners, 600); return; }
+  if(window._v91ListenersStarted) return;
+  window._v91ListenersStarted = true;
+  try{
+    window._fsOnSnapshot(window._fsDoc(window._db,'league','tradeRequests'), function(snap){
+      if(snap.exists()){
+        try{
+          var arr = JSON.parse(snap.data().data);
+          if(JSON.stringify(arr)===JSON.stringify(TRADE_REQUESTS)) return;
+          TRADE_REQUESTS = Array.isArray(arr)?arr:[];
+          window.TRADE_REQUESTS = TRADE_REQUESTS;
+          try{ localStorage.setItem(LS_TRADE_REQS, JSON.stringify(TRADE_REQUESTS)); }catch(e){}
+          updateInboxBadge();
+          var im = document.getElementById('tradeInboxModal');
+          if(im && im.classList.contains('open')) renderTradeInbox();
+          refreshTeamTradeSection();
+        }catch(e){}
+      }
+    });
+    window._fsOnSnapshot(window._fsDoc(window._db,'league','draftPicksOwned'), function(snap){
+      if(snap.exists()){
+        try{
+          var obj = JSON.parse(snap.data().data);
+          if(JSON.stringify(obj)===JSON.stringify(DRAFT_PICKS_OWNED)) return;
+          DRAFT_PICKS_OWNED = (obj && typeof obj==='object')?obj:{};
+          window.DRAFT_PICKS_OWNED = DRAFT_PICKS_OWNED;
+          try{ localStorage.setItem(LS_PICKS_OWNED, JSON.stringify(DRAFT_PICKS_OWNED)); }catch(e){}
+          refreshTeamTradeSection();
+          var pd = document.getElementById('page-draft');
+          if(pd && pd.classList.contains('active') && typeof buildDraftPage==='function') buildDraftPage();
+        }catch(e){}
+      }
+    });
+  }catch(e){ console.warn('[v91] listener setup failed', e); }
+
+  // Initial cloud load (only if local is empty / to merge newest).
+  try{
+    if(window._fsGetDoc){
+      window._fsGetDoc(window._fsDoc(window._db,'league','tradeRequests')).then(function(snap){
+        if(snap.exists()){
+          try{ var arr=JSON.parse(snap.data().data); if(Array.isArray(arr)){ TRADE_REQUESTS=arr; window.TRADE_REQUESTS=arr; try{localStorage.setItem(LS_TRADE_REQS,JSON.stringify(arr));}catch(e){} updateInboxBadge(); refreshTeamTradeSection(); } }catch(e){}
+        }
+      }).catch(function(){});
+      window._fsGetDoc(window._fsDoc(window._db,'league','draftPicksOwned')).then(function(snap){
+        if(snap.exists()){
+          try{ var obj=JSON.parse(snap.data().data); if(obj&&typeof obj==='object'){ DRAFT_PICKS_OWNED=obj; window.DRAFT_PICKS_OWNED=obj; try{localStorage.setItem(LS_PICKS_OWNED,JSON.stringify(obj));}catch(e){} refreshTeamTradeSection(); } }catch(e){}
+        }
+      }).catch(function(){});
+    }
+  }catch(e){}
+}
+
+// Polling fallback (mirrors the existing 2s poller pattern) for the two new keys.
+function startV91Polling(){
+  setInterval(function(){
+    try{
+      var sr = JSON.parse(localStorage.getItem(LS_TRADE_REQS)||'[]');
+      if(JSON.stringify(sr)!==JSON.stringify(TRADE_REQUESTS)){
+        TRADE_REQUESTS = Array.isArray(sr)?sr:[];
+        window.TRADE_REQUESTS = TRADE_REQUESTS;
+        updateInboxBadge();
+        var im = document.getElementById('tradeInboxModal');
+        if(im && im.classList.contains('open')) renderTradeInbox();
+        refreshTeamTradeSection();
+      }
+      var po = JSON.parse(localStorage.getItem(LS_PICKS_OWNED)||'{}');
+      if(JSON.stringify(po)!==JSON.stringify(DRAFT_PICKS_OWNED)){
+        DRAFT_PICKS_OWNED = (po&&typeof po==='object')?po:{};
+        window.DRAFT_PICKS_OWNED = DRAFT_PICKS_OWNED;
+        refreshTeamTradeSection();
+      }
+    }catch(e){}
+  }, 2000);
+}
+
+// ════════ LAUNCH INIT ════════
+function initV91(){
+  patchShowTeamForV91();
+  patchSaveTeamNamesForV91();
+  ensureIdentity();
+  updateInboxBadge();
+  startV91Listeners();
+  startV91Polling();
+}
+if(document.readyState==='complete' || document.readyState==='interactive'){
+  setTimeout(initV91, 400);
+} else {
+  window.addEventListener('DOMContentLoaded', function(){ setTimeout(initV91, 400); });
+}
+
+})();
+</script>
+
 </body>
 </html>
