@@ -1,4 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 Dynasty League</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0c10;--sur:#111318;--sur2:#181c24;--bdr:#252a35;--acc:#e8c84b;--acc2:#4b8fe8;--red:#e84b4b;--grn:#4be87a;--txt:#d4d8e0;--dim:#6b7280;--brt:#f0f2f6}
+*{-webkit-box-sizing:border-box;box-sizing:border-box;margin:0;padding:0}
+html,body{height:-webkit-fill-available}
+body{background:var(--bg);color:var(--txt);font-family:"DM Mono",monospace;min-height:100vh;overflow-x:hidden}
 
+nav{position:-webkit-sticky;position:sticky;top:0;z-index:200;background:rgba(10,12,16,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--bdr);padding:0 1.25rem;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;height:52px;gap:.5rem}
+.brand{font-family:"Bebas Neue",sans-serif;font-size:1.3rem;color:var(--acc);letter-spacing:2px;white-space:nowrap;cursor:pointer;-webkit-flex-shrink:0;flex-shrink:0}
+.brand:hover{opacity:.8}
+.nav-sep{width:1px;height:20px;background:var(--bdr);-webkit-flex-shrink:0;flex-shrink:0;margin:0 .25rem}
+.nav-btn{font-family:"Barlow Condensed",sans-serif;font-size:.8rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);padding:.3rem .75rem;border:none;background:none;cursor:pointer;border-radius:4px;white-space:nowrap;-webkit-flex-shrink:0;flex-shrink:0;transition:color .15s,background .15s;-webkit-appearance:none}
+.nav-btn:hover{color:var(--brt);background:var(--sur)}
+.nav-btn.active{color:var(--acc)}
+.nav-spacer{-webkit-flex:1;flex:1}
+.refresh-btn{font-family:"Barlow Condensed",sans-serif;font-size:.75rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);padding:.3rem .6rem;border:1px solid var(--bdr);background:none;cursor:pointer;border-radius:4px;white-space:nowrap;-webkit-flex-shrink:0;flex-shrink:0;transition:all .15s;-webkit-appearance:none;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.35rem}
+.refresh-btn:hover{color:var(--acc);border-color:var(--acc)}
+.refresh-btn.spinning .spin-icon{display:inline-block;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin-icon{display:inline-block}
+
+.page{display:none;overflow-x:hidden}.page.active{display:block;overflow-x:hidden}
+
+/* TOAST */
+.toast{position:fixed;bottom:1.25rem;right:1.25rem;background:var(--sur);border:1px solid var(--bdr);border-radius:6px;padding:.5rem 1rem;font-size:.72rem;font-family:"Barlow Condensed",sans-serif;letter-spacing:1px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:300;max-width:260px}
+.toast.show{opacity:1}
+.toast.green{border-color:var(--grn);color:var(--grn)}
+.toast.red{border-color:var(--red);color:var(--red)}
+.toast.yellow{border-color:var(--acc);color:var(--acc)}
+
+/* LEAGUE */
+.pg-wrap{padding:1rem 1rem 3rem;max-width:1080px;margin:0 auto}
+.pg-title{font-family:"Bebas Neue",sans-serif;font-size:2.2rem;color:var(--brt);letter-spacing:3px}
+.pg-sub{font-size:.7rem;color:var(--dim);letter-spacing:1px;margin-top:.2rem;margin-bottom:.75rem}
+.last-updated{font-size:.65rem;color:var(--dim);margin-top:.3rem;letter-spacing:.5px}
+.std-tbl{width:100%;border-collapse:collapse;font-size:.8rem}
+.std-tbl th{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:.65rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);padding:.45rem .6rem;text-align:right;border-bottom:1px solid var(--bdr);white-space:nowrap}
+.std-tbl th:first-child{text-align:left}
+.std-tbl td{padding:.55rem .6rem;border-bottom:1px solid rgba(37,42,53,.5);text-align:right;vertical-align:middle}
+.std-tbl td:first-child{text-align:left}
+.std-tbl tbody tr{cursor:pointer;transition:background .12s}
+.std-tbl tbody tr:hover td{background:var(--sur)}
+.team-link{font-family:"Barlow Condensed",sans-serif;font-size:1rem;font-weight:600;letter-spacing:1px;color:var(--brt)}
+.std-tbl tbody tr:hover .team-link{color:var(--acc)}
+.cbw{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.6rem;-webkit-justify-content:flex-end;justify-content:flex-end}
+.cbar{width:100px;height:6px;background:var(--bdr);border-radius:3px;overflow:hidden;-webkit-flex-shrink:0;flex-shrink:0}
+.cbar-f{height:100%;border-radius:3px}
+.ov{color:var(--red)}.ok{color:var(--grn)}
+.loading-row td{text-align:center!important;color:var(--dim);font-size:.75rem;padding:2rem!important;letter-spacing:1px}
+
+/* TEAM PAGE */
+.team-hdr{background:var(--sur);border-bottom:1px solid var(--bdr);padding:.75rem 1rem .6rem}
+.back-btn{font-family:"Barlow Condensed",sans-serif;font-size:.75rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);border:1px solid var(--bdr);background:none;cursor:pointer;padding:.3rem .7rem;border-radius:4px;transition:all .15s;margin-bottom:.4rem;display:inline-block;-webkit-appearance:none}
+.back-btn:hover{color:var(--brt);border-color:var(--brt)}
+.export-btn{font-family:"Barlow Condensed",sans-serif;font-size:.75rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--acc);padding:.3rem .7rem;border:1px solid var(--acc);background:rgba(232,200,75,.08);cursor:pointer;border-radius:4px;white-space:nowrap;-webkit-appearance:none}
+.export-btn:active{background:rgba(232,200,75,.2)}
+.team-title{font-family:"Bebas Neue",sans-serif;font-size:2.2rem;color:var(--brt);letter-spacing:3px;line-height:1}
+.team-meta{font-size:.67rem;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-top:.25rem}
+.stat-row{display:-webkit-flex;display:flex;gap:1.25rem;-webkit-flex-wrap:wrap;flex-wrap:wrap;-webkit-align-items:flex-end;align-items:flex-end}
+.stat-blk{text-align:right}
+.stat-lbl{font-size:.6rem;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.12rem}
+.stat-val{font-family:"Bebas Neue",sans-serif;font-size:1.3rem;letter-spacing:1px}
+.cap-bar-row{margin:.4rem .75rem 0;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.6rem}
+.cap-bar-track{-webkit-flex:1;flex:1;height:7px;background:var(--sur2);border-radius:4px;overflow:hidden}
+.cap-bar-fill{height:100%;border-radius:4px;transition:width .3s,background .3s}
+.cap-bar-lbls{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;margin-top:.3rem;font-size:.6rem;color:var(--dim)}
+
+.roster-outer{padding:.6rem 0 3rem}
+.roster-hint{font-size:.62rem;color:var(--dim);margin-bottom:.4rem;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem;padding:0 1rem}
+.hint-box{width:10px;height:10px;border:1px dashed var(--dim);border-radius:1px;display:inline-block;-webkit-flex-shrink:0;flex-shrink:0}
+.rt-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rt{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:.30rem}
+.rt thead th{font-family:"Barlow Condensed",sans-serif;font-size:.30rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--dim);padding:.22rem .08rem;text-align:center;border-bottom:2px solid var(--bdr);white-space:nowrap;background:var(--bg)}
+.rt tbody tr:hover td{background:rgba(255,255,255,.02)}
+.rt td{padding:.22rem .08rem;border-bottom:1px solid rgba(37,42,53,.4);text-align:center;vertical-align:middle;white-space:nowrap;font-size:.30rem}
+.slot{display:inline-block;font-family:"Barlow Condensed",sans-serif;font-size:.30rem;font-weight:400;letter-spacing:.5px;padding:.1rem .35rem;border-radius:3px;background:var(--sur2);border:1px solid var(--bdr);color:var(--dim)}
+.slot.C{color:#a78bfa;border-color:#a78bfa55}
+.slot.s1B,.slot.s2B,.slot.s3B,.slot.SS{color:var(--acc2);border-color:#4b8fe855}
+.slot.OF{color:#34d399;border-color:#34d39955}
+.slot.SP,.slot.RP,.slot.P{color:#f97316;border-color:#f9731655}
+.slot.UTIL{color:#e879f9;border-color:#e879f955}
+.slot.Bench{color:var(--dim);border-color:var(--bdr)}
+.slot.IL{color:var(--red);border-color:#e84b4b55}
+.pname{font-weight:400;color:var(--brt)}
+.arb-tag{display:inline-block;font-size:.30rem;font-family:"Barlow Condensed",sans-serif;font-weight:400;letter-spacing:1px;color:var(--acc);background:rgba(232,200,75,.1);border:1px solid rgba(232,200,75,.35);border-radius:2px;padding:.06rem .26rem;margin-left:.3rem;vertical-align:middle}
+.inj-tag{display:inline-block;font-size:.30rem;font-family:"Barlow Condensed",sans-serif;font-weight:700;letter-spacing:1px;color:var(--red);background:rgba(232,75,75,.1);border:1px solid rgba(232,75,75,.35);border-radius:2px;padding:.06rem .26rem;margin-left:.3rem;vertical-align:middle}
+.ci{background:transparent;border:none;border-bottom:1px solid #6b7280;color:#f0f2f6;-webkit-text-fill-color:#f0f2f6;font-family:"DM Mono",monospace;font-size:.30rem;width:100%;text-align:center;padding:.06rem .1rem;outline:none;-webkit-appearance:none;appearance:none;display:block;margin:0 auto;border-radius:2px}
+.ci:focus{border-bottom-color:var(--acc);background:transparent}
+.ci::placeholder{color:var(--bdr)}
+.yval{color:#8b95a3;font-size:.30rem;text-align:center!important}
+.yval.cur{color:var(--brt)}
+.yval.muted{color:var(--bdr)}
+.tr-tot td,.tr-cap td,.tr-pct td{border-bottom:none!important;font-family:"Barlow Condensed",sans-serif;font-size:.30rem;color:var(--dim)}
+.tr-tot td{border-top:2px solid var(--bdr)!important;padding-top:.5rem;font-weight:400;letter-spacing:1px;text-transform:uppercase}
+
+
+/* SALARIES DB */
+.db-wrap{padding:1rem 0 3rem}
+.db-ctrl{display:-webkit-flex;display:flex;gap:.5rem;margin-bottom:.75rem;padding:0 1rem;-webkit-flex-wrap:wrap;flex-wrap:wrap;-webkit-align-items:center;align-items:center}
+.db-search{background:var(--sur);border:1px solid var(--bdr);border-radius:4px;color:var(--brt);font-family:"DM Mono",monospace;font-size:.78rem;padding:.42rem .65rem;width:220px;outline:none;-webkit-appearance:none;-webkit-text-fill-color:var(--brt)}
+.db-search:focus{border-color:var(--acc)}
+.db-search::placeholder{color:var(--dim)}
+.db-sel{background:var(--sur);border:1px solid var(--bdr);border-radius:4px;color:var(--txt);font-family:"Barlow Condensed",sans-serif;font-size:.78rem;letter-spacing:1px;padding:.42rem .65rem;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none}
+.db-sel:focus{border-color:var(--acc)}
+.db-cnt{font-size:.7rem;color:var(--dim);margin-left:auto}
+.dbt{width:100%;border-collapse:collapse;font-size:.75rem;min-width:500px}
+.dbt th{font-family:"Barlow Condensed",sans-serif;font-size:.62rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);padding:.4rem .5rem;text-align:right;border-bottom:1px solid var(--bdr);white-space:nowrap;cursor:pointer;-webkit-user-select:none;user-select:none;background:var(--bg)}
+.dbt th:nth-child(-n+3){text-align:left}
+.dbt th:hover,.dbt th.srt{color:var(--acc)}
+.sar{margin-left:.25rem;opacity:.4;font-size:.6rem}
+.dbt th.srt .sar{opacity:1}
+.dbt td{padding:.45rem .5rem;border-bottom:1px solid rgba(37,42,53,.35);text-align:right;white-space:nowrap}
+.dbt td:nth-child(-n+3){text-align:left}
+.dbt tbody tr:hover td{background:var(--sur)}
+.ptag{display:inline-block;font-family:"Barlow Condensed",sans-serif;font-size:.65rem;font-weight:700;letter-spacing:1px;padding:.07rem .3rem;border-radius:2px;background:var(--sur2);border:1px solid var(--bdr);color:var(--dim)}
+.no-res{padding:3rem;text-align:center;color:var(--dim);font-size:.78rem;letter-spacing:1px}
+
+/* EXPORT MODAL */
 .exp-overlay{display:none;position:fixed;inset:0;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);z-index:500;-webkit-align-items:flex-start;align-items:flex-start;-webkit-justify-content:center;justify-content:center;padding:1rem;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .exp-overlay.open{display:-webkit-flex;display:flex}
 .exp-box{background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:1.5rem;width:100%;max-width:500px;margin:auto}
@@ -1078,7 +1201,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
           <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#252a35;border:1px solid #1e2433;border-radius:26px;transition:.2s"></span>
         </label>
       </div>
-      <p style="font-size:.7rem;color:#6b7280;line-height:1.5">When locked, contract years can't be changed. Dropping a contracted player triggers a dead-cap hit (see Dead Cap Penalty in League Rules) for the current season.</p>
+      <p style="font-size:.7rem;color:#6b7280;line-height:1.5">When locked, contract years can’t be changed. Dropping a contracted player triggers a dead-cap hit (see Dead Cap Penalty in League Rules) for the current season.</p>
     </div>
 
     <div class="set-section">
@@ -1090,7 +1213,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
           <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#252a35;border:1px solid #1e2433;border-radius:26px;transition:.2s"></span>
         </label>
       </div>
-      <p style="font-size:.7rem;color:#6b7280;line-height:1.5">When frozen, rosters stop syncing from ESPN. Useful during draft so picks don't get wiped by mid-draft ESPN updates.</p>
+      <p style="font-size:.7rem;color:#6b7280;line-height:1.5">When frozen, rosters stop syncing from ESPN. Useful during draft so picks don’t get wiped by mid-draft ESPN updates.</p>
     </div>
 
     <div class="set-section">
@@ -1110,7 +1233,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
         <label class="field-label">Draft Type</label>
         <select class="field-input" id="draftTypeInput" onchange="saveDraftSettings()" style="font-size:16px">
-          <option value="snake">Snake (1→8, 8→1, 1→8...)</option>
+          <option value="snake">Snake (1→8, 8→1, 1→8…)</option>
           <option value="straight">Straight (1→8 every round)</option>
         </select>
 
@@ -3400,7 +3523,7 @@ function populateStatsYearSelect(){
   el.innerHTML = yrs.map(function(y){ return '<option value="'+y+'"'+(y===cur?' selected':'')+'>'+y+'</option>'; }).join('');
 }
 function ensureMLBStatsLoaded(){
-  var s=document.getElementById('ctrStatus'); if(s) s.textContent='Loading stats...';
+  var s=document.getElementById('ctrStatus'); if(s) s.textContent='Loading stats…';
   fetchMLBStats(STATS_SEASON).then(function(){
     if(s) s.textContent=Object.keys(MLB_STATS).length+' players · '+STATS_SEASON;
     buildContractsTab();
@@ -3465,7 +3588,7 @@ function onDBYearChange(){
   var f=document.getElementById('faYear'); if(f){f.value=String(y);}
 }
 function refreshMLBStats(){
-  var s=document.getElementById('ctrStatus'); if(s) s.textContent='Fetching MLB stats...';
+  var s=document.getElementById('ctrStatus'); if(s) s.textContent='Fetching MLB stats…';
   fetchMLBStats(STATS_SEASON, true).then(function(){
     if(s) s.textContent=Object.keys(MLB_STATS).length+' players · '+STATS_SEASON;
     buildContractsTab();
@@ -3875,7 +3998,7 @@ function buildSimpleRoster(tn){
     var onIR=(p.slot==='IL'||p.slot==='IR'||p.slotId===17||p.slotId===18);
     var _entry=getEntry(tn,i);
     var _cleared=_entry&&_entry.cleared;
-var needsDrop=_entry&&!_cleared&&(cNum===0);
+    var needsDrop=_entry&&!_cleared&&(cNum===0);
     var isArb=isArbPlayer(p);
     var sals=playerSals(tn,p,i);
     var sal0=sals[0];
@@ -5252,7 +5375,7 @@ function renderDraftOrderStrip(){
     if(idx===curIdx)cls+=' dos-current';
     else if(a.skipped)cls+=' dos-skip';
     else if(madePicks[a.pickNum])cls+=' dos-done';
-    var shortTeam=a.team.length>8?a.team.substr(0,7)+'...':a.team;
+    var shortTeam=a.team.length>8?a.team.substr(0,7)+'…':a.team;
     return '<div class="'+cls+'" id="dos-'+a.pickNum+'">'+
       '<span class="dos-team">'+shortTeam+'</span>'+
       '<span class="dos-pick">R'+a.round+'.'+(((a.pickNum-1)%DRAFT_SETTINGS.order.length)+1)+'</span>'+
@@ -5353,7 +5476,7 @@ function changeStatsYear(year){
   // Clear FA cache and refetch with new year
   try{localStorage.removeItem('dyn26_v3_fa');localStorage.removeItem('dyn26_v3_fa_time');}catch(e){}
   FA_DATA = [];
-  showToast('↻ Loading '+year+' ESPN stats...','yellow',2000);
+  showToast('↻ Loading '+year+' ESPN stats…','yellow',2000);
   if(typeof fetchFreeAgents==='function'){
     fetchFreeAgents();
     var pollCount=0;
@@ -5875,7 +5998,7 @@ function showSalaryChange(name){
   var prev = (window.SAL_PREV || {})[name];
   console.log('[showSalaryChange] cur=', !!cur, 'prev=', !!prev, 'SAL_PREV keys:', Object.keys(window.SAL_PREV||{}).length);
   if(!cur){ showToast('Player "'+name+'" not in SAL_MAP', 'yellow', 2500); return; }
-if(!prev){
+  if(!prev){
     // Maybe it was a NEW player, not CHANGED — show current state only
     var changeType = (window.SAL_CHANGES||{})[name];
     if(changeType === 'NEW'){
@@ -6682,7 +6805,7 @@ function undoSalaryImport(){
     </div>
 
     <div class="draft-search">
-      <input type="text" class="search-input" id="draftSearch" placeholder="Search players..." oninput="renderDraftPool()" style="font-size:16px">
+      <input type="text" class="search-input" id="draftSearch" placeholder="Search players…" oninput="renderDraftPool()" style="font-size:16px">
       <select class="fa-sel" id="draftPos" onchange="renderDraftPool()">
         <option value="">All Pos</option>
         <option value="BATTERS">Batters</option>
@@ -7090,7 +7213,7 @@ function undoSalaryImport(){
     <div class="modal-body" style="max-height:62vh;overflow-y:auto;-webkit-overflow-scrolling:touch">
       <div class="set-section-title" style="margin-top:0">Force ARB (manual override)</div>
       <div style="display:flex;gap:.4rem;margin-bottom:.5rem;position:relative">
-        <input type="text" id="manualArbSearch" placeholder="Search a player to force ARB..." autocomplete="off" oninput="searchManualArb()" style="flex:1;padding:.55rem .7rem;background:var(--bg2,#10141c);border:1px solid var(--bdr,#252a35);border-radius:8px;color:var(--txt,#f0f2f6);font-size:.85rem">
+        <input type="text" id="manualArbSearch" placeholder="Search a player to force ARB…" autocomplete="off" oninput="searchManualArb()" style="flex:1;padding:.55rem .7rem;background:var(--bg2,#10141c);border:1px solid var(--bdr,#252a35);border-radius:8px;color:var(--txt,#f0f2f6);font-size:.85rem">
       </div>
       <div id="manualArbResults" style="display:none;max-height:180px;overflow-y:auto;border:1px solid var(--bdr,#252a35);border-radius:8px;margin-bottom:.5rem"></div>
       <div id="manualArbList" style="margin-bottom:.9rem"></div>
