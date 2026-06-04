@@ -421,6 +421,13 @@ body{background:#0a0c10!important;background-color:#0a0c10!important}
 #page-league .pg-wrap{padding:1.25rem 1rem}
 .pg-title{font-family:"Bebas Neue",sans-serif;font-size:1.8rem;letter-spacing:3px;color:#f0f2f6;margin-bottom:.25rem;line-height:1}
 .pg-sub{font-family:"Barlow Condensed",sans-serif;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;color:#6b7280;margin-bottom:1rem}
+.act-filter{font-family:"Barlow Condensed",sans-serif;font-size:.66rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:.4rem .7rem;border-radius:20px;background:#111318;color:#94a3b8;border:1px solid #252a35;cursor:pointer;-webkit-appearance:none;-webkit-tap-highlight-color:transparent}
+.act-filter.active{background:rgba(232,200,75,.1);border-color:rgba(232,200,75,.35);color:#e8c84b}
+.act-row{background:#111318;border:1px solid #252a35;border-radius:10px;padding:.6rem .75rem;margin-bottom:.5rem}
+.act-row-top{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center;gap:.5rem;margin-bottom:.2rem}
+.act-cat{font-family:"Barlow Condensed",sans-serif;font-size:.58rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:.12rem .45rem;border-radius:20px}
+.act-time{font-family:"DM Mono",monospace;font-size:.58rem;color:#6b7280;white-space:nowrap}
+.act-msg{font-size:.78rem;color:#e2e8f0;line-height:1.35}
 .last-updated{font-family:"Barlow Condensed",sans-serif;font-size:.65rem;letter-spacing:.5px;color:#6b7280;margin-bottom:1rem}
 
 /* Hide the old league table */
@@ -976,7 +983,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.91</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.92</span></span>
     <div style="display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem">
       <button class="nav-ident" id="navIdentityBtn" onclick="openIdentityPicker()" title="Who are you?" style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#94a3b8;background:#181c24;border:1px solid #252a35;border-radius:8px;padding:.32rem .55rem;cursor:pointer;-webkit-appearance:none;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis">I am …</button>
       <button class="nav-inbox" id="navInboxBtn" onclick="openTradeInbox()" title="Trade offers" style="position:relative;font-size:1.05rem;line-height:1;padding:.4rem .55rem;background:#181c24;border:1px solid #252a35;border-radius:8px;color:#94a3b8;cursor:pointer;-webkit-appearance:none">&#128233;<span id="navInboxBadge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;line-height:16px;text-align:center;font-family:'DM Mono',monospace;font-size:.6rem;font-weight:600;color:#0a0c10;background:#e84b4b;border-radius:9px;padding:0 3px"></span></button>
@@ -985,9 +992,11 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
   </div>
   <div class="nav-grid" id="navGrid">
     <button class="nav-btn active" id="nav-league" onclick="showLeague()">League</button>
+    <button class="nav-btn" id="nav-myteam" onclick="showMyTeam()">My Team</button>
     <button class="nav-btn" id="nav-db" onclick="showDB()">All Players</button>
     <button class="nav-btn" id="nav-fa" onclick="showFA()">Free Agents</button>
     <button class="nav-btn" id="nav-contracts" onclick="showContracts()">Contracts</button>
+    <button class="nav-btn" id="nav-activity" onclick="showActivityLog()">Activity</button>
     <button class="nav-btn draft-tab-btn" id="nav-draft" onclick="showDraft()" style="display:none">Draft</button>
     <button class="nav-btn draft-tab-btn" id="nav-nta" onclick="showNeedsToAdd()" style="display:none">Needs To Add</button>
   </div>
@@ -1245,6 +1254,13 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
         <label class="field-label">Draft Order</label>
         <p style="font-size:.65rem;color:#6b7280;margin-bottom:.5rem">Use arrows to reorder. Position 1 picks first.</p>
         <div id="draftOrderList"></div>
+
+        <div style="margin-top:.85rem;padding-top:.75rem;border-top:1px solid #252a35">
+          <p style="font-size:.65rem;color:#6b7280;margin-bottom:.45rem">Until confirmed, picks trade as round only (e.g. <span style="font-family:'DM Mono',monospace">2027 R1</span>). After confirming, they show their slot (<span style="font-family:'DM Mono',monospace">2027 1.2</span>).</p>
+          <button class="set-btn" id="confirmOrderBtn" onclick="confirmDraftOrder()" style="background:rgba(75,232,122,.1);color:#4be87a;border-color:rgba(75,232,122,.35);width:100%">&#10003; Confirm Draft Order</button>
+          <button class="set-btn" onclick="unconfirmDraftOrder()" style="margin-top:.4rem;background:none;color:#6b7280;border-color:#252a35;width:100%;font-size:.7rem">Unconfirm</button>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.66rem;letter-spacing:.5px;color:#94a3b8;margin-top:.45rem;text-align:center" id="confirmOrderStatus"></div>
+        </div>
 
         <button class="set-btn" onclick="resetDraftPicks()" style="margin-top:.75rem;background:rgba(232,75,75,.08);color:#e84b4b;border-color:rgba(232,75,75,.3);width:100%">Reset All Picks</button>
       </div>
@@ -2167,6 +2183,57 @@ function toggleConsole(){consoleEnabled=!consoleEnabled;var btn=document.getElem
 function setNav(id){document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});if(id){var el=document.getElementById(id);if(el)el.classList.add('active');}}
 function showPage(pid){document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});var el=document.getElementById('page-'+pid);if(el)el.classList.add('active');}
 function showLeague(){showPage('league');setNav('nav-league');renderLeague();}
+// V28.5.92: My Team tab — jump straight to the user's team, or prompt to pick.
+function showMyTeam(){
+  var id = window.IDENTITY || null;
+  if(id && typeof showTeam==='function'){ showTeam(id); setNav('nav-myteam'); return; }
+  showPage('league'); setNav('nav-myteam');
+  if(typeof showToast==='function') showToast('Pick your team first \u2014 tap \u201CI am \u2026\u201D up top','yellow',3200);
+}
+// V28.5.92: League Activity tab — read-only, visible to all.
+var _activityFilter='all';
+function setActivityFilter(f){ _activityFilter=f; document.querySelectorAll('#activityFilterRow .act-filter').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-filter')===f); }); renderActivityLog(); }
+function showActivityLog(){ showPage('activity'); setNav('nav-activity'); renderActivityLog(); }
+function renderActivityLog(){
+  var el=document.getElementById('activityLogBody');
+  if(!el) return;
+  // Map raw log categories to the public-facing filter groups.
+  function group(cat){
+    if(cat==='roster'||cat==='fetch') return 'roster';
+    if(cat==='trade') return 'trade';
+    if(cat==='deadcap'||cat==='cut') return 'cut';
+    return 'other';
+  }
+  var src = (window.ACTION_LOG||ACTION_LOG||[]).filter(function(e){
+    var g=group(e.cat);
+    // Surface only league-relevant categories on this public page.
+    if(g==='other' && !(e.cat==='contract')) return false;
+    if(_activityFilter==='all') return true;
+    return g===_activityFilter;
+  });
+  if(!src.length){ el.innerHTML='<div class="empty-state"><span class="empty-state-icon">\uD83D\uDCCB</span>No activity yet. Adds, drops, trades, and cuts will show up here.</div>'; return; }
+  var catStyle={
+    roster:['Add/Drop','#4b8fe8','rgba(75,143,232,.12)'],
+    fetch:['ESPN Sync','#94a3b8','rgba(148,163,184,.12)'],
+    trade:['Trade','#e8c84b','rgba(232,200,75,.12)'],
+    deadcap:['Cut \u2014 Penalty','#e84b4b','rgba(232,75,75,.12)'],
+    cut:['Cut','#f59e0b','rgba(245,158,11,.12)'],
+    contract:['Contract','#22c55e','rgba(34,197,94,.12)']
+  };
+  el.innerHTML = src.slice().reverse().slice(0,250).map(function(e){
+    var dt=new Date(e.t);
+    var time=dt.toLocaleDateString([],{month:'short',day:'numeric'})+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    var cs=catStyle[e.cat]||['Update','#94a3b8','rgba(148,163,184,.12)'];
+    return '<div class="act-row">'+
+      '<div class="act-row-top">'+
+        '<span class="act-cat" style="color:'+cs[1]+';background:'+cs[2]+'">'+cs[0]+'</span>'+
+        '<span class="act-time">'+time+'</span>'+
+      '</div>'+
+      '<div class="act-msg">'+String(e.msg||'').replace(/</g,'&lt;')+'</div>'+
+    '</div>';
+  }).join('');
+}
+window.showMyTeam=showMyTeam; window.showActivityLog=showActivityLog; window.setActivityFilter=setActivityFilter; window.renderActivityLog=renderActivityLog;
 function showDB(){showPage('salaries-db');setNav('nav-db');
   // V28.5.70: populate year selector + fetch stats if needed
   setTimeout(function(){
@@ -4225,6 +4292,37 @@ function loadPenaltyFields(){
 var DRAFT_SETTINGS = JSON.parse(localStorage.getItem('dyn27_draft_settings')||'null')||{
   enabled:false, rounds:4, type:'snake', order:[]
 };
+// V28.5.92: per-season confirmation of draft order. Picks only resolve to a
+// specific slot (e.g. "2027 1.2") once that season's order is confirmed here.
+// Shape: { "<season>": true }
+var DRAFT_ORDER_CONFIRMED = {};
+try{ DRAFT_ORDER_CONFIRMED = JSON.parse(localStorage.getItem('dyn28_draft_order_confirmed')||'{}')||{}; }catch(e){ DRAFT_ORDER_CONFIRMED={}; }
+window.DRAFT_ORDER_CONFIRMED = DRAFT_ORDER_CONFIRMED;
+function isDraftOrderConfirmed(season){ return !!DRAFT_ORDER_CONFIRMED[String(season)]; }
+function saveDraftOrderConfirmed(){
+  try{ localStorage.setItem('dyn28_draft_order_confirmed', JSON.stringify(DRAFT_ORDER_CONFIRMED)); }catch(e){}
+  window.DRAFT_ORDER_CONFIRMED = DRAFT_ORDER_CONFIRMED;
+  try{ if(window.saveDraftOrderConfirmedCloud) window.saveDraftOrderConfirmedCloud(DRAFT_ORDER_CONFIRMED); }catch(e){}
+}
+function confirmDraftOrder(){
+  if(!DRAFT_SETTINGS.order||!DRAFT_SETTINGS.order.length){ if(typeof showToast==='function') showToast('Set a draft order first','red',2200); return; }
+  DRAFT_ORDER_CONFIRMED[String(CURRENT_SEASON)] = true;
+  saveDraftOrderConfirmed();
+  if(typeof showToast==='function') showToast('\u2713 '+CURRENT_SEASON+' draft order confirmed','green',2200);
+  var b=document.getElementById('confirmOrderStatus'); if(b) b.textContent='\u2713 '+CURRENT_SEASON+' order confirmed';
+  if(typeof renderDraftOrderStrip==='function') renderDraftOrderStrip();
+  if(typeof renderDraftHistory==='function') renderDraftHistory();
+  // refresh any visible team trade/pick sections so labels switch to slot form
+  try{ if(window.refreshTeamTradeSection) window.refreshTeamTradeSection(); }catch(e){}
+}
+function unconfirmDraftOrder(){
+  delete DRAFT_ORDER_CONFIRMED[String(CURRENT_SEASON)];
+  saveDraftOrderConfirmed();
+  if(typeof showToast==='function') showToast(CURRENT_SEASON+' order unconfirmed','yellow',2000);
+  var b=document.getElementById('confirmOrderStatus'); if(b) b.textContent=CURRENT_SEASON+' order NOT confirmed';
+  if(typeof renderDraftOrderStrip==='function') renderDraftOrderStrip();
+  try{ if(window.refreshTeamTradeSection) window.refreshTeamTradeSection(); }catch(e){}
+}
 var DRAFT_PICKS = JSON.parse(localStorage.getItem('dyn27_draft_picks')||'[]');
 var NTA_LIST = JSON.parse(localStorage.getItem('dyn27_nta_list')||'{}');
 
@@ -4323,8 +4421,12 @@ function moveDraftOrder(idx,dir){
   localStorage.setItem('dyn27_draft_settings',JSON.stringify(DRAFT_SETTINGS));
   if(window.saveDraftSettingsCloud)window.saveDraftSettingsCloud(DRAFT_SETTINGS);
   renderDraftOrder();
+  // V28.5.92: reflect current season's confirmation state
+  var cs=document.getElementById('confirmOrderStatus');
+  if(cs){ cs.textContent = (typeof isDraftOrderConfirmed==='function' && isDraftOrderConfirmed(CURRENT_SEASON)) ? ('\u2713 '+CURRENT_SEASON+' order confirmed') : (CURRENT_SEASON+' order NOT confirmed'); }
 }
 
+// (confirm-order status refresh handled in loadDraftSettings)
 function resetDraftPicks(){
   if(!confirm('Reset all draft picks? This cannot be undone.'))return;
   DRAFT_PICKS=[];NTA_LIST={};
@@ -6894,6 +6996,23 @@ function undoSalaryImport(){
   </div>
 </div>
 
+<!-- V28.5.92: LEAGUE ACTIVITY LOG PAGE (visible to all, read-only) -->
+<div id="page-activity" class="page">
+  <div class="pg-wrap">
+    <div class="pg-head">
+      <div class="pg-title">League Activity</div>
+      <div class="pg-sub">Adds &amp; drops, trades, and cuts across the league</div>
+    </div>
+    <div style="display:-webkit-flex;display:flex;gap:.35rem;-webkit-flex-wrap:wrap;flex-wrap:wrap;margin-bottom:.7rem" id="activityFilterRow">
+      <button class="act-filter active" data-filter="all" onclick="setActivityFilter('all')">All</button>
+      <button class="act-filter" data-filter="roster" onclick="setActivityFilter('roster')">Adds/Drops</button>
+      <button class="act-filter" data-filter="trade" onclick="setActivityFilter('trade')">Trades</button>
+      <button class="act-filter" data-filter="cut" onclick="setActivityFilter('cut')">Cuts</button>
+    </div>
+    <div id="activityLogBody"></div>
+  </div>
+</div>
+
 <!-- V28: NEEDS TO ADD PAGE -->
 <div id="page-nta" class="page">
   <div class="pg-wrap">
@@ -7577,6 +7696,7 @@ window.toggleDebugOverlay = function(){
       <input type="text" class="field-input" id="ptNote" placeholder="e.g. need pitching depth" style="font-size:16px">
     </div>
     <div class="modal-footer" style="flex-wrap:wrap;gap:.5rem;flex-shrink:0">
+      <button class="btn-secondary" id="ptSalaryBtn" onclick="ptIncludeSalaryTrade()" style="flex:1 1 100%;color:#22c55e;border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)">&#128176; Include salary trade</button>
       <button class="btn-secondary" onclick="closeModal('proposeTradeModal')" style="flex:1">Cancel</button>
       <button class="btn-primary" id="ptSendBtn" onclick="submitProposeTrade()" style="flex:1">Send Offer</button>
     </div>
@@ -7700,10 +7820,19 @@ function pickSlotInOrder(season, round, originalTeam){
     // Order only refines the CURRENT season's draft (the one the order was set
     // for). For future seasons the order isn't known yet.
     if(season !== CURRENT_SEASON) return null;
+    // V28.5.92: don't resolve to a slot until the order is CONFIRMED in Settings.
+    if(typeof isDraftOrderConfirmed==='function' && !isDraftOrderConfirmed(season)) return null;
     var order = (DRAFT_SETTINGS && Array.isArray(DRAFT_SETTINGS.order)) ? DRAFT_SETTINGS.order : [];
     if(!order.length) return null;
     var idx = order.indexOf(originalTeam);
     if(idx < 0) return null;
+    // V28.5.92: snake drafts reverse the order on even rounds, so the slot a
+    // team picks at flips each round. Round 1 = order position; round 2 = its
+    // mirror; round 3 = order position again; etc. Linear drafts keep position.
+    var isSnake = (DRAFT_SETTINGS && DRAFT_SETTINGS.type === 'snake');
+    if(isSnake && (round % 2 === 0)){
+      return order.length - idx;   // mirrored slot on even rounds
+    }
     return idx + 1;
   }catch(e){ return null; }
 }
@@ -7824,12 +7953,24 @@ function openIdentityPicker(){
   openModal('identityModal');
 }
 function setIdentity(tn){
-  IDENTITY = tn;
-  saveIdentity();
-  refreshIdentityBadge();
-  updateInboxBadge();
-  closeModal('identityModal');
-  if(typeof showToast==='function') showToast('\u2713 You are '+tn,'green',1800);
+  // V28.5.92: changing who you are requires the identity PIN (5115),
+  // separate from the app PIN. Skip the prompt only when no identity is set
+  // yet (first-time pick) so onboarding isn't blocked.
+  var IDENTITY_PIN = '5115';
+  function apply(){
+    IDENTITY = tn;
+    saveIdentity();
+    refreshIdentityBadge();
+    updateInboxBadge();
+    closeModal('identityModal');
+    if(typeof showToast==='function') showToast('\u2713 You are '+tn,'green',1800);
+    refreshTeamTradeSection();
+  }
+  if(!IDENTITY || IDENTITY===tn){ apply(); return; }
+  var entry = prompt('Enter identity PIN to change from '+IDENTITY+' to '+tn+':');
+  if(entry===null) return;              // cancelled
+  if(entry.trim()===IDENTITY_PIN){ apply(); }
+  else if(typeof showToast==='function') showToast('Wrong PIN','red',2000);
 }
 function ensureIdentity(){
   if(!IDENTITY){
@@ -7898,7 +8039,7 @@ function renderTradeInbox(){
       btns += '<button onclick="tradeAccept(\''+escAttr(t.id)+'\')" style="font-family:\'Barlow Condensed\',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#0a0c10;background:#4be87a;border:none;border-radius:7px;padding:.4rem .7rem;cursor:pointer;-webkit-appearance:none">'+(myAccepted?'Re-accepted':'Accept')+'</button>';
       btns += '<button onclick="tradeCounter(\''+escAttr(t.id)+'\')" style="font-family:\'Barlow Condensed\',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#9fc3ff;background:rgba(75,143,232,.1);border:1px solid rgba(75,143,232,.3);border-radius:7px;padding:.4rem .7rem;cursor:pointer;-webkit-appearance:none">Counter</button>';
       if(iAmFrom){
-        btns += '<button onclick="tradeCancel(\''+escAttr(t.id)+'\')" style="font-family:\'Barlow Condensed\',sans-serif;font-size:.68rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:#6b7280;background:none;border:1px solid #252a35;border-radius:7px;padding:.4rem .7rem;cursor:pointer;-webkit-appearance:none">Cancel</button>';
+        btns += '<button onclick="tradeCancel(\''+escAttr(t.id)+'\')" style="font-family:\'Barlow Condensed\',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#e84b4b;background:rgba(232,75,75,.08);border:1px solid rgba(232,75,75,.35);border-radius:7px;padding:.4rem .7rem;cursor:pointer;-webkit-appearance:none">&#10005; Erase</button>';
       } else {
         btns += '<button onclick="tradeDecline(\''+escAttr(t.id)+'\')" style="font-family:\'Barlow Condensed\',sans-serif;font-size:.68rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:#e84b4b;background:rgba(232,75,75,.08);border:1px solid rgba(232,75,75,.3);border-radius:7px;padding:.4rem .7rem;cursor:pointer;-webkit-appearance:none">Decline</button>';
       }
@@ -7951,12 +8092,17 @@ function tradeDecline(id){
 function tradeCancel(id){
   var t = getTradeReq(id);
   if(!t || t.status!=='pending') return;
+  // V28.5.92: a proposer can erase their offer anytime before the other team
+  // accepts. Confirm so it isn't accidental; if the other side already accepted
+  // their half it's still cancellable while status is pending.
+  if(typeof confirm==='function' && !confirm('Erase this offer to '+t.toTeam+'? This removes it for both teams.')) return;
   t.status = 'cancelled';
   t.updated = Date.now();
   saveTradeRequests();
   renderTradeInbox();
   updateInboxBadge();
-  if(typeof showToast==='function') showToast('Offer cancelled','yellow',1800);
+  refreshTeamTradeSection();
+  if(typeof showToast==='function') showToast('Offer erased','yellow',1800);
 }
 window.tradeAccept = tradeAccept;
 window.tradeDecline = tradeDecline;
@@ -8140,6 +8286,57 @@ function tradeCounter(id){
 }
 window.tradeCounter = tradeCounter;
 
+// ════════ V28.5.92: SALARY TRADE INSIDE AN OFFER ════════
+// Reuses the existing salary-trade window (openTradeModal/saveTradeModal/TRADES)
+// without duplicating it. "Include salary trade" opens that window prefilled
+// with the two offer teams; the resulting TRADES id is linked to the offer.
+var _ptSalaryLinkPending = false;   // a salary trade is being created for the open offer
+var _ptLinkedSalaryId = null;       // last salary trade id linked while composing
+function ptIncludeSalaryTrade(){
+  var a = document.getElementById('ptTeamA').value;
+  var b = document.getElementById('ptTeamB').value;
+  if(!a || !b || a===b){ if(typeof showToast==='function') showToast('Pick two different teams first','red',2200); return; }
+  if(typeof openTradeModal!=='function'){ if(typeof showToast==='function') showToast('Salary trade unavailable','red',2200); return; }
+  _ptSalaryLinkPending = true;
+  // Keep the offer modal underneath; the salary modal stacks on top.
+  openTradeModal(null, a);
+  // Prefer the other offer team as the salary counterparty.
+  try{ var sel=document.getElementById('tradeOtherTeam'); if(sel){ sel.value=b; } }catch(e){}
+}
+window.ptIncludeSalaryTrade = ptIncludeSalaryTrade;
+
+// Wrap saveTradeModal so a salary trade created from within an offer records its
+// id, and the offer's note reflects that cash is attached. The original salary
+// logic (ledger write, cap math, displays) runs untouched.
+(function(){
+  function wrapSave(){
+    if(typeof saveTradeModal!=='function' || saveTradeModal.__v92linked){ if(typeof saveTradeModal!=='function') setTimeout(wrapSave,300); return; }
+    var orig = saveTradeModal;
+    saveTradeModal = function(){
+      var before = (typeof TRADES!=='undefined' && TRADES) ? TRADES.length : 0;
+      var prevIds = (typeof TRADES!=='undefined' && TRADES) ? TRADES.map(function(t){return t.id;}) : [];
+      orig.apply(this, arguments);
+      if(_ptSalaryLinkPending){
+        try{
+          // Identify the trade just added/edited.
+          var added = (typeof TRADES!=='undefined' && TRADES) ? TRADES.filter(function(t){return prevIds.indexOf(t.id)<0;}) : [];
+          if(added.length){ _ptLinkedSalaryId = added[added.length-1].id; }
+          if(typeof showToast==='function') showToast('\u2713 Salary trade attached to offer','green',2200);
+          // Reflect on the open offer composer note.
+          var noteEl=document.getElementById('ptNote');
+          if(noteEl && noteEl.value.indexOf('[+ salary trade]')<0){ noteEl.value = (noteEl.value ? noteEl.value+' ' : '') + '[+ salary trade]'; }
+        }catch(e){}
+        _ptSalaryLinkPending = false;
+        // Re-surface the offer composer.
+        try{ openModal('proposeTradeModal'); }catch(e){}
+      }
+    };
+    saveTradeModal.__v92linked = true;
+    window.saveTradeModal = saveTradeModal;
+  }
+  wrapSave();
+})();
+
 // ════════ TEAM-PAGE INJECTIONS ════════
 // Mirrors the dead-cap / updateTradesDisplay injection pattern: a Draft Picks
 // section and a Trade Requests section, inserted after the existing sections.
@@ -8178,8 +8375,16 @@ function updateTradeRequestsDisplay(tn){
   if(!hdr) return;
   var existing = document.getElementById('tradeReqSection');
   if(existing) existing.remove();
-  var rel = TRADE_REQUESTS.filter(function(t){ return (t.fromTeam===tn || t.toTeam===tn) && (t.status==='pending' || t.status==='accepted'); })
-    .sort(function(a,b){ return (b.updated||b.created||0)-(a.updated||a.created||0); });
+  // V28.5.92: trades are PRIVATE. Only show offers on a team page when the
+  // current viewer (IDENTITY) is one of the two teams in the offer. A viewer
+  // with no identity, or viewing a team they aren't party to, sees nothing.
+  var me = window.IDENTITY || null;
+  var rel = TRADE_REQUESTS.filter(function(t){
+    if(!(t.fromTeam===tn || t.toTeam===tn)) return false;
+    if(!(t.status==='pending' || t.status==='accepted')) return false;
+    if(!me) return false;
+    return (t.fromTeam===me || t.toTeam===me);
+  }).sort(function(a,b){ return (b.updated||b.created||0)-(a.updated||a.created||0); });
   var section = document.createElement('div');
   section.className = 'trades-section';
   section.id = 'tradeReqSection';
@@ -8187,7 +8392,8 @@ function updateTradeRequestsDisplay(tn){
     '<button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button></div>';
   var body = '';
   if(!rel.length){
-    body = '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.65rem;color:#6b7280;padding:.4rem 0;letter-spacing:.5px">No active offers</div>';
+    var msg = me ? 'No active offers' : 'Private \u2014 set who you are to see offers';
+    body = '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.65rem;color:#6b7280;padding:.4rem 0;letter-spacing:.5px">'+msg+'</div>';
   } else {
     body = rel.map(function(t){
       var other = (t.fromTeam===tn) ? t.toTeam : t.fromTeam;
