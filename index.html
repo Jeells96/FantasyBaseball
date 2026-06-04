@@ -990,7 +990,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.93</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.94</span></span>
     <div style="display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem">
       <button class="nav-ident" id="navIdentityBtn" onclick="openIdentityPicker()" title="Who are you?" style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#94a3b8;background:#181c24;border:1px solid #252a35;border-radius:8px;padding:.32rem .55rem;cursor:pointer;-webkit-appearance:none;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis">I am …</button>
       <button class="nav-inbox" id="navInboxBtn" onclick="openTradeInbox()" title="Trade offers" style="position:relative;font-size:1.05rem;line-height:1;padding:.4rem .55rem;background:#181c24;border:1px solid #252a35;border-radius:8px;color:#94a3b8;cursor:pointer;-webkit-appearance:none">&#128233;<span id="navInboxBadge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;line-height:16px;text-align:center;font-family:'DM Mono',monospace;font-size:.6rem;font-weight:600;color:#0a0c10;background:#e84b4b;border-radius:9px;padding:0 3px"></span></button>
@@ -1394,6 +1394,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
     <div class="set-section">
       <div class="set-section-title">Activity Log</div>
       <button class="set-btn accent" onclick="openActionLog()">📜 View Activity Log</button>
+      <button class="set-btn" onclick="requirePin(function(){ clearActionLog(); if(typeof renderActivityLog==='function') renderActivityLog(); showToast('\u2713 Activity log cleared','green',1800); })" style="margin-top:.4rem;color:#e84b4b;border-color:rgba(232,75,75,.3);background:rgba(232,75,75,.06)">&#10005; Clear Activity Log</button>
       <p style="font-size:.7rem;color:#6b7280;line-height:1.5;margin-top:.4rem">Every action you take in the app is logged here. Use this when something goes wrong to help debug.</p>
     </div>
 
@@ -5134,16 +5135,19 @@ var _prevRosterSnapshot=JSON.parse(localStorage.getItem('dyn28_prev_roster')||'{
 
 function checkForDrops(){
   if(typeof logAction==='function') logAction('deadcap','checkForDrops() running', {locked:CONTRACTS_LOCKED, snapshotTeams:Object.keys(_prevRosterSnapshot).length});
-  // -- Detect adds: players newly on a team's roster --
-  Object.keys(ROSTER||{}).forEach(function(tn){
-    var prevNames={};
-    (_prevRosterSnapshot[tn]||[]).forEach(function(p){ prevNames[p.name]=true; });
-    (ROSTER[tn]||[]).forEach(function(p){
-      if(!prevNames[p.name]){
-        if(typeof logAction==='function') logAction('roster','Added to roster: '+p.name+' → '+tn);
-      }
+  var snapshotHasData = Object.keys(_prevRosterSnapshot).length > 0;
+  // -- Detect adds: only when we have a prior snapshot to compare against --
+  if(snapshotHasData){
+    Object.keys(ROSTER||{}).forEach(function(tn){
+      var prevNames={};
+      (_prevRosterSnapshot[tn]||[]).forEach(function(p){ prevNames[p.name]=true; });
+      (ROSTER[tn]||[]).forEach(function(p){
+        if(!prevNames[p.name]){
+          if(typeof logAction==='function') logAction('roster','Added to roster: '+p.name+' → '+tn);
+        }
+      });
     });
-  });
+  }
   // -- Detect drops: players who left a roster --
   Object.keys(_prevRosterSnapshot).forEach(function(tn){
     var prevPlayers=_prevRosterSnapshot[tn]||[];
@@ -8519,6 +8523,7 @@ function updateDraftPicksDisplay(tn){
   var hdr = document.querySelector('.team-hdr');
   if(!hdr) return;
   var existing = document.getElementById('draftPicksSection');
+  var wasOpen = existing && existing.classList.contains('open');
   if(existing) existing.remove();
   var picks = picksControlledBy(tn);
   var section = document.createElement('div');
@@ -8542,6 +8547,7 @@ function updateDraftPicksDisplay(tn){
   section.innerHTML = '<div class="trades-title-row"><div class="trades-title">Draft Picks</div></div>' + body;
   // V28.5.93: collapsible, rendered BELOW the roster.
   v92MakeCollapsible(section, {title:'Draft Picks', count:picks.length});
+  if(wasOpen) section.classList.add('open');
   v92AppendToTeamBottom(section);
 }
 
@@ -8549,6 +8555,7 @@ function updateTradeRequestsDisplay(tn){
   var hdr = document.querySelector('.team-hdr');
   if(!hdr) return;
   var existing = document.getElementById('tradeReqSection');
+  var wasOpen = existing && existing.classList.contains('open');
   if(existing) existing.remove();
   // V28.5.92: trades are PRIVATE. Only show offers on a team page when the
   // current viewer (IDENTITY) is one of the two teams in the offer. A viewer
@@ -8592,8 +8599,7 @@ function updateTradeRequestsDisplay(tn){
   }).length;
   var actionBtn = '<button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button>';
   v92MakeCollapsible(section, {title:'Trade Offers', alert:needsMe>0, count:rel.length, action:actionBtn});
-  // V28.5.93: Trade Offers stays at the TOP (after dead-cap/badge/hdr). Do NOT
-  // anchor to draftPicksSection/tradesSection — those now live below the roster.
+  if(wasOpen) section.classList.add('open');
   var anchor = document.getElementById('deadCapSection') || document.getElementById('penaltyBadge') || hdr;
   anchor.parentNode.insertBefore(section, anchor.nextSibling);
 }
