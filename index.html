@@ -2209,8 +2209,10 @@ function renderActivityLog(){
   function friendly(e){
     var m = String(e.msg||'');
     // Drops / cuts -------------------------------------------------------
+    var mAdd = m.match(/Added to roster:\s*(.+?)\s+→\s+(.+?)(?:\s*$)/);
+    if(mAdd){ return {kind:'add', text:mAdd[1]+' added to '+mAdd[2]}; }
     var mDrop = m.match(/Detected drop:\s*(.+?)\s+from\s+(.+?)(?:\s*$|,)/);
-    if(mDrop){ return {kind:'cut', text:mDrop[1]+' was dropped by '+mDrop[2]}; }
+    if(mDrop){ return {kind:'cut', text:mDrop[1]+' dropped by '+mDrop[2]}; }
     // Dead-cap penalty applied
     var mDc = m.match(/DEAD_CAP\[(.+?)\]\.push\(\)\s*\u2192\s*(.+?)\s*$/);
     if(mDc){
@@ -2241,7 +2243,8 @@ function renderActivityLog(){
   }).filter(Boolean);
   if(!rows.length){ el.innerHTML='<div class="empty-state"><span class="empty-state-icon">\uD83D\uDCCB</span>No activity yet. Adds, drops, trades, and cuts will show up here.</div>'; return; }
   var kindStyle={
-    'cut':['Cut','#f59e0b','rgba(245,158,11,.12)'],
+    'add':['Added','#4b8fe8','rgba(75,143,232,.12)'],
+    'cut':['Dropped','#f59e0b','rgba(245,158,11,.12)'],
     'cut-pen':['Cut \u2014 Penalty','#e84b4b','rgba(232,75,75,.12)'],
     'trade':['Trade','#e8c84b','rgba(232,200,75,.12)'],
     'contract':['Contract','#22c55e','rgba(34,197,94,.12)'],
@@ -5130,10 +5133,18 @@ function tradeCashForYear(tn, yi){
 var _prevRosterSnapshot=JSON.parse(localStorage.getItem('dyn28_prev_roster')||'{}');
 
 function checkForDrops(){
-  // V28.5.86: gate on (CONTRACTS_LOCKED) OR (player's contract is carried).
-  // Carried lookup is authoritative via CONTRACTS, so it works even when the
-  // snapshot pre-dates the carried-field addition.
   if(typeof logAction==='function') logAction('deadcap','checkForDrops() running', {locked:CONTRACTS_LOCKED, snapshotTeams:Object.keys(_prevRosterSnapshot).length});
+  // -- Detect adds: players newly on a team's roster --
+  Object.keys(ROSTER||{}).forEach(function(tn){
+    var prevNames={};
+    (_prevRosterSnapshot[tn]||[]).forEach(function(p){ prevNames[p.name]=true; });
+    (ROSTER[tn]||[]).forEach(function(p){
+      if(!prevNames[p.name]){
+        if(typeof logAction==='function') logAction('roster','Added to roster: '+p.name+' → '+tn);
+      }
+    });
+  });
+  // -- Detect drops: players who left a roster --
   Object.keys(_prevRosterSnapshot).forEach(function(tn){
     var prevPlayers=_prevRosterSnapshot[tn]||[];
     var curPlayers=ROSTER[tn]||[];
