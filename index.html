@@ -990,7 +990,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.95</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.96</span></span>
     <div style="display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem">
       <button class="nav-ident" id="navIdentityBtn" onclick="openIdentityPicker()" title="Who are you?" style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#94a3b8;background:#181c24;border:1px solid #252a35;border-radius:8px;padding:.32rem .55rem;cursor:pointer;-webkit-appearance:none;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis">I am …</button>
       <button class="nav-inbox" id="navInboxBtn" onclick="openTradeInbox()" title="Trade offers" style="position:relative;font-size:1.05rem;line-height:1;padding:.4rem .55rem;background:#181c24;border:1px solid #252a35;border-radius:8px;color:#94a3b8;cursor:pointer;-webkit-appearance:none">&#128233;<span id="navInboxBadge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;line-height:16px;text-align:center;font-family:'DM Mono',monospace;font-size:.6rem;font-weight:600;color:#0a0c10;background:#e84b4b;border-radius:9px;padding:0 3px"></span></button>
@@ -8567,57 +8567,44 @@ function updateDraftPicksDisplay(tn){
   v92AppendToTeamBottom(section);
 }
 
-function updateTradeRequestsDisplay(tn){
-  var hdr = document.querySelector('.team-hdr');
-  if(!hdr) return;
-  var existing = document.getElementById('tradeReqSection');
-  var wasOpen = existing && existing.classList.contains('open');
-  if(existing) existing.remove();
-  // V28.5.92: trades are PRIVATE. Only show offers on a team page when the
-  // current viewer (IDENTITY) is one of the two teams in the offer. A viewer
-  // with no identity, or viewing a team they aren't party to, sees nothing.
-  var me = window.IDENTITY || null;
-  var rel = TRADE_REQUESTS.filter(function(t){
-    if(!(t.fromTeam===tn || t.toTeam===tn)) return false;
-    if(!(t.status==='pending' || t.status==='accepted')) return false;
-    if(!me) return false;
-    return (t.fromTeam===me || t.toTeam===me);
-  }).sort(function(a,b){ return (b.updated||b.created||0)-(a.updated||a.created||0); });
-  var section = document.createElement('div');
-  section.className = 'trades-section';
-  section.id = 'tradeReqSection';
-  var head = '<div class="trades-title-row"><div class="trades-title">Trade Offers</div>'+
-    '<button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button></div>';
-  var body = '';
-  if(!rel.length){
-    var msg = me ? 'No active offers' : 'Private \u2014 set who you are to see offers';
-    body = '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.65rem;color:#6b7280;padding:.4rem 0;letter-spacing:.5px">'+msg+'</div>';
-  } else {
-    body = rel.map(function(t){
-      var other = (t.fromTeam===tn) ? t.toTeam : t.fromTeam;
-      return '<div class="trade-card" onclick="openTradeInbox()">'+
-        '<div class="trade-card-top">'+
-          '<div class="trade-card-dir">'+esc(t.fromTeam)+' \u2194 '+esc(t.toTeam)+'</div>'+
-          statusPill(t)+
-        '</div>'+
-        '<div style="font-family:\'DM Mono\',monospace;font-size:.62rem;color:#6b7280;margin-top:.25rem">'+tradeShortLine(t)+'</div>'+
-      '</div>';
-    }).join('');
-  }
-  section.innerHTML = head + body;
-  // V28.5.92: collapsible (collapsed by default). Alert ❗ when a pending offer
-  // awaits THIS viewer's approval (incoming pending the viewer hasn't accepted).
-  var needsMe = rel.filter(function(t){
-    if(t.status!=='pending') return false;
-    if(t.toTeam===me && !t.acceptedTo) return true;
-    if(t.fromTeam===me && !t.acceptedFrom) return true;
-    return false;
-  }).length;
-  var actionBtn = '<button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button>';
-  v92MakeCollapsible(section, {title:'Trade Offers', alert:needsMe>0, count:rel.length, action:actionBtn});
-  if(wasOpen) section.classList.add('open');
-  var anchor = document.getElementById('deadCapSection') || document.getElementById('penaltyBadge') || hdr;
-  anchor.parentNode.insertBefore(section, anchor.nextSibling);
+function _v96UpdateTradeReqs(tn, wasOpen){
+  try{
+    var hdr=document.querySelector('.team-hdr'); if(!hdr) return;
+    var ex=document.getElementById('tradeReqSection'); if(ex) ex.remove();
+    var me=window.IDENTITY||null;
+    var rel=TRADE_REQUESTS.filter(function(t){
+      if(!(t.fromTeam===tn||t.toTeam===tn)) return false;
+      if(!(t.status==='pending'||t.status==='accepted')) return false;
+      if(!me) return false;
+      return (t.fromTeam===me||t.toTeam===me);
+    }).sort(function(a,b){return (b.updated||b.created||0)-(a.updated||a.created||0);});
+    var section=document.createElement('div'); section.className='trades-section'; section.id='tradeReqSection';
+    var head='<div class="trades-title-row"><div class="trades-title">Trade Offers</div><button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button></div>';
+    var body='';
+    if(!rel.length){
+      var msg=me?'No active offers':'Private \u2014 set who you are to see offers';
+      body='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.65rem;color:#6b7280;padding:.4rem 0;letter-spacing:.5px">'+msg+'</div>';
+    } else {
+      body=rel.map(function(t){
+        return '<div class="trade-card" onclick="openTradeInbox()">'+
+          '<div class="trade-card-top"><div class="trade-card-dir">'+esc(t.fromTeam)+' \u2194 '+esc(t.toTeam)+'</div>'+statusPill(t)+'</div>'+
+          '<div style="font-family:\'DM Mono\',monospace;font-size:.62rem;color:#6b7280;margin-top:.25rem">'+tradeShortLine(t)+'</div>'+
+        '</div>';
+      }).join('');
+    }
+    section.innerHTML=head+body;
+    var needsMe=rel.filter(function(t){
+      if(t.status!=='pending') return false;
+      if(t.toTeam===me&&!t.acceptedTo) return true;
+      if(t.fromTeam===me&&!t.acceptedFrom) return true;
+      return false;
+    }).length;
+    var actionBtn='<button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button>';
+    v92MakeCollapsible(section,{title:'Trade Offers',alert:needsMe>0,count:rel.length,action:actionBtn});
+    if(wasOpen) section.classList.add('open');
+    var anchor=document.getElementById('deadCapSection')||document.getElementById('penaltyBadge')||hdr;
+    anchor.parentNode.insertBefore(section,anchor.nextSibling);
+  }catch(e){}
 }
 
 function tradeShortLine(t){
@@ -8625,27 +8612,53 @@ function tradeShortLine(t){
   return esc(t.fromTeam)+': '+cnt(t.give)+' \u00b7 '+esc(t.toTeam)+': '+cnt(t.get);
 }
 
+var _refreshTradeTimer = null;
 function refreshTeamTradeSection(teamsToRefresh){
-  // V28.5.95: refresh ALL teams specified, not just currentTeam. On trade
-  // completion both fromTeam and toTeam are passed so both pages update.
+  // V28.5.96: debounce — capture open state NOW before any rebuild, then
+  // coalesce rapid calls (poller + onSnapshot firing within ms of each other)
+  // into a single rebuild so wasOpen is always read from the live DOM.
+  var tradeSecOpen = !!(document.getElementById('tradeReqSection') && document.getElementById('tradeReqSection').classList.contains('open'));
+  var pickSecOpen  = !!(document.getElementById('draftPicksSection') && document.getElementById('draftPicksSection').classList.contains('open'));
+  var targets = Array.isArray(teamsToRefresh) ? teamsToRefresh : (typeof currentTeam!=='undefined' && currentTeam ? [currentTeam] : []);
+  if(_refreshTradeTimer) clearTimeout(_refreshTradeTimer);
+  _refreshTradeTimer = setTimeout(function(){
+    _refreshTradeTimer = null;
+    try{
+      var toUpdate = targets.length ? targets : (typeof currentTeam!=='undefined' && currentTeam ? [currentTeam] : []);
+      toUpdate.forEach(function(tn){
+        if(typeof currentTeam!=='undefined' && currentTeam===tn){
+          // Pass captured open state directly to avoid re-reading stale DOM.
+          _v96UpdatePicks(tn, pickSecOpen);
+          _v96UpdateTradeReqs(tn, tradeSecOpen);
+        }
+      });
+    }catch(e){}
+  }, 80);
+}
+// Internal wrappers that accept explicit wasOpen instead of reading DOM.
+function _v96UpdatePicks(tn, wasOpen){
   try{
-    var targets = [];
-    if(Array.isArray(teamsToRefresh)){
-      targets = teamsToRefresh;
-    } else if(typeof currentTeam!=='undefined' && currentTeam){
-      targets = [currentTeam];
+    var hdr=document.querySelector('.team-hdr'); if(!hdr) return;
+    var ex=document.getElementById('draftPicksSection'); if(ex) ex.remove();
+    var picks=picksControlledBy(tn);
+    var section=document.createElement('div'); section.className='trades-section'; section.id='draftPicksSection';
+    var body='';
+    if(!picks.length){ body='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.65rem;color:#6b7280;padding:.4rem 0;letter-spacing:.5px">No draft picks</div>'; }
+    else {
+      var bySeason={};
+      picks.forEach(function(p){ (bySeason[p.season]=bySeason[p.season]||[]).push(p); });
+      body=Object.keys(bySeason).sort().map(function(yr){
+        var chips=bySeason[yr].sort(function(a,b){return a.round-b.round;}).map(function(p){
+          var traded=(p.originalTeam!==tn);
+          return '<span style="display:-webkit-inline-flex;display:inline-flex;-webkit-align-items:center;align-items:center;font-family:\'DM Mono\',monospace;font-size:.68rem;color:'+(traded?'#9fc3ff':'#e2e8f0')+';background:'+(traded?'rgba(75,143,232,.1)':'#181c24')+';border:1px solid '+(traded?'rgba(75,143,232,.3)':'#252a35')+';border-radius:6px;padding:.18rem .45rem;margin:.15rem .3rem .15rem 0">'+esc(p.label)+(traded?' <span style="color:#6b7280;font-size:.6rem;margin-left:.25rem">via '+esc(p.originalTeam)+'</span>':'')+'</span>';
+        }).join('');
+        return '<div style="margin-bottom:.3rem"><span style="font-family:\'Barlow Condensed\',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:1px;color:#6b7280;margin-right:.4rem">'+esc(yr)+'</span>'+chips+'</div>';
+      }).join('');
     }
-    targets.forEach(function(tn){
-      if(typeof currentTeam!=='undefined' && currentTeam===tn){
-        updateDraftPicksDisplay(tn);
-        updateTradeRequestsDisplay(tn);
-      }
-    });
-    // If no specific team matches but we're on a team page, refresh it anyway.
-    if(!targets.length && typeof currentTeam!=='undefined' && currentTeam){
-      updateDraftPicksDisplay(currentTeam);
-      updateTradeRequestsDisplay(currentTeam);
-    }
+    section.innerHTML='<div class="trades-title-row"><div class="trades-title">Draft Picks</div></div>'+body;
+    v92MakeCollapsible(section,{title:'Draft Picks',count:picks.length});
+    if(wasOpen) section.classList.add('open');
+    v92AppendToTeamBottom(section);
   }catch(e){}
 }
 window.updateDraftPicksDisplay = updateDraftPicksDisplay;
