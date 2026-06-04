@@ -421,8 +421,6 @@ body{background:#0a0c10!important;background-color:#0a0c10!important}
 #page-league .pg-wrap{padding:1.25rem 1rem}
 .pg-title{font-family:"Bebas Neue",sans-serif;font-size:1.8rem;letter-spacing:3px;color:#f0f2f6;margin-bottom:.25rem;line-height:1}
 .pg-sub{font-family:"Barlow Condensed",sans-serif;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;color:#6b7280;margin-bottom:1rem}
-.act-filter{font-family:"Barlow Condensed",sans-serif;font-size:.66rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:.4rem .7rem;border-radius:20px;background:#111318;color:#94a3b8;border:1px solid #252a35;cursor:pointer;-webkit-appearance:none;-webkit-tap-highlight-color:transparent}
-.act-filter.active{background:rgba(232,200,75,.1);border-color:rgba(232,200,75,.35);color:#e8c84b}
 .act-row{background:#111318;border:1px solid #252a35;border-radius:10px;padding:.6rem .75rem;margin-bottom:.5rem}
 .act-row-top{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center;gap:.5rem;margin-bottom:.2rem}
 .act-cat{font-family:"Barlow Condensed",sans-serif;font-size:.58rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:.12rem .45rem;border-radius:20px}
@@ -611,6 +609,15 @@ input,select,textarea,input[type="text"],input[type="number"],input[type="email"
 .trades-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
 .trades-title{font-family:"Barlow Condensed",sans-serif;font-size:.65rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280}
 .trade-add-btn{font-family:"Barlow Condensed",sans-serif;font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:.3rem .55rem;border-radius:6px;background:rgba(232,200,75,.08);color:#e8c84b;border:1px solid rgba(232,200,75,.3);cursor:pointer;-webkit-appearance:none}
+.v92-collapse-hdr{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:space-between;justify-content:space-between;gap:.5rem;cursor:pointer;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+.v92-collapse-hdr-left{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.45rem}
+.v92-collapse-title{font-family:"Barlow Condensed",sans-serif;font-size:.65rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280}
+.v92-collapse-chev{font-size:.7rem;color:#6b7280;transition:transform .15s ease;display:inline-block}
+.v92-collapse.open .v92-collapse-chev{transform:rotate(90deg)}
+.v92-collapse-body{display:none;margin-top:.6rem}
+.v92-collapse.open .v92-collapse-body{display:block}
+.v92-badge-alert{display:-webkit-inline-flex;display:inline-flex;-webkit-align-items:center;align-items:center;font-size:.8rem;line-height:1}
+.v92-count-pill{font-family:"DM Mono",monospace;font-size:.58rem;font-weight:600;color:#0a0c10;background:#94a3b8;border-radius:9px;padding:.05rem .35rem;min-width:14px;text-align:center}
 .trade-card{padding:.55rem .65rem;background:#181c24;border:1px solid #252a35;border-radius:8px;margin-bottom:.4rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .trade-card:active{opacity:.7}
 .trade-card:last-child{margin-bottom:0}
@@ -983,7 +990,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.92</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.93</span></span>
     <div style="display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem">
       <button class="nav-ident" id="navIdentityBtn" onclick="openIdentityPicker()" title="Who are you?" style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#94a3b8;background:#181c24;border:1px solid #252a35;border-radius:8px;padding:.32rem .55rem;cursor:pointer;-webkit-appearance:none;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis">I am …</button>
       <button class="nav-inbox" id="navInboxBtn" onclick="openTradeInbox()" title="Trade offers" style="position:relative;font-size:1.05rem;line-height:1;padding:.4rem .55rem;background:#181c24;border:1px solid #252a35;border-radius:8px;color:#94a3b8;cursor:pointer;-webkit-appearance:none">&#128233;<span id="navInboxBadge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;line-height:16px;text-align:center;font-family:'DM Mono',monospace;font-size:.6rem;font-weight:600;color:#0a0c10;background:#e84b4b;border-radius:9px;padding:0 3px"></span></button>
@@ -1070,6 +1077,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
       </table>
     </div>
   </div>
+  <div id="belowRosterSections"></div>
 </div>
 
 <!-- SALARIES DB -->
@@ -2191,19 +2199,10 @@ function showMyTeam(){
   if(typeof showToast==='function') showToast('Pick your team first \u2014 tap \u201CI am \u2026\u201D up top','yellow',3200);
 }
 // V28.5.92: League Activity tab — read-only, visible to all.
-var _activityFilter='all';
-function setActivityFilter(f){ _activityFilter=f; document.querySelectorAll('#activityFilterRow .act-filter').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-filter')===f); }); renderActivityLog(); }
 function showActivityLog(){ showPage('activity'); setNav('nav-activity'); renderActivityLog(); }
 function renderActivityLog(){
   var el=document.getElementById('activityLogBody');
   if(!el) return;
-  function group(cat){
-    if(cat==='roster'||cat==='fetch') return 'roster';
-    if(cat==='trade') return 'trade';
-    if(cat==='deadcap'||cat==='cut') return 'cut';
-    if(cat==='contract') return 'contract';
-    return 'other';
-  }
   // V28.5.92: translate a raw log entry into a clean, human-readable line for
   // this public page. The raw debug log (Settings) is left untouched. Returns
   // null for entries that are purely internal/diagnostic so they're hidden.
@@ -2238,8 +2237,6 @@ function renderActivityLog(){
   var rows = (window.ACTION_LOG||ACTION_LOG||[]).map(function(e){
     var f = friendly(e);
     if(!f) return null;
-    var g = group(e.cat);
-    if(_activityFilter!=='all' && g!==_activityFilter) return null;
     return {e:e, f:f};
   }).filter(Boolean);
   if(!rows.length){ el.innerHTML='<div class="empty-state"><span class="empty-state-icon">\uD83D\uDCCB</span>No activity yet. Adds, drops, trades, and cuts will show up here.</div>'; return; }
@@ -2263,7 +2260,7 @@ function renderActivityLog(){
     '</div>';
   }).join('');
 }
-window.showMyTeam=showMyTeam; window.showActivityLog=showActivityLog; window.setActivityFilter=setActivityFilter; window.renderActivityLog=renderActivityLog;
+window.showMyTeam=showMyTeam; window.showActivityLog=showActivityLog; window.renderActivityLog=renderActivityLog;
 function showDB(){showPage('salaries-db');setNav('nav-db');
   // V28.5.70: populate year selector + fetch stats if needed
   setTimeout(function(){
@@ -5293,7 +5290,9 @@ function updateDeadCapDisplay(tn){
         '</div>'+
         '</div>';
     }).join('');
-  // Insert after penalty badge if it exists, else after team hdr
+  // V28.5.92: collapsible (collapsed by default).
+  if(typeof window.v92MakeCollapsible==='function'){ window.v92MakeCollapsible(section, {title:'Dead Cap \u00b7 '+CURRENT_SEASON, count:entries.length}); }
+  // Insert after penalty badge if it exists, else after team hdr.
   var anchor=document.getElementById('penaltyBadge')||hdr;
   anchor.parentNode.insertBefore(section,anchor.nextSibling);
 }
@@ -5337,9 +5336,10 @@ function updateTradesDisplay(tn){
         '</div>';
     });
   }
-  // Insert at bottom of team page (after dead cap if exists, else after badge/hdr)
-  var anchor=document.getElementById('deadCapSection')||document.getElementById('penaltyBadge')||hdr;
-  anchor.parentNode.insertBefore(section,anchor.nextSibling);
+  // V28.5.93: collapsible, rendered BELOW the roster.
+  if(typeof window.v92MakeCollapsible==='function'){ window.v92MakeCollapsible(section, {title:'Salary Trades', count:trades.length}); }
+  if(typeof window.v92AppendToTeamBottom==='function'){ window.v92AppendToTeamBottom(section); }
+  else { var anchor=document.getElementById('deadCapSection')||document.getElementById('penaltyBadge')||hdr; anchor.parentNode.insertBefore(section,anchor.nextSibling); }
 }
 
 // Trade Modal logic
@@ -7032,12 +7032,6 @@ function undoSalaryImport(){
       <div class="pg-title">League Activity</div>
       <div class="pg-sub">Adds &amp; drops, trades, and cuts across the league</div>
     </div>
-    <div style="display:-webkit-flex;display:flex;gap:.35rem;-webkit-flex-wrap:wrap;flex-wrap:wrap;margin-bottom:.7rem" id="activityFilterRow">
-      <button class="act-filter active" data-filter="all" onclick="setActivityFilter('all')">All</button>
-      <button class="act-filter" data-filter="roster" onclick="setActivityFilter('roster')">Adds/Drops</button>
-      <button class="act-filter" data-filter="trade" onclick="setActivityFilter('trade')">Trades</button>
-      <button class="act-filter" data-filter="cut" onclick="setActivityFilter('cut')">Cuts</button>
-    </div>
     <div id="activityLogBody"></div>
   </div>
 </div>
@@ -7746,6 +7740,58 @@ var LS_IDENTITY   = 'dyn28_identity';
 var LS_PICKS_OWNED= 'dyn28_draft_picks_owned';
 var LS_TRADE_REQS = 'dyn28_trade_requests';
 
+// V28.5.92: append a team-page section to the BOTTOM of #page-team (after the
+// roster views), so dead-cap / salary / draft-pick / trade-offer blocks stack
+// below the roster instead of crowding the header.
+function v92AppendToTeamBottom(section){
+  // V28.5.93: append into the dedicated container BELOW the roster.
+  try{
+    var host = document.getElementById('belowRosterSections');
+    if(host && section){ host.appendChild(section); return; }
+  }catch(e){}
+  try{
+    var page = document.getElementById('page-team');
+    if(page && section){ page.appendChild(section); return; }
+  }catch(e){}
+  // Fallback: after the header.
+  try{
+    var hdr = document.querySelector('.team-hdr');
+    if(hdr && hdr.parentNode){ hdr.parentNode.insertBefore(section, hdr.nextSibling); }
+  }catch(e){}
+}
+window.v92AppendToTeamBottom = v92AppendToTeamBottom;
+
+// V28.5.92: turn a team-page section into a collapsible panel, COLLAPSED by
+// default. Moves the section's current children into a hidden body and builds a
+// clickable header. opts: {title, alert:bool, count:number|null, action:html}.
+// Re-collapses on every re-render (sections are rebuilt each showTeam).
+function v92MakeCollapsible(section, opts){
+  try{
+    opts = opts || {};
+    var inner = section.innerHTML;
+    section.innerHTML = '';
+    section.classList.add('v92-collapse');
+    var alertIcon = opts.alert ? '<span class="v92-badge-alert" title="Needs your approval">\u2757</span>' : '';
+    var countPill = (opts.count!=null && opts.count>0) ? '<span class="v92-count-pill">'+opts.count+'</span>' : '';
+    var action = opts.action || '';
+    var hdr = document.createElement('div');
+    hdr.className = 'v92-collapse-hdr';
+    hdr.innerHTML = '<div class="v92-collapse-hdr-left">'+
+        '<span class="v92-collapse-chev">\u25B6</span>'+
+        '<span class="v92-collapse-title">'+(opts.title||'')+'</span>'+
+        countPill + alertIcon +
+      '</div>'+
+      '<div class="v92-collapse-action" onclick="event.stopPropagation()">'+action+'</div>';
+    var body = document.createElement('div');
+    body.className = 'v92-collapse-body';
+    body.innerHTML = inner;
+    hdr.addEventListener('click', function(){ section.classList.toggle('open'); });
+    section.appendChild(hdr);
+    section.appendChild(body);
+  }catch(e){}
+}
+window.v92MakeCollapsible = v92MakeCollapsible;
+
 // ---- state ----
 var IDENTITY = null;
 try{ IDENTITY = localStorage.getItem(LS_IDENTITY) || null; }catch(e){ IDENTITY = null; }
@@ -7916,9 +7962,38 @@ function resolveIfBothAccepted(t){
   } else {
     t.status = 'completed';
     t.completed = Date.now();
+    applyOfferSalaryToLedger(t);
     if(typeof showToast==='function') showToast('\u2713 Pick trade complete','green',3000);
   }
   t.updated = Date.now();
+}
+
+// V28.5.92: when an offer COMPLETES, write any attached salary terms into the
+// existing TRADES ledger (so cap math / displays pick them up). Idempotent:
+// guarded by t.salaryApplied so it only writes once.
+function applyOfferSalaryToLedger(t){
+  try{
+    if(!t || !t.salary || !t.salary.amounts || !t.salary.amounts.length) return;
+    if(t.salaryApplied) return;
+    if(typeof TRADES==='undefined') return;
+    var payer = t.salary.payerTeam;
+    var other = (payer===t.fromTeam) ? t.toTeam : t.fromTeam;
+    var trade = {
+      id: 'tr_'+Date.now()+'_'+Math.floor(Math.random()*9999),
+      teamA: t.fromTeam,
+      teamB: t.toTeam,
+      payerTeam: payer,
+      amounts: t.salary.amounts.map(function(a){return {year:a.year, amount:a.amount};}),
+      note: 'From trade offer',
+      updated: Date.now()
+    };
+    TRADES.push(trade);
+    if(typeof saveTrades==='function') saveTrades();
+    t.salaryApplied = true;
+    t.salaryTradeId = trade.id;
+    try{ if(typeof currentTeam!=='undefined' && currentTeam && typeof updateTradesDisplay==='function'){ updateTradesDisplay(currentTeam); } }catch(e){}
+    try{ if(typeof renderLeague==='function') renderLeague(); }catch(e){}
+  }catch(e){ if(typeof console!=='undefined') console.warn('[v92 salary->ledger] failed', e); }
 }
 
 // Does the live ESPN roster reflect this player-trade? True once every player
@@ -7951,6 +8026,7 @@ function checkTradeCompletion(){
         t.status='completed';
         t.completed=Date.now();
         t.updated=Date.now();
+        applyOfferSalaryToLedger(t);
         changed=true;
         if(typeof showToast==='function') showToast('\u2713 Trade auto-completed: rosters match','green',3000);
       }
@@ -8022,7 +8098,13 @@ function tradeSummaryHtml(t){
     var inner = items.length ? items.join(', ') : '<span style="color:#6b7280">nothing</span>';
     return '<div style="font-size:.72rem;margin:.15rem 0"><span style="font-family:\'Barlow Condensed\',sans-serif;letter-spacing:.5px;color:#6b7280;text-transform:uppercase">'+esc(team)+'</span> sends: '+inner+'</div>';
   }
-  return side('give', t.give, t.fromTeam) + side('get', t.get, t.toTeam);
+  return side('give', t.give, t.fromTeam) + side('get', t.get, t.toTeam) + salaryLine(t);
+}
+function salaryLine(t){
+  if(!t.salary || !t.salary.amounts || !t.salary.amounts.length) return '';
+  var total = t.salary.amounts.reduce(function(s,a){return s+(parseFloat(a.amount)||0);},0);
+  var yrs = t.salary.amounts.map(function(a){return a.year+': $'+parseFloat(a.amount).toFixed(1)+'M';}).join(' \u00b7 ');
+  return '<div style="font-size:.7rem;margin:.25rem 0 0;color:#22c55e"><span style="font-family:\'Barlow Condensed\',sans-serif;letter-spacing:.5px;text-transform:uppercase">Salary</span> '+esc(t.salary.payerTeam)+' pays $'+total.toFixed(1)+'M ('+yrs+')</div>';
 }
 
 function statusPill(t){
@@ -8144,6 +8226,7 @@ var _ptSelB = { players:{}, picks:{} };  // selections for side B (toTeam)
 
 function openProposeTrade(){
   _ptEditingId = null;
+  _ptSalaryDraft = null;
   document.getElementById('ptTitle').textContent = 'Propose Trade';
   document.getElementById('ptSub').textContent = 'Build an offer between two teams';
   document.getElementById('ptSendBtn').textContent = 'Send Offer';
@@ -8251,6 +8334,7 @@ function submitProposeTrade(){
       t.fromTeam = a; t.toTeam = b;
       t.give = give; t.get = get;
       t.note = note;
+      t.salary = _ptSalaryDraft ? {payerTeam:_ptSalaryDraft.payerTeam, amounts:_ptSalaryDraft.amounts} : null;
       t.acceptedFrom = false; t.acceptedTo = false;
       t.status = 'pending';
       t.updated = Date.now();
@@ -8272,6 +8356,7 @@ function submitProposeTrade(){
     status: 'pending',
     give: give,
     get: get,
+    salary: _ptSalaryDraft ? {payerTeam:_ptSalaryDraft.payerTeam, amounts:_ptSalaryDraft.amounts} : null,
     acceptedFrom: (IDENTITY===a),   // proposer implicitly accepts their own offer
     acceptedTo: false,
     note: note,
@@ -8318,9 +8403,11 @@ window.tradeCounter = tradeCounter;
 // ════════ V28.5.92: SALARY TRADE INSIDE AN OFFER ════════
 // Reuses the existing salary-trade window (openTradeModal/saveTradeModal/TRADES)
 // without duplicating it. "Include salary trade" opens that window prefilled
-// with the two offer teams; the resulting TRADES id is linked to the offer.
-var _ptSalaryLinkPending = false;   // a salary trade is being created for the open offer
-var _ptLinkedSalaryId = null;       // last salary trade id linked while composing
+// with the two offer teams. The salary terms are captured onto the OFFER DRAFT
+// (_ptSalaryDraft) and only written to the TRADES ledger when the offer
+// completes — they are NOT saved to the ledger on the salary modal's Save.
+var _ptSalaryLinkPending = false;   // salary modal is open in service of the offer
+var _ptSalaryDraft = null;          // {payerTeam, amounts:[{year,amount}]} attached to the composing offer
 function ptIncludeSalaryTrade(){
   var a = document.getElementById('ptTeamA').value;
   var b = document.getElementById('ptTeamB').value;
@@ -8330,14 +8417,70 @@ function ptIncludeSalaryTrade(){
   openTradeModal(null, a);
   // Stack the salary window ON TOP of the still-open offer composer.
   try{ var sm=document.getElementById('tradeModal'); if(sm){ sm.style.zIndex='700'; } }catch(e){}
-  // Prefer the other offer team as the salary counterparty.
+  // Prefer the other offer team as the salary counterparty; prefill if editing.
   try{ var sel=document.getElementById('tradeOtherTeam'); if(sel){ sel.value=b; } }catch(e){}
+  try{
+    if(_ptSalaryDraft && _ptSalaryDraft.amounts && _ptSalaryDraft.amounts.length){
+      document.getElementById('tradeIsPayer').value = (_ptSalaryDraft.payerTeam===a)?'pay':'receive';
+      document.getElementById('tradeAmount').value = _ptSalaryDraft.amounts[0].amount;
+      document.getElementById('tradeStartYear').value = _ptSalaryDraft.amounts[0].year;
+      document.getElementById('tradeYears').value = _ptSalaryDraft.amounts.length;
+      if(typeof _modalAmounts!=='undefined') _modalAmounts = _ptSalaryDraft.amounts.map(function(x){return {year:x.year,amount:x.amount};});
+      if(typeof recomputeTradeAmounts==='function') recomputeTradeAmounts();
+    }
+  }catch(e){}
 }
 window.ptIncludeSalaryTrade = ptIncludeSalaryTrade;
 
-// When the salary window closes by ANY path (Cancel, Delete, outside-click, or
-// Save) while it was raised over an offer, restore its stacking and bring the
-// offer composer back to the front. Wraps closeModal once.
+// Capture salary terms onto the offer draft. Bound to the salary modal's Save
+// button click (capture phase) so it runs INSTEAD OF writing to the TRADES
+// ledger when the modal was opened from an offer.
+function ptCaptureSalaryFromModal(){
+  try{
+    var a = document.getElementById('ptTeamA').value;
+    var b = document.getElementById('ptTeamB').value;
+    var isPay = document.getElementById('tradeIsPayer').value==='pay';
+    var amounts = (typeof _modalAmounts!=='undefined' && _modalAmounts) ? _modalAmounts.map(function(x){return {year:x.year, amount:x.amount};}) : [];
+    if(!amounts.length){ if(typeof showToast==='function') showToast('Enter amount and years','red',2000); return false; }
+    _ptSalaryDraft = { payerTeam: isPay?a:b, otherTeam:b, amounts:amounts };
+    // reflect on the composer
+    var noteEl=document.getElementById('ptNote');
+    if(noteEl && noteEl.value.indexOf('[+ salary]')<0){ noteEl.value = (noteEl.value ? noteEl.value+' ' : '') + '[+ salary]'; }
+  }catch(e){ return false; }
+  return true;
+}
+
+// Intercept the salary modal Save when composing an offer: capture to draft,
+// close salary window, re-surface the offer — WITHOUT touching TRADES.
+(function(){
+  function bindSalarySave(){
+    var sm = document.getElementById('tradeModal');
+    if(!sm){ setTimeout(bindSalarySave,300); return; }
+    if(sm.__v92saveBound) return;
+    sm.addEventListener('click', function(ev){
+      var btn = ev.target;
+      if(!btn) return;
+      // The Save button calls saveTradeModal(); match it by its onclick text.
+      var oc = btn.getAttribute && btn.getAttribute('onclick');
+      if(oc && oc.indexOf('saveTradeModal')>=0 && _ptSalaryLinkPending){
+        ev.preventDefault();
+        ev.stopPropagation();
+        if(ptCaptureSalaryFromModal()){
+          try{ sm.style.zIndex=''; }catch(e){}
+          sm.classList.remove('open');
+          _ptSalaryLinkPending = false;
+          try{ openModal('proposeTradeModal'); }catch(e){}
+          if(typeof showToast==='function') showToast('\u2713 Salary added to offer \u2014 adjust players/picks, then Send','green',2600);
+        }
+      }
+    }, true);  // capture phase: beats the inline onclick
+    sm.__v92saveBound = true;
+  }
+  bindSalarySave();
+})();
+
+// When the salary window closes WITHOUT saving (Cancel, Delete, outside-click)
+// while serving an offer, restore stacking and bring the offer back.
 (function(){
   function wrapClose(){
     if(typeof window.closeModal!=='function'){ setTimeout(wrapClose,300); return; }
@@ -8348,7 +8491,6 @@ window.ptIncludeSalaryTrade = ptIncludeSalaryTrade;
       if(id==='tradeModal'){
         try{ var sm=document.getElementById('tradeModal'); if(sm){ sm.style.zIndex=''; } }catch(e){}
         if(_ptSalaryLinkPending){
-          // Closed without saving — drop the pending link, re-show the offer.
           _ptSalaryLinkPending = false;
           try{ openModal('proposeTradeModal'); }catch(e){}
         }
@@ -8357,40 +8499,6 @@ window.ptIncludeSalaryTrade = ptIncludeSalaryTrade;
     window.closeModal.__v92salaryLayer = true;
   }
   wrapClose();
-})();
-
-// Wrap saveTradeModal so a salary trade created from within an offer records its
-// id, and the offer's note reflects that cash is attached. The original salary
-// logic (ledger write, cap math, displays) runs untouched.
-(function(){
-  function wrapSave(){
-    if(typeof saveTradeModal!=='function' || saveTradeModal.__v92linked){ if(typeof saveTradeModal!=='function') setTimeout(wrapSave,300); return; }
-    var orig = saveTradeModal;
-    saveTradeModal = function(){
-      var before = (typeof TRADES!=='undefined' && TRADES) ? TRADES.length : 0;
-      var prevIds = (typeof TRADES!=='undefined' && TRADES) ? TRADES.map(function(t){return t.id;}) : [];
-      orig.apply(this, arguments);
-      // Restore the salary modal's normal stacking level.
-      try{ var sm=document.getElementById('tradeModal'); if(sm){ sm.style.zIndex=''; } }catch(e){}
-      if(_ptSalaryLinkPending){
-        try{
-          // Identify the trade just added/edited.
-          var added = (typeof TRADES!=='undefined' && TRADES) ? TRADES.filter(function(t){return prevIds.indexOf(t.id)<0;}) : [];
-          if(added.length){ _ptLinkedSalaryId = added[added.length-1].id; }
-          if(typeof showToast==='function') showToast('\u2713 Salary trade attached to offer','green',2200);
-          // Reflect on the open offer composer note.
-          var noteEl=document.getElementById('ptNote');
-          if(noteEl && noteEl.value.indexOf('[+ salary trade]')<0){ noteEl.value = (noteEl.value ? noteEl.value+' ' : '') + '[+ salary trade]'; }
-        }catch(e){}
-        _ptSalaryLinkPending = false;
-        // Re-surface the offer composer (it was underneath).
-        try{ openModal('proposeTradeModal'); }catch(e){}
-      }
-    };
-    saveTradeModal.__v92linked = true;
-    window.saveTradeModal = saveTradeModal;
-  }
-  wrapSave();
 })();
 
 // ════════ TEAM-PAGE INJECTIONS ════════
@@ -8421,9 +8529,9 @@ function updateDraftPicksDisplay(tn){
     }).join('');
   }
   section.innerHTML = '<div class="trades-title-row"><div class="trades-title">Draft Picks</div></div>' + body;
-  // Insert after trades section if present, else after dead-cap / badge / hdr.
-  var anchor = document.getElementById('tradesSection') || document.getElementById('deadCapSection') || document.getElementById('penaltyBadge') || hdr;
-  anchor.parentNode.insertBefore(section, anchor.nextSibling);
+  // V28.5.93: collapsible, rendered BELOW the roster.
+  v92MakeCollapsible(section, {title:'Draft Picks', count:picks.length});
+  v92AppendToTeamBottom(section);
 }
 
 function updateTradeRequestsDisplay(tn){
@@ -8463,7 +8571,19 @@ function updateTradeRequestsDisplay(tn){
     }).join('');
   }
   section.innerHTML = head + body;
-  var anchor = document.getElementById('draftPicksSection') || document.getElementById('tradesSection') || document.getElementById('deadCapSection') || document.getElementById('penaltyBadge') || hdr;
+  // V28.5.92: collapsible (collapsed by default). Alert ❗ when a pending offer
+  // awaits THIS viewer's approval (incoming pending the viewer hasn't accepted).
+  var needsMe = rel.filter(function(t){
+    if(t.status!=='pending') return false;
+    if(t.toTeam===me && !t.acceptedTo) return true;
+    if(t.fromTeam===me && !t.acceptedFrom) return true;
+    return false;
+  }).length;
+  var actionBtn = '<button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button>';
+  v92MakeCollapsible(section, {title:'Trade Offers', alert:needsMe>0, count:rel.length, action:actionBtn});
+  // V28.5.93: Trade Offers stays at the TOP (after dead-cap/badge/hdr). Do NOT
+  // anchor to draftPicksSection/tradesSection — those now live below the roster.
+  var anchor = document.getElementById('deadCapSection') || document.getElementById('penaltyBadge') || hdr;
   anchor.parentNode.insertBefore(section, anchor.nextSibling);
 }
 
@@ -8647,6 +8767,13 @@ function initV91(){
   updateInboxBadge();
   startV91Listeners();
   startV91Polling();
+  // V28.5.92: if identity is already set, open that team's page by default
+  // instead of the League page. One-time, on boot only.
+  try{
+    if(IDENTITY && typeof showTeam==='function' && teamList().indexOf(IDENTITY)>=0){
+      setTimeout(function(){ try{ showTeam(IDENTITY); }catch(e){} }, 120);
+    }
+  }catch(e){}
 }
 if(document.readyState==='complete' || document.readyState==='interactive'){
   setTimeout(initV91, 400);
