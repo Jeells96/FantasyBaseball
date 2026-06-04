@@ -2197,39 +2197,69 @@ function showActivityLog(){ showPage('activity'); setNav('nav-activity'); render
 function renderActivityLog(){
   var el=document.getElementById('activityLogBody');
   if(!el) return;
-  // Map raw log categories to the public-facing filter groups.
   function group(cat){
     if(cat==='roster'||cat==='fetch') return 'roster';
     if(cat==='trade') return 'trade';
     if(cat==='deadcap'||cat==='cut') return 'cut';
+    if(cat==='contract') return 'contract';
     return 'other';
   }
-  var src = (window.ACTION_LOG||ACTION_LOG||[]).filter(function(e){
-    var g=group(e.cat);
-    // Surface only league-relevant categories on this public page.
-    if(g==='other' && !(e.cat==='contract')) return false;
-    if(_activityFilter==='all') return true;
-    return g===_activityFilter;
-  });
-  if(!src.length){ el.innerHTML='<div class="empty-state"><span class="empty-state-icon">\uD83D\uDCCB</span>No activity yet. Adds, drops, trades, and cuts will show up here.</div>'; return; }
-  var catStyle={
-    roster:['Add/Drop','#4b8fe8','rgba(75,143,232,.12)'],
-    fetch:['ESPN Sync','#94a3b8','rgba(148,163,184,.12)'],
-    trade:['Trade','#e8c84b','rgba(232,200,75,.12)'],
-    deadcap:['Cut \u2014 Penalty','#e84b4b','rgba(232,75,75,.12)'],
-    cut:['Cut','#f59e0b','rgba(245,158,11,.12)'],
-    contract:['Contract','#22c55e','rgba(34,197,94,.12)']
+  // V28.5.92: translate a raw log entry into a clean, human-readable line for
+  // this public page. The raw debug log (Settings) is left untouched. Returns
+  // null for entries that are purely internal/diagnostic so they're hidden.
+  function friendly(e){
+    var m = String(e.msg||'');
+    // Drops / cuts -------------------------------------------------------
+    var mDrop = m.match(/Detected drop:\s*(.+?)\s+from\s+(.+?)(?:\s*$|,)/);
+    if(mDrop){ return {kind:'cut', text:mDrop[1]+' was dropped by '+mDrop[2]}; }
+    // Dead-cap penalty applied
+    var mDc = m.match(/DEAD_CAP\[(.+?)\]\.push\(\)\s*\u2192\s*(.+?)\s*$/);
+    if(mDc){
+      var hit = (e.data && e.data.hit!=null) ? (' \u2014 $'+Number(e.data.hit).toFixed(1)+'M dead-cap penalty') : ' \u2014 dead-cap penalty applied';
+      return {kind:'cut-pen', text:mDc[2]+' cut by '+mDc[1]+hit};
+    }
+    // Trades -------------------------------------------------------------
+    if(e.cat==='trade'){ return {kind:'trade', text:m}; }
+    // Contracts ----------------------------------------------------------
+    if(e.cat==='contract'){
+      if(e.data && e.data.player){
+        if(/=\s*null|delete CONTRACTS/.test(m)) return {kind:'contract', text:'Contract removed for '+e.data.player};
+        return {kind:'contract', text:'Contract updated for '+e.data.player};
+      }
+      if(/ARB sweep|advanceSeason/.test(m)) return null; // internal bookkeeping
+      return null;
+    }
+    // Season ops & everything diagnostic --------------------------------
+    if(/running|Gate check|Skipped|snapshot|saveRosterSnapshot|refreshRosters|wipeContracts|clearDeadCapEntry|toggleContractsLocked/.test(m)) return null;
+    // Whole-league admin events worth showing
+    if(/Cleared all contracts/.test(m)) return {kind:'admin', text:'Commissioner cleared all contracts, dead-cap, and trades'};
+    return null;
+  }
+  var rows = (window.ACTION_LOG||ACTION_LOG||[]).map(function(e){
+    var f = friendly(e);
+    if(!f) return null;
+    var g = group(e.cat);
+    if(_activityFilter!=='all' && g!==_activityFilter) return null;
+    return {e:e, f:f};
+  }).filter(Boolean);
+  if(!rows.length){ el.innerHTML='<div class="empty-state"><span class="empty-state-icon">\uD83D\uDCCB</span>No activity yet. Adds, drops, trades, and cuts will show up here.</div>'; return; }
+  var kindStyle={
+    'cut':['Cut','#f59e0b','rgba(245,158,11,.12)'],
+    'cut-pen':['Cut \u2014 Penalty','#e84b4b','rgba(232,75,75,.12)'],
+    'trade':['Trade','#e8c84b','rgba(232,200,75,.12)'],
+    'contract':['Contract','#22c55e','rgba(34,197,94,.12)'],
+    'admin':['League','#a855f7','rgba(168,85,247,.12)']
   };
-  el.innerHTML = src.slice().reverse().slice(0,250).map(function(e){
-    var dt=new Date(e.t);
+  el.innerHTML = rows.slice().reverse().slice(0,250).map(function(r){
+    var dt=new Date(r.e.t);
     var time=dt.toLocaleDateString([],{month:'short',day:'numeric'})+' '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    var cs=catStyle[e.cat]||['Update','#94a3b8','rgba(148,163,184,.12)'];
+    var cs=kindStyle[r.f.kind]||['Update','#94a3b8','rgba(148,163,184,.12)'];
     return '<div class="act-row">'+
       '<div class="act-row-top">'+
         '<span class="act-cat" style="color:'+cs[1]+';background:'+cs[2]+'">'+cs[0]+'</span>'+
         '<span class="act-time">'+time+'</span>'+
       '</div>'+
-      '<div class="act-msg">'+String(e.msg||'').replace(/</g,'&lt;')+'</div>'+
+      '<div class="act-msg">'+String(r.f.text||'').replace(/</g,'&lt;')+'</div>'+
     '</div>';
   }).join('');
 }
@@ -5285,7 +5315,6 @@ function updateTradesDisplay(tn){
   section.id='tradesSection';
   section.innerHTML='<div class="trades-title-row">'+
     '<div class="trades-title">Salary Trades</div>'+
-    '<button class="trade-add-btn" onclick="openTradeModal(null,\''+tn.replace(/\'/g,"\\'")+'\')">+ Add Trade</button>'+
     '</div>';
   if(!trades.length){
     section.innerHTML+='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.65rem;color:#6b7280;padding:.4rem 0;letter-spacing:.5px">No salary trades</div>';
@@ -8298,12 +8327,37 @@ function ptIncludeSalaryTrade(){
   if(!a || !b || a===b){ if(typeof showToast==='function') showToast('Pick two different teams first','red',2200); return; }
   if(typeof openTradeModal!=='function'){ if(typeof showToast==='function') showToast('Salary trade unavailable','red',2200); return; }
   _ptSalaryLinkPending = true;
-  // Keep the offer modal underneath; the salary modal stacks on top.
   openTradeModal(null, a);
+  // Stack the salary window ON TOP of the still-open offer composer.
+  try{ var sm=document.getElementById('tradeModal'); if(sm){ sm.style.zIndex='700'; } }catch(e){}
   // Prefer the other offer team as the salary counterparty.
   try{ var sel=document.getElementById('tradeOtherTeam'); if(sel){ sel.value=b; } }catch(e){}
 }
 window.ptIncludeSalaryTrade = ptIncludeSalaryTrade;
+
+// When the salary window closes by ANY path (Cancel, Delete, outside-click, or
+// Save) while it was raised over an offer, restore its stacking and bring the
+// offer composer back to the front. Wraps closeModal once.
+(function(){
+  function wrapClose(){
+    if(typeof window.closeModal!=='function'){ setTimeout(wrapClose,300); return; }
+    if(window.closeModal.__v92salaryLayer) return;
+    var orig = window.closeModal;
+    window.closeModal = function(id){
+      orig(id);
+      if(id==='tradeModal'){
+        try{ var sm=document.getElementById('tradeModal'); if(sm){ sm.style.zIndex=''; } }catch(e){}
+        if(_ptSalaryLinkPending){
+          // Closed without saving — drop the pending link, re-show the offer.
+          _ptSalaryLinkPending = false;
+          try{ openModal('proposeTradeModal'); }catch(e){}
+        }
+      }
+    };
+    window.closeModal.__v92salaryLayer = true;
+  }
+  wrapClose();
+})();
 
 // Wrap saveTradeModal so a salary trade created from within an offer records its
 // id, and the offer's note reflects that cash is attached. The original salary
@@ -8316,6 +8370,8 @@ window.ptIncludeSalaryTrade = ptIncludeSalaryTrade;
       var before = (typeof TRADES!=='undefined' && TRADES) ? TRADES.length : 0;
       var prevIds = (typeof TRADES!=='undefined' && TRADES) ? TRADES.map(function(t){return t.id;}) : [];
       orig.apply(this, arguments);
+      // Restore the salary modal's normal stacking level.
+      try{ var sm=document.getElementById('tradeModal'); if(sm){ sm.style.zIndex=''; } }catch(e){}
       if(_ptSalaryLinkPending){
         try{
           // Identify the trade just added/edited.
@@ -8327,7 +8383,7 @@ window.ptIncludeSalaryTrade = ptIncludeSalaryTrade;
           if(noteEl && noteEl.value.indexOf('[+ salary trade]')<0){ noteEl.value = (noteEl.value ? noteEl.value+' ' : '') + '[+ salary trade]'; }
         }catch(e){}
         _ptSalaryLinkPending = false;
-        // Re-surface the offer composer.
+        // Re-surface the offer composer (it was underneath).
         try{ openModal('proposeTradeModal'); }catch(e){}
       }
     };
