@@ -990,7 +990,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.94</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.95</span></span>
     <div style="display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem">
       <button class="nav-ident" id="navIdentityBtn" onclick="openIdentityPicker()" title="Who are you?" style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#94a3b8;background:#181c24;border:1px solid #252a35;border-radius:8px;padding:.32rem .55rem;cursor:pointer;-webkit-appearance:none;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis">I am …</button>
       <button class="nav-inbox" id="navInboxBtn" onclick="openTradeInbox()" title="Trade offers" style="position:relative;font-size:1.05rem;line-height:1;padding:.4rem .55rem;background:#181c24;border:1px solid #252a35;border-radius:8px;color:#94a3b8;cursor:pointer;-webkit-appearance:none">&#128233;<span id="navInboxBadge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;line-height:16px;text-align:center;font-family:'DM Mono',monospace;font-size:.6rem;font-weight:600;color:#0a0c10;background:#e84b4b;border-radius:9px;padding:0 3px"></span></button>
@@ -7966,7 +7966,8 @@ function updateInboxBadge(){
 function resolveIfBothAccepted(t){
   if(t.status!=='pending') return;
   if(!(t.acceptedFrom && t.acceptedTo)) return;
-  // Transfer picks immediately (both directions).
+  var bothTeams = [t.fromTeam, t.toTeam];
+  var hasPicks = ((t.give.picks||[]).length + (t.get.picks||[]).length) > 0;
   (t.give.picks||[]).forEach(function(p){ movePick(p.season, p.round, p.originalTeam, t.toTeam); });
   (t.get.picks||[]).forEach(function(p){ movePick(p.season, p.round, p.originalTeam, t.fromTeam); });
   saveDraftPicksOwned();
@@ -7981,6 +7982,13 @@ function resolveIfBothAccepted(t){
     if(typeof showToast==='function') showToast('\u2713 Pick trade complete','green',3000);
   }
   t.updated = Date.now();
+  // V28.5.95: refresh BOTH teams' sections so the trade shows on either page.
+  refreshTeamTradeSection(bothTeams);
+  // If picks transferred, also refresh the draft board display.
+  if(hasPicks){
+    try{ if(typeof renderDraftOrderStrip==='function') renderDraftOrderStrip(); }catch(e){}
+    try{ if(typeof buildDraftPage==='function'){ var pd=document.getElementById('page-draft'); if(pd&&pd.classList.contains('active')) buildDraftPage(); } }catch(e){}
+  }
 }
 
 // V28.5.92: when an offer COMPLETES, write any attached salary terms into the
@@ -8035,6 +8043,7 @@ function rosterHas(team, name){
 // player-trade to 'completed' once both rosters reflect the swap.
 function checkTradeCompletion(){
   var changed = false;
+  var completedTrades = [];
   TRADE_REQUESTS.forEach(function(t){
     if(t.status==='accepted'){
       if(tradePlayersSettled(t)){
@@ -8043,11 +8052,18 @@ function checkTradeCompletion(){
         t.updated=Date.now();
         applyOfferSalaryToLedger(t);
         changed=true;
+        completedTrades.push(t);
         if(typeof showToast==='function') showToast('\u2713 Trade auto-completed: rosters match','green',3000);
       }
     }
   });
-  if(changed) saveTradeRequests();
+  if(changed){
+    saveTradeRequests();
+    // V28.5.95: refresh both teams for every completed trade.
+    completedTrades.forEach(function(t){
+      refreshTeamTradeSection([t.fromTeam, t.toTeam]);
+    });
+  }
   updateInboxBadge();
 }
 window.checkTradeCompletion = checkTradeCompletion;
@@ -8609,9 +8625,24 @@ function tradeShortLine(t){
   return esc(t.fromTeam)+': '+cnt(t.give)+' \u00b7 '+esc(t.toTeam)+': '+cnt(t.get);
 }
 
-function refreshTeamTradeSection(){
+function refreshTeamTradeSection(teamsToRefresh){
+  // V28.5.95: refresh ALL teams specified, not just currentTeam. On trade
+  // completion both fromTeam and toTeam are passed so both pages update.
   try{
-    if(typeof currentTeam!=='undefined' && currentTeam){
+    var targets = [];
+    if(Array.isArray(teamsToRefresh)){
+      targets = teamsToRefresh;
+    } else if(typeof currentTeam!=='undefined' && currentTeam){
+      targets = [currentTeam];
+    }
+    targets.forEach(function(tn){
+      if(typeof currentTeam!=='undefined' && currentTeam===tn){
+        updateDraftPicksDisplay(tn);
+        updateTradeRequestsDisplay(tn);
+      }
+    });
+    // If no specific team matches but we're on a team page, refresh it anyway.
+    if(!targets.length && typeof currentTeam!=='undefined' && currentTeam){
       updateDraftPicksDisplay(currentTeam);
       updateTradeRequestsDisplay(currentTeam);
     }
