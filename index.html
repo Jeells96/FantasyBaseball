@@ -7810,6 +7810,7 @@ window.v92MakeCollapsible = v92MakeCollapsible;
 // ---- state ----
 var IDENTITY = null;
 try{ IDENTITY = localStorage.getItem(LS_IDENTITY) || null; }catch(e){ IDENTITY = null; }
+console.log('[DYN] identity loaded from localStorage: '+IDENTITY);
 window.IDENTITY = IDENTITY;
 
 // DRAFT_PICKS_OWNED: overrides for traded picks.
@@ -8094,6 +8095,7 @@ function setIdentity(tn){
   // yet (first-time pick) so onboarding isn't blocked.
   var IDENTITY_PIN = '5115';
   function apply(){
+    console.log('[DYN] setIdentity applying: '+tn+' (was: '+IDENTITY+')');
     IDENTITY = tn;
     saveIdentity();
     refreshIdentityBadge();
@@ -8109,9 +8111,9 @@ function setIdentity(tn){
   else if(typeof showToast==='function') showToast('Wrong PIN','red',2000);
 }
 function ensureIdentity(){
+  console.log('[DYN] ensureIdentity — IDENTITY='+IDENTITY);
   if(!IDENTITY){
-    // Defer so the rest of the app finishes booting first.
-    setTimeout(function(){ if(!IDENTITY) openIdentityPicker(); }, 800);
+    setTimeout(function(){ if(!IDENTITY){ console.log('[DYN] no identity set, opening picker'); openIdentityPicker(); } }, 800);
   }
   refreshIdentityBadge();
 }
@@ -8567,44 +8569,53 @@ function updateDraftPicksDisplay(tn){
   v92AppendToTeamBottom(section);
 }
 
-function _v96UpdateTradeReqs(tn, wasOpen){
-  try{
-    var hdr=document.querySelector('.team-hdr'); if(!hdr) return;
-    var ex=document.getElementById('tradeReqSection'); if(ex) ex.remove();
-    var me=window.IDENTITY||null;
-    var rel=TRADE_REQUESTS.filter(function(t){
-      if(!(t.fromTeam===tn||t.toTeam===tn)) return false;
-      if(!(t.status==='pending'||t.status==='accepted')) return false;
-      if(!me) return false;
-      return (t.fromTeam===me||t.toTeam===me);
-    }).sort(function(a,b){return (b.updated||b.created||0)-(a.updated||a.created||0);});
-    var section=document.createElement('div'); section.className='trades-section'; section.id='tradeReqSection';
-    var head='<div class="trades-title-row"><div class="trades-title">Trade Offers</div><button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button></div>';
-    var body='';
-    if(!rel.length){
-      var msg=me?'No active offers':'Private \u2014 set who you are to see offers';
-      body='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.65rem;color:#6b7280;padding:.4rem 0;letter-spacing:.5px">'+msg+'</div>';
-    } else {
-      body=rel.map(function(t){
-        return '<div class="trade-card" onclick="openTradeInbox()">'+
-          '<div class="trade-card-top"><div class="trade-card-dir">'+esc(t.fromTeam)+' \u2194 '+esc(t.toTeam)+'</div>'+statusPill(t)+'</div>'+
-          '<div style="font-family:\'DM Mono\',monospace;font-size:.62rem;color:#6b7280;margin-top:.25rem">'+tradeShortLine(t)+'</div>'+
-        '</div>';
-      }).join('');
-    }
-    section.innerHTML=head+body;
-    var needsMe=rel.filter(function(t){
-      if(t.status!=='pending') return false;
-      if(t.toTeam===me&&!t.acceptedTo) return true;
-      if(t.fromTeam===me&&!t.acceptedFrom) return true;
-      return false;
-    }).length;
-    var actionBtn='<button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button>';
-    v92MakeCollapsible(section,{title:'Trade Offers',alert:needsMe>0,count:rel.length,action:actionBtn});
-    if(wasOpen) section.classList.add('open');
-    var anchor=document.getElementById('deadCapSection')||document.getElementById('penaltyBadge')||hdr;
-    anchor.parentNode.insertBefore(section,anchor.nextSibling);
-  }catch(e){}
+function updateTradeRequestsDisplay(tn){
+  var hdr = document.querySelector('.team-hdr');
+  if(!hdr) return;
+  var existing = document.getElementById('tradeReqSection');
+  var wasOpen = existing && existing.classList.contains('open');
+  if(existing) existing.remove();
+  var me = window.IDENTITY || null;
+  console.log('[DYN] updateTradeRequestsDisplay('+tn+') me='+me+' TRADE_REQUESTS='+TRADE_REQUESTS.length);
+  var rel = TRADE_REQUESTS.filter(function(t){
+    if(!(t.fromTeam===tn || t.toTeam===tn)) return false;
+    if(!(t.status==='pending' || t.status==='accepted')) return false;
+    if(!me) return false;
+    return (t.fromTeam===me || t.toTeam===me);
+  }).sort(function(a,b){ return (b.updated||b.created||0)-(a.updated||a.created||0); });
+  console.log('[DYN] rel.length='+rel.length+' wasOpen='+wasOpen);
+  var section = document.createElement('div');
+  section.className = 'trades-section';
+  section.id = 'tradeReqSection';
+  var head = '<div class="trades-title-row"><div class="trades-title">Trade Offers</div>'+
+    '<button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button></div>';
+  var body = '';
+  if(!rel.length){
+    var msg = me ? 'No active offers' : 'Private \u2014 set who you are to see offers';
+    body = '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.65rem;color:#6b7280;padding:.4rem 0;letter-spacing:.5px">'+msg+'</div>';
+  } else {
+    body = rel.map(function(t){
+      return '<div class="trade-card" onclick="openTradeInbox()">'+
+        '<div class="trade-card-top">'+
+          '<div class="trade-card-dir">'+esc(t.fromTeam)+' \u2194 '+esc(t.toTeam)+'</div>'+
+          statusPill(t)+
+        '</div>'+
+        '<div style="font-family:\'DM Mono\',monospace;font-size:.62rem;color:#6b7280;margin-top:.25rem">'+tradeShortLine(t)+'</div>'+
+      '</div>';
+    }).join('');
+  }
+  section.innerHTML = head + body;
+  var needsMe = rel.filter(function(t){
+    if(t.status!=='pending') return false;
+    if(t.toTeam===me && !t.acceptedTo) return true;
+    if(t.fromTeam===me && !t.acceptedFrom) return true;
+    return false;
+  }).length;
+  var actionBtn = '<button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button>';
+  v92MakeCollapsible(section, {title:'Trade Offers', alert:needsMe>0, count:rel.length, action:actionBtn});
+  if(wasOpen) section.classList.add('open');
+  var anchor = document.getElementById('deadCapSection') || document.getElementById('penaltyBadge') || hdr;
+  anchor.parentNode.insertBefore(section, anchor.nextSibling);
 }
 
 function tradeShortLine(t){
@@ -8612,54 +8623,22 @@ function tradeShortLine(t){
   return esc(t.fromTeam)+': '+cnt(t.give)+' \u00b7 '+esc(t.toTeam)+': '+cnt(t.get);
 }
 
-var _refreshTradeTimer = null;
 function refreshTeamTradeSection(teamsToRefresh){
-  // V28.5.96: debounce — capture open state NOW before any rebuild, then
-  // coalesce rapid calls (poller + onSnapshot firing within ms of each other)
-  // into a single rebuild so wasOpen is always read from the live DOM.
-  var tradeSecOpen = !!(document.getElementById('tradeReqSection') && document.getElementById('tradeReqSection').classList.contains('open'));
-  var pickSecOpen  = !!(document.getElementById('draftPicksSection') && document.getElementById('draftPicksSection').classList.contains('open'));
-  var targets = Array.isArray(teamsToRefresh) ? teamsToRefresh : (typeof currentTeam!=='undefined' && currentTeam ? [currentTeam] : []);
-  if(_refreshTradeTimer) clearTimeout(_refreshTradeTimer);
-  _refreshTradeTimer = setTimeout(function(){
-    _refreshTradeTimer = null;
-    try{
-      var toUpdate = targets.length ? targets : (typeof currentTeam!=='undefined' && currentTeam ? [currentTeam] : []);
-      toUpdate.forEach(function(tn){
-        if(typeof currentTeam!=='undefined' && currentTeam===tn){
-          // Pass captured open state directly to avoid re-reading stale DOM.
-          _v96UpdatePicks(tn, pickSecOpen);
-          _v96UpdateTradeReqs(tn, tradeSecOpen);
-        }
-      });
-    }catch(e){}
-  }, 80);
-}
-// Internal wrappers that accept explicit wasOpen instead of reading DOM.
-function _v96UpdatePicks(tn, wasOpen){
+  console.log('[DYN] refreshTeamTradeSection — currentTeam='+currentTeam+' targets='+JSON.stringify(teamsToRefresh||null)+' TRADE_REQUESTS.length='+TRADE_REQUESTS.length);
   try{
-    var hdr=document.querySelector('.team-hdr'); if(!hdr) return;
-    var ex=document.getElementById('draftPicksSection'); if(ex) ex.remove();
-    var picks=picksControlledBy(tn);
-    var section=document.createElement('div'); section.className='trades-section'; section.id='draftPicksSection';
-    var body='';
-    if(!picks.length){ body='<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:.65rem;color:#6b7280;padding:.4rem 0;letter-spacing:.5px">No draft picks</div>'; }
-    else {
-      var bySeason={};
-      picks.forEach(function(p){ (bySeason[p.season]=bySeason[p.season]||[]).push(p); });
-      body=Object.keys(bySeason).sort().map(function(yr){
-        var chips=bySeason[yr].sort(function(a,b){return a.round-b.round;}).map(function(p){
-          var traded=(p.originalTeam!==tn);
-          return '<span style="display:-webkit-inline-flex;display:inline-flex;-webkit-align-items:center;align-items:center;font-family:\'DM Mono\',monospace;font-size:.68rem;color:'+(traded?'#9fc3ff':'#e2e8f0')+';background:'+(traded?'rgba(75,143,232,.1)':'#181c24')+';border:1px solid '+(traded?'rgba(75,143,232,.3)':'#252a35')+';border-radius:6px;padding:.18rem .45rem;margin:.15rem .3rem .15rem 0">'+esc(p.label)+(traded?' <span style="color:#6b7280;font-size:.6rem;margin-left:.25rem">via '+esc(p.originalTeam)+'</span>':'')+'</span>';
-        }).join('');
-        return '<div style="margin-bottom:.3rem"><span style="font-family:\'Barlow Condensed\',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:1px;color:#6b7280;margin-right:.4rem">'+esc(yr)+'</span>'+chips+'</div>';
-      }).join('');
+    var targets = Array.isArray(teamsToRefresh) ? teamsToRefresh : (typeof currentTeam!=='undefined' && currentTeam ? [currentTeam] : []);
+    targets.forEach(function(tn){
+      if(typeof currentTeam!=='undefined' && currentTeam===tn){
+        console.log('[DYN] rebuilding sections for: '+tn);
+        updateDraftPicksDisplay(tn);
+        updateTradeRequestsDisplay(tn);
+      }
+    });
+    if(!targets.length && typeof currentTeam!=='undefined' && currentTeam){
+      updateDraftPicksDisplay(currentTeam);
+      updateTradeRequestsDisplay(currentTeam);
     }
-    section.innerHTML='<div class="trades-title-row"><div class="trades-title">Draft Picks</div></div>'+body;
-    v92MakeCollapsible(section,{title:'Draft Picks',count:picks.length});
-    if(wasOpen) section.classList.add('open');
-    v92AppendToTeamBottom(section);
-  }catch(e){}
+  }catch(e){ console.warn('[DYN] refreshTeamTradeSection error',e); }
 }
 window.updateDraftPicksDisplay = updateDraftPicksDisplay;
 window.updateTradeRequestsDisplay = updateTradeRequestsDisplay;
@@ -8754,6 +8733,7 @@ function startV91Listeners(){
         try{
           var arr = JSON.parse(snap.data().data);
           if(JSON.stringify(arr)===JSON.stringify(TRADE_REQUESTS)) return;
+          console.log('[DYN] Firebase snapshot: TRADE_REQUESTS changed — old='+TRADE_REQUESTS.length+' new='+(Array.isArray(arr)?arr.length:'?')+' IDENTITY='+IDENTITY);
           TRADE_REQUESTS = Array.isArray(arr)?arr:[];
           window.TRADE_REQUESTS = TRADE_REQUESTS;
           try{ localStorage.setItem(LS_TRADE_REQS, JSON.stringify(TRADE_REQUESTS)); }catch(e){}
@@ -8803,6 +8783,7 @@ function startV91Polling(){
     try{
       var sr = JSON.parse(localStorage.getItem(LS_TRADE_REQS)||'[]');
       if(JSON.stringify(sr)!==JSON.stringify(TRADE_REQUESTS)){
+        console.log('[DYN] poller: TRADE_REQUESTS changed — old='+TRADE_REQUESTS.length+' new='+sr.length+' IDENTITY='+IDENTITY);
         TRADE_REQUESTS = Array.isArray(sr)?sr:[];
         window.TRADE_REQUESTS = TRADE_REQUESTS;
         updateInboxBadge();
@@ -8822,19 +8803,21 @@ function startV91Polling(){
 
 // ════════ LAUNCH INIT ════════
 function initV91(){
+  console.log('[DYN] initV91 start — IDENTITY='+IDENTITY+' teams='+JSON.stringify(teamList()));
   patchShowTeamForV91();
   patchSaveTeamNamesForV91();
   ensureIdentity();
   updateInboxBadge();
   startV91Listeners();
   startV91Polling();
-  // V28.5.92: if identity is already set, open that team's page by default
-  // instead of the League page. One-time, on boot only.
   try{
     if(IDENTITY && typeof showTeam==='function' && teamList().indexOf(IDENTITY)>=0){
-      setTimeout(function(){ try{ showTeam(IDENTITY); }catch(e){} }, 120);
+      console.log('[DYN] auto-launching team page for: '+IDENTITY);
+      setTimeout(function(){ try{ showTeam(IDENTITY); console.log('[DYN] showTeam('+IDENTITY+') called'); }catch(e){ console.warn('[DYN] showTeam failed',e); } }, 120);
+    } else {
+      console.log('[DYN] no auto-launch — IDENTITY='+IDENTITY+' inTeamList='+(teamList().indexOf(IDENTITY)>=0));
     }
-  }catch(e){}
+  }catch(e){ console.warn('[DYN] auto-launch error',e); }
 }
 if(document.readyState==='complete' || document.readyState==='interactive'){
   setTimeout(initV91, 400);
