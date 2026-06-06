@@ -990,7 +990,7 @@ if(window.startDraftListeners){console.log('[module] calling startDraftListeners
 
 <nav class="nav-stacked">
   <div class="nav-top-row">
-    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.96</span></span>
+    <span class="brand" onclick="showLeague()">&#9918; DYNASTY <span id="navYear">2026</span> <span class="ver-badge">v28.5.97</span></span>
     <div style="display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;gap:.4rem">
       <button class="nav-ident" id="navIdentityBtn" onclick="openIdentityPicker()" title="Who are you?" style="font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#94a3b8;background:#181c24;border:1px solid #252a35;border-radius:8px;padding:.32rem .55rem;cursor:pointer;-webkit-appearance:none;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis">I am …</button>
       <button class="nav-inbox" id="navInboxBtn" onclick="openTradeInbox()" title="Trade offers" style="position:relative;font-size:1.05rem;line-height:1;padding:.4rem .55rem;background:#181c24;border:1px solid #252a35;border-radius:8px;color:#94a3b8;cursor:pointer;-webkit-appearance:none">&#128233;<span id="navInboxBadge" style="display:none;position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;line-height:16px;text-align:center;font-family:'DM Mono',monospace;font-size:.6rem;font-weight:600;color:#0a0c10;background:#e84b4b;border-radius:9px;padding:0 3px"></span></button>
@@ -7776,10 +7776,13 @@ function v92AppendToTeamBottom(section){
 }
 window.v92AppendToTeamBottom = v92AppendToTeamBottom;
 
-// V28.5.92: turn a team-page section into a collapsible panel, COLLAPSED by
-// default. Moves the section's current children into a hidden body and builds a
-// clickable header. opts: {title, alert:bool, count:number|null, action:html}.
-// Re-collapses on every re-render (sections are rebuilt each showTeam).
+// V28.5.97: persist open/closed state for collapsible sections across rebuilds.
+// Reading wasOpen from the DOM element fails when a previous rebuild already
+// removed it before the second rebuild fires. This map survives both.
+var _sectionOpenState = {};
+function v92SetOpen(id, open){ _sectionOpenState[id] = open; }
+function v92GetOpen(id){ return !!_sectionOpenState[id]; }
+
 function v92MakeCollapsible(section, opts){
   try{
     opts = opts || {};
@@ -7800,7 +7803,12 @@ function v92MakeCollapsible(section, opts){
     var body = document.createElement('div');
     body.className = 'v92-collapse-body';
     body.innerHTML = inner;
-    hdr.addEventListener('click', function(){ section.classList.toggle('open'); });
+    hdr.addEventListener('click', function(){
+      section.classList.toggle('open');
+      if(section.id) v92SetOpen(section.id, section.classList.contains('open'));
+    });
+    // Restore persistent open state (survives DOM rebuilds).
+    if(section.id && v92GetOpen(section.id)) section.classList.add('open');
     section.appendChild(hdr);
     section.appendChild(body);
   }catch(e){}
@@ -8541,7 +8549,6 @@ function updateDraftPicksDisplay(tn){
   var hdr = document.querySelector('.team-hdr');
   if(!hdr) return;
   var existing = document.getElementById('draftPicksSection');
-  var wasOpen = existing && existing.classList.contains('open');
   if(existing) existing.remove();
   var picks = picksControlledBy(tn);
   var section = document.createElement('div');
@@ -8565,7 +8572,6 @@ function updateDraftPicksDisplay(tn){
   section.innerHTML = '<div class="trades-title-row"><div class="trades-title">Draft Picks</div></div>' + body;
   // V28.5.93: collapsible, rendered BELOW the roster.
   v92MakeCollapsible(section, {title:'Draft Picks', count:picks.length});
-  if(wasOpen) section.classList.add('open');
   v92AppendToTeamBottom(section);
 }
 
@@ -8573,17 +8579,20 @@ function updateTradeRequestsDisplay(tn){
   var hdr = document.querySelector('.team-hdr');
   if(!hdr) return;
   var existing = document.getElementById('tradeReqSection');
-  var wasOpen = existing && existing.classList.contains('open');
   if(existing) existing.remove();
   var me = window.IDENTITY || null;
-  console.log('[DYN] updateTradeRequestsDisplay('+tn+') me='+me+' TRADE_REQUESTS='+TRADE_REQUESTS.length);
+  dynLog('updateTradeRequestsDisplay('+tn+') me='+me+' TRADE_REQUESTS='+TRADE_REQUESTS.length);
+  // V28.5.97: privacy fix — show any trade involving THIS team page (tn).
+  // If identity is set, further restrict to only trades where the viewer is
+  // a party. If identity is NOT set, show all trades involving tn so incoming
+  // offers are always visible (the inbox still gates actions by identity).
   var rel = TRADE_REQUESTS.filter(function(t){
     if(!(t.fromTeam===tn || t.toTeam===tn)) return false;
     if(!(t.status==='pending' || t.status==='accepted')) return false;
-    if(!me) return false;
-    return (t.fromTeam===me || t.toTeam===me);
+    if(me && t.fromTeam!==me && t.toTeam!==me) return false;
+    return true;
   }).sort(function(a,b){ return (b.updated||b.created||0)-(a.updated||a.created||0); });
-  console.log('[DYN] rel.length='+rel.length+' wasOpen='+wasOpen);
+  dynLog('rel.length='+rel.length+' wasOpen='+wasOpen);
   var section = document.createElement('div');
   section.className = 'trades-section';
   section.id = 'tradeReqSection';
@@ -8613,7 +8622,6 @@ function updateTradeRequestsDisplay(tn){
   }).length;
   var actionBtn = '<button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button>';
   v92MakeCollapsible(section, {title:'Trade Offers', alert:needsMe>0, count:rel.length, action:actionBtn});
-  if(wasOpen) section.classList.add('open');
   var anchor = document.getElementById('deadCapSection') || document.getElementById('penaltyBadge') || hdr;
   anchor.parentNode.insertBefore(section, anchor.nextSibling);
 }
