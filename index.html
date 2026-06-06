@@ -7782,6 +7782,13 @@ window.v92AppendToTeamBottom = v92AppendToTeamBottom;
 var _sectionOpenState = {};
 function v92SetOpen(id, open){ _sectionOpenState[id] = open; }
 function v92GetOpen(id){ return !!_sectionOpenState[id]; }
+// dynLog: pipes to browser console AND the in-app activity log so [DYN] trace
+// messages appear in Settings → View Activity Log.
+function dynLog(msg){
+  dynLog(''+msg);
+  try{ if(typeof logAction==='function') logAction('debug','[DYN] '+msg); }catch(e){}
+}
+window.dynLog = dynLog;
 
 function v92MakeCollapsible(section, opts){
   try{
@@ -7811,14 +7818,14 @@ function v92MakeCollapsible(section, opts){
     if(section.id && v92GetOpen(section.id)) section.classList.add('open');
     section.appendChild(hdr);
     section.appendChild(body);
-  }catch(e){ console.error('[DYN] v92MakeCollapsible error for '+((section&&section.id)||'?')+':',e); }
+  }catch(e){ dynLog('v92MakeCollapsible error for '+((section&&section.id)||'?')+':',e); }
 }
 window.v92MakeCollapsible = v92MakeCollapsible;
 
 // ---- state ----
 var IDENTITY = null;
 try{ IDENTITY = localStorage.getItem(LS_IDENTITY) || null; }catch(e){ IDENTITY = null; }
-console.log('[DYN] identity loaded from localStorage: '+IDENTITY);
+dynLog('identity loaded from localStorage: '+IDENTITY);
 window.IDENTITY = IDENTITY;
 
 // DRAFT_PICKS_OWNED: overrides for traded picks.
@@ -8103,7 +8110,7 @@ function setIdentity(tn){
   // yet (first-time pick) so onboarding isn't blocked.
   var IDENTITY_PIN = '5115';
   function apply(){
-    console.log('[DYN] setIdentity applying: '+tn+' (was: '+IDENTITY+')');
+    dynLog('setIdentity applying: '+tn+' (was: '+IDENTITY+')');
     IDENTITY = tn;
     saveIdentity();
     refreshIdentityBadge();
@@ -8119,9 +8126,9 @@ function setIdentity(tn){
   else if(typeof showToast==='function') showToast('Wrong PIN','red',2000);
 }
 function ensureIdentity(){
-  console.log('[DYN] ensureIdentity — IDENTITY='+IDENTITY);
+  dynLog('ensureIdentity — IDENTITY='+IDENTITY);
   if(!IDENTITY){
-    setTimeout(function(){ if(!IDENTITY){ console.log('[DYN] no identity set, opening picker'); openIdentityPicker(); } }, 800);
+    setTimeout(function(){ if(!IDENTITY){ dynLog('no identity set, opening picker'); openIdentityPicker(); } }, 800);
   }
   refreshIdentityBadge();
 }
@@ -8163,6 +8170,7 @@ function statusPill(t){
 function renderTradeInbox(){
   var el = document.getElementById('tradeInboxBody');
   if(!el) return;
+  dynLog('renderTradeInbox — IDENTITY='+IDENTITY+' TRADE_REQUESTS='+TRADE_REQUESTS.length);
   var sub = document.getElementById('tradeInboxSub');
   if(!IDENTITY){
     el.innerHTML = '<div class="empty-state"><span class="empty-state-icon">\uD83D\uDC64</span>Set who you are first (top bar) to see your offers.</div>';
@@ -8211,10 +8219,10 @@ function renderTradeInbox(){
 }
 
 function openTradeInbox(){
+  dynLog('openTradeInbox — IDENTITY='+IDENTITY+' TRADE_REQUESTS='+TRADE_REQUESTS.length);
   renderTradeInbox();
   openModal('tradeInboxModal');
 }
-window.openTradeInbox = openTradeInbox;
 
 // ---- accept / decline / cancel ----
 function tradeAccept(id){
@@ -8623,7 +8631,7 @@ function updateTradeRequestsDisplay(tn){
   var actionBtn = '<button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button>';
   v92MakeCollapsible(section, {title:'Trade Offers', alert:needsMe>0, count:rel.length, action:actionBtn});
   var anchor = document.getElementById('deadCapSection') || document.getElementById('penaltyBadge') || hdr;
-  console.log('[DYN] inserting tradeReqSection after anchor:'+(anchor&&anchor.id||anchor&&anchor.className||'?')+' rel='+rel.length+' sectionHTML.len='+section.innerHTML.length);
+  dynLog('inserting tradeReqSection after anchor:'+(anchor&&anchor.id||anchor&&anchor.className||'?')+' rel='+rel.length+' sectionHTML.len='+section.innerHTML.length);
   anchor.parentNode.insertBefore(section, anchor.nextSibling);
 }
 
@@ -8633,12 +8641,12 @@ function tradeShortLine(t){
 }
 
 function refreshTeamTradeSection(teamsToRefresh){
-  console.log('[DYN] refreshTeamTradeSection — currentTeam='+currentTeam+' targets='+JSON.stringify(teamsToRefresh||null)+' TRADE_REQUESTS.length='+TRADE_REQUESTS.length);
+  dynLog('refreshTeamTradeSection — currentTeam='+currentTeam+' targets='+JSON.stringify(teamsToRefresh||null)+' TRADE_REQUESTS.length='+TRADE_REQUESTS.length);
   try{
     var targets = Array.isArray(teamsToRefresh) ? teamsToRefresh : (typeof currentTeam!=='undefined' && currentTeam ? [currentTeam] : []);
     targets.forEach(function(tn){
       if(typeof currentTeam!=='undefined' && currentTeam===tn){
-        console.log('[DYN] rebuilding sections for: '+tn);
+        dynLog('rebuilding sections for: '+tn);
         updateDraftPicksDisplay(tn);
         updateTradeRequestsDisplay(tn);
       }
@@ -8647,7 +8655,7 @@ function refreshTeamTradeSection(teamsToRefresh){
       updateDraftPicksDisplay(currentTeam);
       updateTradeRequestsDisplay(currentTeam);
     }
-  }catch(e){ console.warn('[DYN] refreshTeamTradeSection error',e); }
+  }catch(e){ dynLog('refreshTeamTradeSection error',e); }
 }
 window.updateDraftPicksDisplay = updateDraftPicksDisplay;
 window.updateTradeRequestsDisplay = updateTradeRequestsDisplay;
@@ -8742,7 +8750,7 @@ function startV91Listeners(){
         try{
           var arr = JSON.parse(snap.data().data);
           if(JSON.stringify(arr)===JSON.stringify(TRADE_REQUESTS)) return;
-          console.log('[DYN] Firebase snapshot: TRADE_REQUESTS changed — old='+TRADE_REQUESTS.length+' new='+(Array.isArray(arr)?arr.length:'?')+' IDENTITY='+IDENTITY);
+          dynLog('Firebase snapshot: TRADE_REQUESTS changed — old='+TRADE_REQUESTS.length+' new='+(Array.isArray(arr)?arr.length:'?')+' IDENTITY='+IDENTITY);
           TRADE_REQUESTS = Array.isArray(arr)?arr:[];
           window.TRADE_REQUESTS = TRADE_REQUESTS;
           try{ localStorage.setItem(LS_TRADE_REQS, JSON.stringify(TRADE_REQUESTS)); }catch(e){}
@@ -8792,7 +8800,7 @@ function startV91Polling(){
     try{
       var sr = JSON.parse(localStorage.getItem(LS_TRADE_REQS)||'[]');
       if(JSON.stringify(sr)!==JSON.stringify(TRADE_REQUESTS)){
-        console.log('[DYN] poller: TRADE_REQUESTS changed — old='+TRADE_REQUESTS.length+' new='+sr.length+' IDENTITY='+IDENTITY);
+        dynLog('poller: TRADE_REQUESTS changed — old='+TRADE_REQUESTS.length+' new='+sr.length+' IDENTITY='+IDENTITY);
         TRADE_REQUESTS = Array.isArray(sr)?sr:[];
         window.TRADE_REQUESTS = TRADE_REQUESTS;
         updateInboxBadge();
@@ -8812,7 +8820,7 @@ function startV91Polling(){
 
 // ════════ LAUNCH INIT ════════
 function initV91(){
-  console.log('[DYN] initV91 start — IDENTITY='+IDENTITY+' teams='+JSON.stringify(teamList()));
+  dynLog('initV91 start — IDENTITY='+IDENTITY+' teams='+JSON.stringify(teamList()));
   patchShowTeamForV91();
   patchSaveTeamNamesForV91();
   ensureIdentity();
@@ -8821,12 +8829,12 @@ function initV91(){
   startV91Polling();
   try{
     if(IDENTITY && typeof showTeam==='function' && teamList().indexOf(IDENTITY)>=0){
-      console.log('[DYN] auto-launching team page for: '+IDENTITY);
-      setTimeout(function(){ try{ showTeam(IDENTITY); console.log('[DYN] showTeam('+IDENTITY+') called'); }catch(e){ console.warn('[DYN] showTeam failed',e); } }, 120);
+      dynLog('auto-launching team page for: '+IDENTITY);
+      setTimeout(function(){ try{ showTeam(IDENTITY); dynLog('showTeam('+IDENTITY+') called'); }catch(e){ dynLog('showTeam failed',e); } }, 120);
     } else {
-      console.log('[DYN] no auto-launch — IDENTITY='+IDENTITY+' inTeamList='+(teamList().indexOf(IDENTITY)>=0));
+      dynLog('no auto-launch — IDENTITY='+IDENTITY+' inTeamList='+(teamList().indexOf(IDENTITY)>=0));
     }
-  }catch(e){ console.warn('[DYN] auto-launch error',e); }
+  }catch(e){ dynLog('auto-launch error',e); }
 }
 if(document.readyState==='complete' || document.readyState==='interactive'){
   setTimeout(initV91, 400);
