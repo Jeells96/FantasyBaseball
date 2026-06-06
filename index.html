@@ -7811,7 +7811,7 @@ function v92MakeCollapsible(section, opts){
     if(section.id && v92GetOpen(section.id)) section.classList.add('open');
     section.appendChild(hdr);
     section.appendChild(body);
-  }catch(e){}
+  }catch(e){ console.error('[DYN] v92MakeCollapsible error for '+((section&&section.id)||'?')+':',e); }
 }
 window.v92MakeCollapsible = v92MakeCollapsible;
 
@@ -8623,6 +8623,7 @@ function updateTradeRequestsDisplay(tn){
   var actionBtn = '<button class="trade-add-btn" onclick="openProposeTrade()">+ New Offer</button>';
   v92MakeCollapsible(section, {title:'Trade Offers', alert:needsMe>0, count:rel.length, action:actionBtn});
   var anchor = document.getElementById('deadCapSection') || document.getElementById('penaltyBadge') || hdr;
+  console.log('[DYN] inserting tradeReqSection after anchor:'+(anchor&&anchor.id||anchor&&anchor.className||'?')+' rel='+rel.length+' sectionHTML.len='+section.innerHTML.length);
   anchor.parentNode.insertBefore(section, anchor.nextSibling);
 }
 
